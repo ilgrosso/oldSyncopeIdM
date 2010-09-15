@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:p="http://www.springframework.org/schema/p"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:oxm="http://www.springframework.org/schema/oxm"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/context
+       http://www.springframework.org/schema/context/spring-context.xsd
+       http://www.springframework.org/schema/oxm
+       http://www.springframework.org/schema/oxm/spring-oxm.xsd
+       http://www.springframework.org/schema/tx
+       http://www.springframework.org/schema/tx/spring-tx.xsd">
+
+    <bean id="propertyConfigurer"
+          class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+        <property name="locations">
+            <list>
+                <value>/WEB-INF/classes/configuration.properties</value>
+            </list>
+        </property>
+    </bean>
+
+    <bean id="syncopeApplication" class="org.syncope.console.SyncopeApplication"/>
+
+    <bean id="jacksonObjectMapper" class="org.codehaus.jackson.map.ObjectMapper"/>
+        
+    <bean id="mappingJacksonHttpMessageConverter"
+          class="org.springframework.http.converter.json.MappingJacksonHttpMessageConverter">
+        <property name="objectMapper" ref="jacksonObjectMapper"/>
+    </bean>
+
+    <bean id="restTemplate" class="org.springframework.web.client.RestTemplate">
+        <property name="messageConverters" ref="mappingJacksonHttpMessageConverter"/>
+        <property name="errorHandler">
+            <bean id="syncopeClientErrorHandler"
+            class="org.syncope.client.validation.SyncopeClientErrorHandler"/>
+        </property>
+    </bean>
+
+    <bean id="restClient" class="org.syncope.console.rest.RestClient">
+        <property name="restTemplate" ref="restTemplate"/>
+        <property name="baseURL" value="${baseURL}"/>
+    </bean>
+
+    <bean id="schemaRestClient" class="org.syncope.console.rest.SchemaRestClient">
+        <property name="restClient" ref="restClient"/>
+    </bean>
+
+    <bean id="connectorsRestClient" class="org.syncope.console.rest.ConnectorsRestClient">
+        <property name="restClient" ref="restClient"/>
+    </bean>
+
+    <bean id="resourcesRestClient" class="org.syncope.console.rest.ResourcesRestClient">
+        <property name="restClient" ref="restClient"/>
+    </bean>
+
+    <bean id="usersRestClient" class="org.syncope.console.rest.UsersRestClient">
+        <property name="restClient" ref="restClient"/>
+    </bean>
+
+    <bean id="rolesRestClient" class="org.syncope.console.rest.RolesRestClient">
+        <property name="restClient" ref="restClient"/>
+    </bean>
+</beans>
