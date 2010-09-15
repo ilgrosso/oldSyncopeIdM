@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.syncope</groupId>
         <artifactId>syncope</artifactId>
-        <version>0.2-SNAPSHOT</version>
+        <version>0.1.4</version>
     </parent>
 
     <name>Syncope core</name>
@@ -401,6 +401,10 @@
                                     <includes>
                                         <include>*.jar</include>
                                     </includes>
+                                    <excludes>
+                                        <exclude>*-javadoc.jar</exclude>
+                                        <exclude>*-sources.jar</exclude>
+                                    </excludes>
                                 </resource>
                             </resources>
                         </configuration>
