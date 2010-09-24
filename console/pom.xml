@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.syncope</groupId>
         <artifactId>syncope</artifactId>
-        <version>0.2-SNAPSHOT</version>
+        <version>0.1.5</version>
     </parent>
 
     <name>Syncope console</name>
@@ -107,6 +107,14 @@
             <plugin>
                 <groupId>org.mortbay.jetty</groupId>
                 <artifactId>maven-jetty-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-war-plugin</artifactId>
+                <inherited>true</inherited>
+                <configuration>
+                    <attachClasses>true</attachClasses>
+                </configuration>
             </plugin>
         </plugins>
 

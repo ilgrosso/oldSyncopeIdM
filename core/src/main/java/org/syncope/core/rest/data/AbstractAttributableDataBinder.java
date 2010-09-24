@@ -65,31 +65,22 @@ public abstract class AbstractAttributableDataBinder {
      */
     protected static final Logger LOG = LoggerFactory.getLogger(
             AbstractAttributableDataBinder.class);
-
     @Autowired
     protected SyncopeRoleDAO syncopeRoleDAO;
-
     @Autowired
     protected SchemaDAO schemaDAO;
-
     @Autowired
     protected DerivedSchemaDAO derivedSchemaDAO;
-
     @Autowired
     protected AttributeDAO attributeDAO;
-
     @Autowired
     protected DerivedAttributeDAO derivedAttributeDAO;
-
     @Autowired
     protected AttributeValueDAO attributeValueDAO;
-
     @Autowired
     protected SyncopeUserDAO syncopeUserDAO;
-
     @Autowired
     protected ResourceDAO resourceDAO;
-
     @Autowired
     protected MembershipDAO membershipDAO;
 
@@ -105,12 +96,12 @@ public abstract class AbstractAttributableDataBinder {
                 LOG.debug("Ignoring invalid schema " + schemaName);
             }
         } else if (schema.isVirtual() || schema.isReadonly()) {
-                schema = null;
+            schema = null;
 
-                if (LOG.isDebugEnabled()) {
-                    LOG.debug("Ignoring virtual or readonly schema " + schemaName);
-                }
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("Ignoring virtual or readonly schema " + schemaName);
             }
+        }
 
         return schema;
     }
@@ -128,23 +119,24 @@ public abstract class AbstractAttributableDataBinder {
         return derivedSchema;
     }
 
-    private TargetResource getResource(final String resourceName) {
+    private TargetResource getResource(String resourceName) {
         TargetResource resource = resourceDAO.find(resourceName);
 
-        if (resource == null && LOG.isDebugEnabled()) {
-            LOG.debug("Ignoring invalid resource " + resourceName);
+        if (resource == null) {
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("Ignoring invalid resource " + resourceName);
+            }
         }
 
         return resource;
     }
 
-    private void fillAttribute(
-            final Set<String> values,
-            final AttributableUtil attributableUtil,
-            final AbstractSchema schema,
-            final AbstractAttribute attribute,
+    private void fillAttribute(Set<String> values,
+            AttributableUtil attributableUtil,
+            AbstractSchema schema,
+            AbstractAttribute attribute,
             AbstractAttributeValue attributeValue,
-            final SyncopeClientException invalidValues) {
+            SyncopeClientException invalidValues) {
 
         // if the schema is multivale, all values are considered for
         // addition, otherwise only the fist one - if provided - is
@@ -179,8 +171,8 @@ public abstract class AbstractAttributableDataBinder {
     }
 
     private <T extends AbstractSchema> SyncopeClientException checkMandatory(
-            final Class<T> referenceSchema,
-            final AbstractAttributable attributable) {
+            Class<T> referenceSchema,
+            AbstractAttributable attributable) {
 
         SyncopeClientException requiredValuesMissing =
                 new SyncopeClientException(
@@ -216,10 +208,10 @@ public abstract class AbstractAttributableDataBinder {
     }
 
     protected ResourceOperations fill(
-            final AbstractAttributable attributable,
-            final AbstractAttributableMod attributableMod,
-            final AttributableUtil attributableUtil,
-            final SyncopeClientCompositeErrorException compositeErrorException)
+            AbstractAttributable attributable,
+            AbstractAttributableMod attributableMod,
+            AttributableUtil attributableUtil,
+            SyncopeClientCompositeErrorException compositeErrorException)
             throws SyncopeClientCompositeErrorException {
 
         Set<TargetResource> resources = new HashSet<TargetResource>();
@@ -231,8 +223,11 @@ public abstract class AbstractAttributableDataBinder {
         SyncopeClientException invalidValues = new SyncopeClientException(
                 SyncopeClientExceptionType.InvalidValues);
 
-        AbstractSchema schema;
-        AbstractAttribute attribute;
+        AbstractSchema schema = null;
+        AbstractAttribute attribute = null;
+        AbstractAttributeValue attributeValue = null;
+        AbstractDerivedSchema derivedSchema = null;
+        AbstractDerivedAttribute derivedAttribute = null;
 
         // 1. attributes to be removed
         for (String attributeToBeRemoved :
@@ -272,10 +267,8 @@ public abstract class AbstractAttributableDataBinder {
             LOG.debug("About attributes to be removed:\n" + resourceOperations);
         }
 
-        AbstractAttributeValue attributeValue = null;
-
         // 2. attributes to be updated
-        Set<Long> valuesToBeRemoved;
+        Set<Long> valuesToBeRemoved = null;
         for (AttributeMod attributeMod :
                 attributableMod.getAttributesToBeUpdated()) {
 
@@ -345,9 +338,6 @@ public abstract class AbstractAttributableDataBinder {
         if (LOG.isDebugEnabled()) {
             LOG.debug("About attributes to be updated:\n" + resourceOperations);
         }
-
-        AbstractDerivedSchema derivedSchema;
-        AbstractDerivedAttribute derivedAttribute;
 
         // 3. derived attributes to be removed
         for (String derivedAttributeToBeRemoved :

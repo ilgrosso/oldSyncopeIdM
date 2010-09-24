@@ -31,13 +31,13 @@ public class SyncopeUserDAOImpl extends AbstractDAOImpl
 
     @Override
     @Transactional(readOnly = true)
-    public final SyncopeUser find(final Long id) {
+    public SyncopeUser find(Long id) {
         return entityManager.find(SyncopeUser.class, id);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public final SyncopeUser findByWorkflowId(final Long workflowId) {
+    public SyncopeUser findByWorkflowId(Long workflowId) {
         Query query = entityManager.createQuery("SELECT e FROM SyncopeUser e "
                 + "WHERE e.workflowId = :workflowId");
         query.setParameter("workflowId", workflowId);
@@ -47,8 +47,8 @@ public class SyncopeUserDAOImpl extends AbstractDAOImpl
 
     @Override
     @Transactional(readOnly = true)
-    public final List<SyncopeUser> findByAttributeValue(
-            final UserAttributeValue attributeValue) {
+    public List<SyncopeUser> findByAttributeValue(
+            UserAttributeValue attributeValue) {
 
         Query query = entityManager.createQuery(
                 "SELECT u"
@@ -75,16 +75,14 @@ public class SyncopeUserDAOImpl extends AbstractDAOImpl
 
     @Override
     @Transactional(readOnly = true)
-    public final List<SyncopeUser> findAll() {
+    public List<SyncopeUser> findAll() {
         Query query = entityManager.createQuery("SELECT e FROM SyncopeUser e");
         return query.getResultList();
     }
 
     @Override
     @Transactional(readOnly = true)
-    public final List<SyncopeUser> search(
-            final NodeSearchCondition searchCondition) {
-        
+    public List<SyncopeUser> search(NodeSearchCondition searchCondition) {
         String queryString = QueryUtils.getUserSearchQuery(searchCondition);
         if (LOG.isDebugEnabled()) {
             LOG.debug("About to execute query\n\t" + queryString + "\n");
@@ -102,14 +100,14 @@ public class SyncopeUserDAOImpl extends AbstractDAOImpl
     }
 
     @Override
-    public final SyncopeUser save(final SyncopeUser syncopeUser) {
+    public SyncopeUser save(SyncopeUser syncopeUser) {
         return entityManager.merge(syncopeUser);
     }
 
     @Override
-    public final void delete(final Long id) {
+    public void delete(Long id) {
         SyncopeUser user = find(id);
-        if (user == null) {
+        if (id == null) {
             return;
         }
 

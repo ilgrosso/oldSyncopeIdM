@@ -20,7 +20,7 @@
     <description>Syncope</description>
     <groupId>org.syncope</groupId>
     <artifactId>syncope</artifactId>
-    <version>0.2-SNAPSHOT</version>
+    <version>0.1.5</version>
     <packaging>pom</packaging>
 
     <!-- maven repository on sonatype -->
@@ -44,9 +44,9 @@
     </licenses>
 
     <scm>
-        <connection>scm:svn:http://syncope.googlecode.com/svn/trunk/</connection>
-        <developerConnection>scm:svn:https://syncope.googlecode.com/svn/trunk/</developerConnection>
-        <url>http://syncope.googlecode.com/svn/trunk/</url>
+        <connection>scm:svn:http://syncope.googlecode.com/svn/tags/syncope-0.1.5</connection>
+        <developerConnection>scm:svn:https://syncope.googlecode.com/svn/tags/syncope-0.1.5</developerConnection>
+        <url>http://syncope.googlecode.com/svn/tags/syncope-0.1.5</url>
     </scm>
 
     <issueManagement>
@@ -202,12 +202,12 @@
                 <groupId>org.hibernate</groupId>
                 <artifactId>hibernate-entitymanager</artifactId>
                 <version>${hibernate.version}</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>org.slf4j</groupId>
-                        <artifactId>slf4j-api</artifactId>
-                    </exclusion>
-                </exclusions>
+ 	               <exclusions>
+ 	                    <exclusion>
+ 	                        <groupId>org.slf4j</groupId>
+ 	                        <artifactId>slf4j-api</artifactId>
+ 	                    </exclusion>
+ 	                </exclusions>
             </dependency>
 
             <dependency>
@@ -324,12 +324,12 @@
                 <groupId>org.reflections</groupId>
                 <artifactId>reflections</artifactId>
                 <version>${reflections.version}</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>ch.qos.logback</groupId>
-                        <artifactId>logback-classic</artifactId>
-                    </exclusion>
-                </exclusions>
+ 	                <exclusions>
+ 	                    <exclusion>
+ 	                        <groupId>ch.qos.logback</groupId>
+ 	                        <artifactId>logback-classic</artifactId>
+ 	                    </exclusion>
+ 	                </exclusions>
             </dependency>
 
             <dependency>

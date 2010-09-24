@@ -88,7 +88,7 @@ public class StaticWSTestITCase {
             bundleversion = props.getProperty("bundleversion");
             bundledirectory = props.getProperty("bundledirectory");
         } catch (Throwable t) {
-            LOG.error("Could not load bundles.properties", t);
+            LOG.error("Could not load bundleversion", t);
         }
         assertNotNull(bundleversion);
         assertNotNull(bundledirectory);

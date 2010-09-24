@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.syncope</groupId>
         <artifactId>syncope</artifactId>
-        <version>0.2-SNAPSHOT</version>
+        <version>0.1.5</version>
     </parent>
 
     <name>Syncope core</name>
@@ -40,7 +40,6 @@
         <logfile>/tmp/syncope-core.log</logfile>
         <logfile.persistence>/tmp/syncope-core-persistence.log</logfile.persistence>
         <logfile.rest>/tmp/syncope-core-rest.log</logfile.rest>
-        <logfile.identityconnectors>/tmp/syncope-core-identityconnectors.log</logfile.identityconnectors>
         <logfile.test>/tmp/syncope-core-test.log</logfile.test>
 
         <bundles.directory>/tmp/bundles</bundles.directory>
@@ -423,7 +422,7 @@
                         <containerId>tomcat6x</containerId>
                         <zipUrlInstaller>
                             <url>http://www.apache.org/dist/tomcat/tomcat-6/v6.0.29/bin/apache-tomcat-6.0.29.zip</url>
-                            <installDir>${java.io.tmpdir}/tomcat6x</installDir>
+                            <installDir>${java.io.tmpdir}/tomcat</installDir>
                         </zipUrlInstaller>
                         <log>${cargo.log}</log>
                         <output>${cargo.output}</output>
