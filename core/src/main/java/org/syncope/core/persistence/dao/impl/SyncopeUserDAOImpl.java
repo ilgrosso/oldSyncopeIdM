@@ -16,7 +16,6 @@ package org.syncope.core.persistence.dao.impl;
 
 import java.util.Collections;
 import java.util.List;
-import javax.persistence.NoResultException;
 import javax.persistence.Query;
 import org.hibernate.Criteria;
 import org.hibernate.Session;
@@ -45,22 +44,15 @@ public class SyncopeUserDAOImpl extends AbstractDAOImpl
 
     @Override
     @Transactional(readOnly = true)
-    public final SyncopeUser find(final Long id) {
-        Query query = entityManager.createNamedQuery("SyncopeUser.find");
-        query.setParameter("id", id);
-
-        try {
-            return (SyncopeUser) query.getSingleResult();
-        } catch (NoResultException e) {
-            return null;
-        }
+    public SyncopeUser find(Long id) {
+        return entityManager.find(SyncopeUser.class, id);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public final SyncopeUser findByWorkflowId(final Long workflowId) {
-        Query query = entityManager.createNamedQuery(
-                "SyncopeUser.findByWorkflowId");
+    public SyncopeUser findByWorkflowId(Long workflowId) {
+        Query query = entityManager.createQuery("SELECT e FROM SyncopeUser e "
+                + "WHERE e.workflowId = :workflowId");
         query.setParameter("workflowId", workflowId);
 
         return (SyncopeUser) query.getSingleResult();
@@ -68,8 +60,8 @@ public class SyncopeUserDAOImpl extends AbstractDAOImpl
 
     @Override
     @Transactional(readOnly = true)
-    public final List<SyncopeUser> findByAttributeValue(
-            final UserAttributeValue attributeValue) {
+    public List<SyncopeUser> findByAttributeValue(
+            UserAttributeValue attributeValue) {
 
         Query query = entityManager.createQuery(
                 "SELECT u"
@@ -96,7 +88,7 @@ public class SyncopeUserDAOImpl extends AbstractDAOImpl
 
     @Override
     @Transactional(readOnly = true)
-    public final List<SyncopeUser> findAll() {
+    public List<SyncopeUser> findAll() {
         Query query = entityManager.createQuery("SELECT e FROM SyncopeUser e");
         return query.getResultList();
     }
