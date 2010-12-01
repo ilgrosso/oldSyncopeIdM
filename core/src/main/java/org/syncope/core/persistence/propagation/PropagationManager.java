@@ -42,8 +42,8 @@ import org.syncope.core.persistence.beans.Task;
 import org.syncope.core.persistence.beans.TaskExecution;
 import org.syncope.core.persistence.beans.membership.Membership;
 import org.syncope.core.persistence.beans.user.SyncopeUser;
-import org.syncope.core.persistence.beans.user.UAttr;
-import org.syncope.core.persistence.beans.user.UAttrValue;
+import org.syncope.core.persistence.beans.user.UserAttribute;
+import org.syncope.core.persistence.beans.user.UserAttributeValue;
 import org.syncope.core.persistence.dao.SchemaDAO;
 import org.syncope.core.persistence.dao.TaskDAO;
 import org.syncope.core.rest.data.TaskDataBinder;
@@ -187,7 +187,8 @@ public class PropagationManager {
             final Set<String> syncResourceNames)
             throws PropagationException {
 
-        LOG.debug("Provisioning with user {}:\n{}", user, resourceOperations);
+        LOG.debug("Provisioning with user {}:\n{}",
+                user, resourceOperations);
 
         // Avoid duplicates - see javadoc
         resourceOperations.purge();
@@ -217,31 +218,31 @@ public class PropagationManager {
 
                 task = taskDAO.save(task);
 
-                execution = new TaskExecution();
-                execution.setTask(task);
+                TaskExecution taskExecution = new TaskExecution();
+                taskExecution.setTask(task);
 
                 if (PropagationMode.SYNC.equals(task.getPropagationMode())) {
-                    syncPropagate(execution);
+                    syncPropagate(taskExecution);
 
                     // read execution after saving
-                    execution =
+                    taskExecution =
                             task.getExecutions() != null
                             && !task.getExecutions().isEmpty()
-                            ? task.getExecutions().iterator().next() : null;
+                            ? task.getExecutions().get(0) : null;
 
                 } else {
-                    asyncPropagate(execution);
+                    asyncPropagate(taskExecution);
                 }
 
                 LOG.debug("Execution finished for {}", task);
 
-                if (execution != null
+                if (taskExecution != null
                         && syncResourceNames.contains(resource.getName())
-                        && execution.getStatus()
+                        && taskExecution.getStatus()
                         != TaskExecutionStatus.SUCCESS) {
 
                     throw new PropagationException(resource.getName(),
-                            execution.getMessage());
+                            taskExecution.getMessage());
                 }
             }
         }
@@ -269,11 +270,11 @@ public class PropagationManager {
         Set objValues;
 
         // syncope user attribute
-        UAttr userAttribute;
+        UserAttribute userAttribute;
         // syncope user attribute schema type
         SchemaValueType schemaValueType = null;
         // syncope user attribute values
-        List<UAttrValue> values;
+        List<UserAttributeValue> values;
 
         for (SchemaMapping mapping : resource.getMappings()) {
             LOG.debug("Processing schema {} ({})", mapping.getSchemaName(),
@@ -315,8 +316,8 @@ public class PropagationManager {
                 } else {
                     schemaValueType = SchemaValueType.String;
 
-                    UAttrValue userAttributeValue =
-                            new UAttrValue();
+                    UserAttributeValue userAttributeValue =
+                            new UserAttributeValue();
 
                     if (SchemaType.AccountId.equals(mapping.getSchemaType())) {
                         userAttributeValue.setStringValue(
@@ -352,7 +353,7 @@ public class PropagationManager {
                 // -----------------------------
                 objValues = new HashSet();
 
-                for (UAttrValue value : values) {
+                for (UserAttributeValue value : values) {
                     castToBeApplied =
                             Class.forName(schemaValueType.getClassName());
 
@@ -509,7 +510,9 @@ public class PropagationManager {
         } finally {
             LOG.debug("Update execution for {}", task);
 
-            if (!triedPropagationRequests.isEmpty()) {
+            if (!triedPropagationRequests.isEmpty()
+                    || execution.getId() != null) {
+
                 execution.setStartDate(startDate);
                 execution.setMessage(taskExecutionMessage);
                 execution.setStatus(taskExecutionStatus);

@@ -30,14 +30,11 @@ import javax.persistence.NamedQueries;
 import javax.persistence.NamedQuery;
 import javax.persistence.OneToMany;
 import javax.persistence.QueryHint;
-import javax.validation.Valid;
 import org.hibernate.annotations.Cache;
 import org.hibernate.annotations.CacheConcurrencyStrategy;
 import org.hibernate.annotations.Cascade;
-import org.hibernate.validator.constraints.Range;
 import org.syncope.core.persistence.beans.role.SyncopeRole;
 import org.syncope.core.persistence.beans.user.SyncopeUser;
-import org.syncope.core.persistence.validation.entity.TargetResourceCheck;
 
 /**
  * A resource to which propagation occurs.
@@ -65,7 +62,6 @@ import org.syncope.core.persistence.validation.entity.TargetResourceCheck;
         @QueryHint(name = "org.hibernate.cacheMode", value = "refresh")
     })
 })
-@TargetResourceCheck
 public class TargetResource extends AbstractBaseBean {
 
     /**
@@ -79,7 +75,6 @@ public class TargetResource extends AbstractBaseBean {
      */
     @Column(nullable = false)
     @Basic
-    @Range(min = 0, max = 1)
     private Integer forceMandatoryConstraint;
 
     /**
@@ -105,7 +100,6 @@ public class TargetResource extends AbstractBaseBean {
      */
     @OneToMany(cascade = CascadeType.MERGE, mappedBy = "resource")
     @Cascade(org.hibernate.annotations.CascadeType.DELETE_ORPHAN)
-    @Valid
     private List<SchemaMapping> mappings;
 
     /**
@@ -113,7 +107,6 @@ public class TargetResource extends AbstractBaseBean {
      */
     @OneToMany(cascade = CascadeType.MERGE, mappedBy = "resource")
     @Cascade(org.hibernate.annotations.CascadeType.DELETE_ORPHAN)
-    @Valid
     private List<Task> tasks;
 
     /**

@@ -30,7 +30,7 @@ import org.syncope.core.persistence.beans.ConnectorInstance;
 import org.syncope.core.persistence.beans.TargetResource;
 import org.syncope.core.persistence.beans.SchemaMapping;
 import org.syncope.core.persistence.beans.user.SyncopeUser;
-import org.syncope.core.persistence.beans.user.USchema;
+import org.syncope.core.persistence.beans.user.UserSchema;
 import org.syncope.core.persistence.dao.ConnectorInstanceDAO;
 import org.syncope.core.persistence.dao.ResourceDAO;
 import org.syncope.core.persistence.dao.SchemaDAO;
@@ -67,7 +67,7 @@ public class ResourceTest extends AbstractTest {
      */
     @Test
     public final void issue42() {
-        USchema userId = schemaDAO.find("userId", USchema.class);
+        UserSchema userId = schemaDAO.find("userId", UserSchema.class);
         int beforeUserIdMappings = resourceDAO.getMappings(
                 userId.getName(),
                 SchemaType.UserSchema).size();
@@ -99,7 +99,7 @@ public class ResourceTest extends AbstractTest {
         TargetResource actual = resourceDAO.find("resource-issue42");
         assertEquals(resource, actual);
 
-        userId = schemaDAO.find("userId", USchema.class);
+        userId = schemaDAO.find("userId", UserSchema.class);
         int afterUserIdMappings = resourceDAO.getMappings(
                 userId.getName(),
                 SchemaType.UserSchema).size();
@@ -122,8 +122,8 @@ public class ResourceTest extends AbstractTest {
         connector.addResource(resource);
 
         // search for the user schema
-        USchema userSchema =
-                schemaDAO.find("username", USchema.class);
+        UserSchema userSchema =
+                schemaDAO.find("username", UserSchema.class);
 
         SchemaMapping mapping = null;
 

@@ -20,9 +20,11 @@ import javax.persistence.Basic;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Enumerated;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.ManyToOne;
-import org.hibernate.validator.constraints.Range;
+import javax.persistence.TableGenerator;
 import org.syncope.types.SchemaType;
 
 @Entity
@@ -33,6 +35,9 @@ public class SchemaMapping extends AbstractBaseBean {
      * using GenerationType.AUTO.
      */
     @Id
+    @GeneratedValue(strategy = GenerationType.TABLE,
+    generator = "SEQ_SchemaMapping")
+    @TableGenerator(name = "SEQ_SchemaMapping", allocationSize = 20)
     private Long id;
 
     @Column(nullable = false)
@@ -59,7 +64,6 @@ public class SchemaMapping extends AbstractBaseBean {
      */
     @Column(nullable = false)
     @Basic
-    @Range(min = 0, max = 1)
     private Integer accountid;
 
     /**
@@ -67,7 +71,6 @@ public class SchemaMapping extends AbstractBaseBean {
      */
     @Column(nullable = false)
     @Basic
-    @Range(min = 0, max = 1)
     private Integer password;
 
     /**

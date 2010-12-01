@@ -21,7 +21,7 @@ import java.util.Map;
 import org.springframework.transaction.annotation.Transactional;
 import org.syncope.core.persistence.beans.user.SyncopeUser;
 import org.syncope.core.persistence.dao.MissingConfKeyException;
-import org.syncope.core.persistence.dao.SyncopeConfDAO;
+import org.syncope.core.persistence.dao.SyncopeConfigurationDAO;
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
@@ -31,13 +31,14 @@ import org.identityconnectors.common.Base64;
 public class GenerateToken extends OSWorkflowComponent
         implements FunctionProvider {
 
-    private SyncopeConfDAO syncopeConfigurationDAO;
+    private SyncopeConfigurationDAO syncopeConfigurationDAO;
 
     public GenerateToken() {
         super();
 
         syncopeConfigurationDAO =
-                (SyncopeConfDAO) context.getBean("syncopeConfDAOImpl");
+                (SyncopeConfigurationDAO) context.getBean(
+                "syncopeConfigurationDAOImpl");
     }
 
     @Override

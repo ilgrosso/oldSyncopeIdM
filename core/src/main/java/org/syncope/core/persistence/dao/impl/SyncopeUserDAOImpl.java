@@ -18,7 +18,6 @@ import java.util.Collections;
 import java.util.List;
 import javax.persistence.NoResultException;
 import javax.persistence.Query;
-import javax.validation.ValidationException;
 import org.hibernate.Criteria;
 import org.hibernate.Session;
 import org.hibernate.criterion.Criterion;
@@ -26,15 +25,17 @@ import org.hibernate.criterion.Restrictions;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 import org.syncope.client.search.AttributeCond;
+import org.syncope.client.search.MembershipCond;
 import org.syncope.client.search.NodeCond;
-import org.syncope.core.persistence.beans.AbstractAttrValue;
+import org.syncope.core.persistence.beans.AbstractAttributeValue;
 import org.syncope.core.persistence.beans.membership.Membership;
 import org.syncope.core.persistence.beans.user.SyncopeUser;
-import org.syncope.core.persistence.beans.user.UAttrValue;
-import org.syncope.core.persistence.beans.user.USchema;
+import org.syncope.core.persistence.beans.user.UserAttributeValue;
+import org.syncope.core.persistence.beans.user.UserSchema;
 import org.syncope.core.persistence.dao.SchemaDAO;
 import org.syncope.core.persistence.dao.SyncopeRoleDAO;
 import org.syncope.core.persistence.dao.SyncopeUserDAO;
+import org.syncope.core.persistence.validation.ValidationException;
 
 @Repository
 public class SyncopeUserDAOImpl extends AbstractDAOImpl
@@ -69,55 +70,44 @@ public class SyncopeUserDAOImpl extends AbstractDAOImpl
 
     @Override
     public List<SyncopeUser> findByAttributeValue(
-            final UAttrValue attrValue) {
+            final UserAttributeValue attributeValue) {
 
-        StringBuilder queryHead1 = new StringBuilder("SELECT u").append(
-                " FROM SyncopeUser u, UAttr ua, UAttrValue e");
-        StringBuilder queryHead2 = new StringBuilder(" SELECT u").append(
-                " FROM SyncopeUser u, UAttr ua, UAttrUniqueValue e");
+        return findByAttributeValue(attributeValue, -1, -1);
+    }
 
-        StringBuilder whereCondition = new StringBuilder().append(
-                " WHERE e.attribute = ua AND ua.owner = u").
-                append(" AND ((e.stringValue IS NOT NULL").
-                append(" AND e.stringValue = :stringValue)").
-                append(" OR (e.booleanValue IS NOT NULL").
-                append(" AND e.booleanValue = :booleanValue)").
-                append(" OR (e.dateValue IS NOT NULL").
-                append(" AND e.dateValue = :dateValue)").
-                append(" OR (e.longValue IS NOT NULL").
-                append(" AND e.longValue = :longValue)").
-                append(" OR (e.doubleValue IS NOT NULL").
-                append(" AND e.doubleValue = :doubleValue))").
-                append(" ORDER BY u.id");
+    @Override
+    public final List<SyncopeUser> findByAttributeValue(
+            final UserAttributeValue attributeValue,
+            final int page, final int itemsPerPage) {
 
-        Query query = entityManager.createQuery(
-                queryHead1.append(whereCondition).toString());
+        final Query query = entityManager.createQuery(
+                "SELECT u"
+                + " FROM SyncopeUser u, UserAttribute ua, UserAttributeValue e "
+                + " WHERE e.attribute = ua AND ua.owner = u"
+                + " AND ((e.stringValue IS NOT NULL"
+                + " AND e.stringValue = :stringValue)"
+                + " OR (e.booleanValue IS NOT NULL"
+                + " AND e.booleanValue = :booleanValue)"
+                + " OR (e.dateValue IS NOT NULL"
+                + " AND e.dateValue = :dateValue)"
+                + " OR (e.longValue IS NOT NULL"
+                + " AND e.longValue = :longValue)"
+                + " OR (e.doubleValue IS NOT NULL"
+                + " AND e.doubleValue = :doubleValue)) ORDER BY u.id");
+        query.setParameter("stringValue", attributeValue.getStringValue());
+        query.setParameter("booleanValue", attributeValue.getBooleanValue());
+        query.setParameter("dateValue", attributeValue.getDateValue());
+        query.setParameter("longValue", attributeValue.getLongValue());
+        query.setParameter("doubleValue", attributeValue.getDoubleValue());
 
-        query.setParameter("stringValue", attrValue.getStringValue());
-        query.setParameter("booleanValue", attrValue.getBooleanValue() == null
-                ? null
-                : attrValue.getBooleanAsInteger(attrValue.getBooleanValue()));
-        query.setParameter("dateValue", attrValue.getDateValue());
-        query.setParameter("longValue", attrValue.getLongValue());
-        query.setParameter("doubleValue", attrValue.getDoubleValue());
+        query.setFirstResult(
+                itemsPerPage * (page <= 0 ? 0 : page - 1));
 
-        List<SyncopeUser> result1 = query.getResultList();
+        if (itemsPerPage > 0) {
+            query.setMaxResults(itemsPerPage);
+        }
 
-        query = entityManager.createQuery(
-                queryHead2.append(whereCondition).toString());
-
-        query.setParameter("stringValue", attrValue.getStringValue());
-        query.setParameter("booleanValue", attrValue.getBooleanValue() == null
-                ? null
-                : attrValue.getBooleanAsInteger(attrValue.getBooleanValue()));
-        query.setParameter("dateValue", attrValue.getDateValue());
-        query.setParameter("longValue", attrValue.getLongValue());
-        query.setParameter("doubleValue", attrValue.getDoubleValue());
-
-        List<SyncopeUser> result2 = query.getResultList();
-        result2.addAll(result1);
-
-        return result2;
+        return query.getResultList();
     }
 
     @Override
@@ -132,7 +122,8 @@ public class SyncopeUserDAOImpl extends AbstractDAOImpl
         final Query query = entityManager.createQuery(
                 "SELECT e FROM SyncopeUser e ORDER BY e.id");
 
-        query.setFirstResult(itemsPerPage * (page <= 0 ? 0 : page - 1));
+        query.setFirstResult(
+                itemsPerPage * (page <= 0 ? 0 : page - 1));
 
         if (itemsPerPage > 0) {
             query.setMaxResults(itemsPerPage);
@@ -178,8 +169,9 @@ public class SyncopeUserDAOImpl extends AbstractDAOImpl
     @Override
     public List<SyncopeUser> search(final NodeCond searchCondition,
             final int page, final int itemsPerPage) {
-
-        LOG.debug("Search condition:\n{}", searchCondition);
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("Search condition:\n" + searchCondition);
+        }
 
         List<SyncopeUser> result;
         try {
@@ -225,13 +217,13 @@ public class SyncopeUserDAOImpl extends AbstractDAOImpl
                                 + "WHERE ua.schema.name = :schemaName)");
                         query.setParameter("schemaName",
                                 nodeCond.getAttributeCond().getSchema());
-                        LOG.debug("[ISNOTULL] "
-                                + "Search query to be performed: {}", query);
+                        LOG.debug("Search query to be performed: {}", query);
 
                         result = query.getResultList();
                     }
                 } else {
-                    Criteria criteria = getCriteria(nodeCond);
+                    Criteria criteria = getBaseCriteria().
+                            add(getCriterion(nodeCond));
                     LOG.debug("Criteria to be performed: {}", criteria);
 
                     result = criteria.list();
@@ -264,9 +256,7 @@ public class SyncopeUserDAOImpl extends AbstractDAOImpl
                 }
 
                 for (SyncopeUser user : from) {
-                    if (!to.contains(user)) {
-                        to.add(user);
-                    }
+                    if (!to.contains(user)) to.add(user);
                 }
 
                 result = to;
@@ -279,42 +269,20 @@ public class SyncopeUserDAOImpl extends AbstractDAOImpl
         return result;
     }
 
-    private Criteria getCriteria(final NodeCond leafCond) {
+    private Criteria getBaseCriteria() {
         Session hibernateSess = (Session) entityManager.getDelegate();
-        Criteria baseCriteria = hibernateSess.createCriteria(SyncopeUser.class);
-
-        if (leafCond.getMembershipCond() != null) {
-            baseCriteria = baseCriteria.createAlias("memberships", "m").
-                    createAlias("m.syncopeRole", "r");
-        }
-        USchema schema = null;
-        if (leafCond.getAttributeCond() != null) {
-            schema = schemaDAO.find(
-                    leafCond.getAttributeCond().getSchema(),
-                    USchema.class);
-            if (schema == null) {
-                LOG.warn("Ignoring invalid schema '{}'",
-                        leafCond.getAttributeCond().getSchema());
-            } else {
-                baseCriteria = baseCriteria.createAlias("attributes", "a");
-                if (schema.isUniqueConstraint()) {
-                    baseCriteria =
-                            baseCriteria.createAlias("a.uniqueValue", "av");
-                } else {
-                    baseCriteria =
-                            baseCriteria.createAlias("a.values", "av");
-                }
-            }
-        }
+        Criteria baseCriteria = hibernateSess.createCriteria(SyncopeUser.class).
+                createAlias("memberships", "m").
+                createAlias("m.syncopeRole", "r").
+                createAlias("attributes", "a").
+                createAlias("a.values", "av");
 
         baseCriteria.setResultTransformer(Criteria.DISTINCT_ROOT_ENTITY);
 
-        return baseCriteria.add(getCriterion(schema, leafCond));
+        return baseCriteria;
     }
 
-    private Criterion getCriterion(final USchema schema,
-            final NodeCond leafCond) {
-
+    private Criterion getCriterion(final NodeCond leafCond) {
         Criterion criterion = null;
 
         switch (leafCond.getType()) {
@@ -328,43 +296,101 @@ public class SyncopeUserDAOImpl extends AbstractDAOImpl
                         criterion = Restrictions.eq("r.name",
                                 leafCond.getMembershipCond().getRoleName());
                     }
-                }
-                if (leafCond.getAttributeCond() != null && schema != null) {
-                    UAttrValue attrValue = new UAttrValue();
-                    try {
-                        if (leafCond.getAttributeCond().getType()
-                                == AttributeCond.Type.LIKE) {
-
-                            attrValue.setStringValue(
-                                    leafCond.getAttributeCond().
-                                    getExpression());
+                } else if (leafCond.getAttributeCond() != null) {
+                        UserSchema userSchema = schemaDAO.find(
+                                leafCond.getAttributeCond().getSchema(),
+                                UserSchema.class);
+                        if (userSchema == null) {
+                            LOG.warn("Ignoring invalid schema '"
+                                    + leafCond.getAttributeCond().getSchema()
+                                    + "'");
                         } else {
-                            attrValue =
-                                    schema.getValidator().
-                                    getValue(
-                                    leafCond.getAttributeCond().
-                                    getExpression(),
-                                    attrValue);
-                        }
+                            UserAttributeValue attributeValue =
+                                    new UserAttributeValue();
+                            try {
+                                if (leafCond.getAttributeCond().getType()
+                                        == AttributeCond.Type.LIKE) {
 
-                        criterion = Restrictions.and(
-                                Restrictions.eq("a.schema.name",
-                                schema.getName()),
-                                getCriterion(
-                                leafCond.getAttributeCond().getType(),
-                                attrValue));
-                    } catch (ValidationException e) {
-                        LOG.error("Could not validate expression '"
-                                + leafCond.getAttributeCond().
-                                getExpression() + "'", e);
+                                    attributeValue.setStringValue(
+                                            leafCond.getAttributeCond().
+                                            getExpression());
+                                } else {
+                                    attributeValue =
+                                            userSchema.getValidator().
+                                            getValue(
+                                            leafCond.getAttributeCond().
+                                            getExpression(),
+                                            attributeValue);
+                                }
+
+                                criterion = Restrictions.and(
+                                        Restrictions.eq("a.schema.name",
+                                        leafCond.getAttributeCond().getSchema()),
+                                        getCriterion(
+                                        leafCond.getAttributeCond().getType(),
+                                        attributeValue));
+                            } catch (ValidationException e) {
+                                LOG.error("Could not validate expression '"
+                                        + leafCond.getAttributeCond().
+                                        getExpression() + "'", e);
+                            }
+                        }
                     }
-                }
 
                 break;
 
             case NOT_LEAF:
                 leafCond.setType(NodeCond.Type.LEAF);
-                criterion = Restrictions.not(getCriterion(schema, leafCond));
+
+                final AttributeCond attributeCondition =
+                        leafCond.getAttributeCond();
+
+                if (attributeCondition != null) {
+                    UserSchema userSchema = schemaDAO.find(
+                            leafCond.getAttributeCond().getSchema(),
+                            UserSchema.class);
+                    if (userSchema == null) {
+                        LOG.warn("Ignoring invalid schema '"
+                                + leafCond.getAttributeCond().getSchema()
+                                + "'");
+                    } else {
+                        UserAttributeValue attributeValue =
+                                new UserAttributeValue();
+                        try {
+                            if (leafCond.getAttributeCond().getType()
+                                    == AttributeCond.Type.LIKE) {
+
+                                attributeValue.setStringValue(
+                                        leafCond.getAttributeCond().
+                                        getExpression());
+                            } else {
+                                attributeValue =
+                                        userSchema.getValidator().
+                                        getValue(
+                                        leafCond.getAttributeCond().
+                                        getExpression(),
+                                        attributeValue);
+                            }
+
+                            criterion = Restrictions.and(
+                                    Restrictions.eq("a.schema.name",
+                                    leafCond.getAttributeCond().getSchema()),
+                                    Restrictions.not(getCriterion(
+                                    leafCond.getAttributeCond().getType(),
+                                    attributeValue)));
+
+                            // if user doesn't have the attribute it won't be returned
+
+                        } catch (ValidationException e) {
+                            LOG.error("Could not validate expression '"
+                                    + leafCond.getAttributeCond().
+                                    getExpression() + "'", e);
+                        }
+                    }
+                } else {
+                    leafCond.setType(NodeCond.Type.LEAF);
+                    criterion = Restrictions.not(getCriterion(leafCond));
+                }
                 break;
 
             default:
@@ -374,56 +400,50 @@ public class SyncopeUserDAOImpl extends AbstractDAOImpl
     }
 
     private Criterion getCriterion(final AttributeCond.Type type,
-            final AbstractAttrValue attrValue) {
+            final AbstractAttributeValue attributeValue) {
 
         Criterion result = null;
         switch (type) {
             case EQ:
                 result = Restrictions.disjunction().
                         add(Restrictions.eq("av.stringValue",
-                        attrValue.getStringValue())).
+                        attributeValue.getStringValue())).
                         add(Restrictions.eq("av.booleanValue",
-                        attrValue.getBooleanValue() == null
-                        ? null : attrValue.getBooleanAsInteger(
-                        attrValue.getBooleanValue()))).
+                        attributeValue.getBooleanValue())).
                         add(Restrictions.eq("av.longValue",
-                        attrValue.getLongValue())).
+                        attributeValue.getLongValue())).
                         add(Restrictions.eq("av.doubleValue",
-                        attrValue.getDoubleValue())).
+                        attributeValue.getDoubleValue())).
                         add(Restrictions.eq("av.dateValue",
-                        attrValue.getDateValue()));
+                        attributeValue.getDateValue()));
                 break;
 
             case GE:
                 result = Restrictions.disjunction().
                         add(Restrictions.ge("av.stringValue",
-                        attrValue.getStringValue())).
+                        attributeValue.getStringValue())).
                         add(Restrictions.ge("av.booleanValue",
-                        attrValue.getBooleanValue() == null
-                        ? null : attrValue.getBooleanAsInteger(
-                        attrValue.getBooleanValue()))).
+                        attributeValue.getBooleanValue())).
                         add(Restrictions.ge("av.longValue",
-                        attrValue.getLongValue())).
+                        attributeValue.getLongValue())).
                         add(Restrictions.ge("av.doubleValue",
-                        attrValue.getDoubleValue())).
+                        attributeValue.getDoubleValue())).
                         add(Restrictions.ge("av.dateValue",
-                        attrValue.getDateValue()));
+                        attributeValue.getDateValue()));
                 break;
 
             case GT:
                 result = Restrictions.disjunction().
                         add(Restrictions.gt("av.stringValue",
-                        attrValue.getStringValue())).
+                        attributeValue.getStringValue())).
                         add(Restrictions.gt("av.booleanValue",
-                        attrValue.getBooleanValue() == null
-                        ? null : attrValue.getBooleanAsInteger(
-                        attrValue.getBooleanValue()))).
+                        attributeValue.getBooleanValue())).
                         add(Restrictions.gt("av.longValue",
-                        attrValue.getLongValue())).
+                        attributeValue.getLongValue())).
                         add(Restrictions.gt("av.doubleValue",
-                        attrValue.getDoubleValue())).
+                        attributeValue.getDoubleValue())).
                         add(Restrictions.gt("av.dateValue",
-                        attrValue.getDateValue()));
+                        attributeValue.getDateValue()));
                 break;
 
             case ISNOTNULL:
@@ -438,39 +458,35 @@ public class SyncopeUserDAOImpl extends AbstractDAOImpl
             case LE:
                 result = Restrictions.disjunction().
                         add(Restrictions.le("av.stringValue",
-                        attrValue.getStringValue())).
+                        attributeValue.getStringValue())).
                         add(Restrictions.le("av.booleanValue",
-                        attrValue.getBooleanValue() == null
-                        ? null : attrValue.getBooleanAsInteger(
-                        attrValue.getBooleanValue()))).
+                        attributeValue.getBooleanValue())).
                         add(Restrictions.le("av.longValue",
-                        attrValue.getLongValue())).
+                        attributeValue.getLongValue())).
                         add(Restrictions.le("av.doubleValue",
-                        attrValue.getDoubleValue())).
+                        attributeValue.getDoubleValue())).
                         add(Restrictions.le("av.dateValue",
-                        attrValue.getDateValue()));
-                break;
-
-            case LT:
-                result = Restrictions.disjunction().
-                        add(Restrictions.lt("av.stringValue",
-                        attrValue.getStringValue())).
-                        add(Restrictions.lt("av.booleanValue",
-                        attrValue.getBooleanValue() == null
-                        ? null : attrValue.getBooleanAsInteger(
-                        attrValue.getBooleanValue()))).
-                        add(Restrictions.lt("av.longValue",
-                        attrValue.getLongValue())).
-                        add(Restrictions.lt("av.doubleValue",
-                        attrValue.getDoubleValue())).
-                        add(Restrictions.lt("av.dateValue",
-                        attrValue.getDateValue()));
+                        attributeValue.getDateValue()));
                 break;
 
             case LIKE:
                 // LIKE operator is meaningful for strings only
                 result = Restrictions.like("av.stringValue",
-                        attrValue.getStringValue());
+                        attributeValue.getStringValue());
+                break;
+
+            case LT:
+                result = Restrictions.disjunction().
+                        add(Restrictions.lt("av.stringValue",
+                        attributeValue.getStringValue())).
+                        add(Restrictions.lt("av.booleanValue",
+                        attributeValue.getBooleanValue())).
+                        add(Restrictions.lt("av.longValue",
+                        attributeValue.getLongValue())).
+                        add(Restrictions.lt("av.doubleValue",
+                        attributeValue.getDoubleValue())).
+                        add(Restrictions.lt("av.dateValue",
+                        attributeValue.getDateValue()));
                 break;
 
             default:

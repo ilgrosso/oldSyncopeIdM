@@ -19,12 +19,11 @@ import static org.junit.Assert.*;
 import java.util.List;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.annotation.ExpectedException;
 import org.springframework.transaction.annotation.Transactional;
-import org.syncope.core.persistence.beans.role.RSchema;
-import org.syncope.core.persistence.beans.user.USchema;
+import org.syncope.core.persistence.beans.role.RoleSchema;
+import org.syncope.core.persistence.beans.user.UserSchema;
+import org.syncope.core.persistence.validation.MultiUniqueValueException;
 import org.syncope.core.persistence.AbstractTest;
-import org.syncope.core.persistence.validation.entity.InvalidEntityException;
 import org.syncope.types.SchemaValueType;
 
 @Transactional
@@ -33,26 +32,29 @@ public class SchemaTest extends AbstractTest {
     @Autowired
     private SchemaDAO schemaDAO;
 
+    @Autowired
+    private AttributeDAO attributeDAO;
+
     @Test
     public final void findAll() {
-        List<USchema> userList = schemaDAO.findAll(USchema.class);
-        assertEquals(10, userList.size());
+        List<UserSchema> userList = schemaDAO.findAll(UserSchema.class);
+        assertEquals(9, userList.size());
 
-        List<RSchema> roleList = schemaDAO.findAll(RSchema.class);
+        List<RoleSchema> roleList = schemaDAO.findAll(RoleSchema.class);
         assertEquals(2, roleList.size());
     }
 
     @Test
     public final void findByName() {
-        USchema attributeSchema =
-                schemaDAO.find("username", USchema.class);
+        UserSchema attributeSchema =
+                schemaDAO.find("username", UserSchema.class);
         assertNotNull("did not find expected attribute schema",
                 attributeSchema);
     }
 
     @Test
     public final void save() {
-        USchema attributeSchema = new USchema();
+        UserSchema attributeSchema = new UserSchema();
         attributeSchema.setName("secondaryEmail");
         attributeSchema.setType(SchemaValueType.String);
         attributeSchema.setValidatorClass(
@@ -60,36 +62,25 @@ public class SchemaTest extends AbstractTest {
         attributeSchema.setMandatoryCondition("false");
         attributeSchema.setMultivalue(true);
 
-        schemaDAO.save(attributeSchema);
+        try {
+            schemaDAO.save(attributeSchema);
+        } catch (MultiUniqueValueException e) {
+            LOG.error("Unexpected exception", e);
+        }
 
-        USchema actual = schemaDAO.find("secondaryEmail", USchema.class);
+        UserSchema actual = schemaDAO.find("secondaryEmail", UserSchema.class);
         assertNotNull("expected save to work", actual);
         assertEquals(attributeSchema, actual);
     }
 
     @Test
-    @ExpectedException(InvalidEntityException.class)
-    public final void saveNonValid() {
-        USchema attributeSchema = new USchema();
-        attributeSchema.setName("secondaryEmail");
-        attributeSchema.setType(SchemaValueType.String);
-        attributeSchema.setValidatorClass(
-                "org.syncope.core.validation.EmailAddressValidator");
-        attributeSchema.setMandatoryCondition("false");
-        attributeSchema.setMultivalue(true);
-        attributeSchema.setUniqueConstraint(true);
-
-        schemaDAO.save(attributeSchema);
-    }
-
-    @Test
     public final void delete() {
-        USchema schema =
-                schemaDAO.find("username", USchema.class);
+        UserSchema schema =
+                schemaDAO.find("username", UserSchema.class);
 
-        schemaDAO.delete(schema.getName(), USchema.class);
+        schemaDAO.delete(schema.getName(), UserSchema.class);
 
-        USchema actual = schemaDAO.find("username", USchema.class);
+        UserSchema actual = schemaDAO.find("username", UserSchema.class);
         assertNull("delete did not work", actual);
     }
 }

@@ -25,7 +25,7 @@ import org.springframework.stereotype.Component;
 import org.syncope.client.to.DerivedSchemaTO;
 import org.syncope.client.validation.SyncopeClientCompositeErrorException;
 import org.syncope.client.validation.SyncopeClientException;
-import org.syncope.core.persistence.beans.AbstractDerSchema;
+import org.syncope.core.persistence.beans.AbstractDerivedSchema;
 import org.syncope.core.persistence.beans.AbstractSchema;
 import org.syncope.core.persistence.dao.SchemaDAO;
 import org.syncope.types.SyncopeClientExceptionType;
@@ -48,8 +48,8 @@ public class DerivedSchemaDataBinder {
     @Autowired
     private JexlEngine jexlEngine;
 
-    private <T extends AbstractSchema> AbstractDerSchema populate(
-            AbstractDerSchema derivedSchema,
+    private <T extends AbstractSchema> AbstractDerivedSchema populate(
+            AbstractDerivedSchema derivedSchema,
             final DerivedSchemaTO derivedSchemaTO,
             final Class<T> reference,
             final SyncopeClientCompositeErrorException scce)
@@ -99,9 +99,9 @@ public class DerivedSchemaDataBinder {
         return derivedSchema;
     }
 
-    public <T extends AbstractSchema> AbstractDerSchema create(
+    public <T extends AbstractSchema> AbstractDerivedSchema create(
             final DerivedSchemaTO derivedSchemaTO,
-            AbstractDerSchema derivedSchema,
+            AbstractDerivedSchema derivedSchema,
             final Class<T> reference) {
 
         return populate(derivedSchema, derivedSchemaTO, reference,
@@ -109,9 +109,9 @@ public class DerivedSchemaDataBinder {
                 HttpStatus.BAD_REQUEST));
     }
 
-    public <K extends AbstractSchema> AbstractDerSchema update(
+    public <K extends AbstractSchema> AbstractDerivedSchema update(
             final DerivedSchemaTO derivedSchemaTO,
-            AbstractDerSchema derivedSchema,
+            AbstractDerivedSchema derivedSchema,
             final Class<K> reference) {
 
         return populate(derivedSchema, derivedSchemaTO, reference,
@@ -119,7 +119,7 @@ public class DerivedSchemaDataBinder {
                 HttpStatus.BAD_REQUEST));
     }
 
-    public <T extends AbstractDerSchema> DerivedSchemaTO getDerivedSchemaTO(
+    public <T extends AbstractDerivedSchema> DerivedSchemaTO getDerivedSchemaTO(
             final T derivedSchema) {
 
         DerivedSchemaTO derivedSchemaTO = new DerivedSchemaTO();

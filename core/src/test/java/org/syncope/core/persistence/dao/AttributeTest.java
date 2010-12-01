@@ -14,27 +14,20 @@
  */
 package org.syncope.core.persistence.dao;
 
-import org.syncope.core.persistence.validation.entity.InvalidEntityException;
 import static org.junit.Assert.*;
 
 import java.util.List;
-import javax.validation.ValidationException;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
-import org.syncope.core.persistence.beans.user.UAttr;
-import org.syncope.core.persistence.beans.user.USchema;
+import org.syncope.core.persistence.beans.user.UserAttribute;
+import org.syncope.core.persistence.beans.user.UserSchema;
+import org.syncope.core.persistence.validation.ValidationException;
 import org.syncope.core.persistence.AbstractTest;
-import org.syncope.core.persistence.beans.user.SyncopeUser;
-import org.syncope.core.persistence.beans.user.UAttrUniqueValue;
 import org.syncope.core.rest.data.AttributableUtil;
-import org.syncope.types.EntityViolationType;
 
 @Transactional
 public class AttributeTest extends AbstractTest {
-
-    @Autowired
-    private SyncopeUserDAO syncopeUserDAO;
 
     @Autowired
     private AttributeDAO attributeDAO;
@@ -44,42 +37,29 @@ public class AttributeTest extends AbstractTest {
 
     @Test
     public final void findAll() {
-        List<UAttr> list = attributeDAO.findAll(UAttr.class);
+        List<UserAttribute> list = attributeDAO.findAll(UserAttribute.class);
         assertEquals("did not get expected number of attributes ",
-                7, list.size());
+                6, list.size());
     }
 
     @Test
     public final void findById() {
-        UAttr attribute = attributeDAO.find(100L, UAttr.class);
+        UserAttribute attribute = attributeDAO.find(100L, UserAttribute.class);
         assertNotNull("did not find expected attribute schema",
                 attribute);
-        attribute = attributeDAO.find(200L, UAttr.class);
+        attribute = attributeDAO.find(200L, UserAttribute.class);
         assertNotNull("did not find expected attribute schema",
                 attribute);
-    }
-
-    @Test
-    public final void read() {
-        UAttr attribute = attributeDAO.find(100L, UAttr.class);
-        assertNotNull(attribute);
-
-        assertTrue(attribute.getValues().isEmpty());
-        assertNotNull(attribute.getUniqueValue());
     }
 
     @Test
     public final void save()
             throws ClassNotFoundException {
-
-        SyncopeUser user = syncopeUserDAO.find(1L);
-
-        USchema emailSchema = userSchemaDAO.find("email", USchema.class);
+        UserSchema emailSchema = userSchemaDAO.find("email", UserSchema.class);
         assertNotNull(emailSchema);
 
-        UAttr attribute = new UAttr();
+        UserAttribute attribute = new UserAttribute();
         attribute.setSchema(emailSchema);
-        attribute.setOwner(user);
 
         Exception thrown = null;
         try {
@@ -98,62 +78,25 @@ public class AttributeTest extends AbstractTest {
         }
         assertNotNull("validation exception expected here ", thrown);
 
-        InvalidEntityException iee = null;
-        try {
-            attribute = attributeDAO.save(attribute);
-        } catch (InvalidEntityException e) {
-            iee = e;
-        }
-        assertNull(iee);
+        attribute = attributeDAO.save(attribute);
 
-        UAttr actual = attributeDAO.find(attribute.getId(),
-                UAttr.class);
+        UserAttribute actual = attributeDAO.find(attribute.getId(),
+                UserAttribute.class);
         assertNotNull("expected save to work", actual);
         assertEquals(attribute, actual);
     }
 
     @Test
-    public final void validateAndSave() {
-        final USchema emailSchema =
-                userSchemaDAO.find("email", USchema.class);
-        assertNotNull(emailSchema);
-
-        final USchema usernameSchema =
-                userSchemaDAO.find("username", USchema.class);
-        assertNotNull(usernameSchema);
-
-        UAttr attribute = new UAttr();
-        attribute.setSchema(emailSchema);
-
-        UAttrUniqueValue uauv = new UAttrUniqueValue();
-        uauv.setAttribute(attribute);
-        uauv.setSchema(usernameSchema);
-        uauv.setStringValue("a value");
-
-        attribute.setUniqueValue(uauv);
-
-        InvalidEntityException iee = null;
-        try {
-            attribute = attributeDAO.save(attribute);
-        } catch (InvalidEntityException e) {
-            iee = e;
-        }
-        assertNotNull(iee);
-        // for attribute
-        assertTrue(iee.hasViolation(EntityViolationType.InvalidValueList));
-        // for uauv
-        assertTrue(iee.hasViolation(EntityViolationType.InvalidSchema));
-    }
-
-    @Test
     public final void delete() {
-        UAttr attribute = attributeDAO.find(200L, UAttr.class);
-        String attrSchemaName = attribute.getSchema().getName();
+        UserAttribute attribute = attributeDAO.find(200L, UserAttribute.class);
+        String attributeSchemaName =
+                attribute.getSchema().getName();
 
-        attributeDAO.delete(attribute.getId(), UAttr.class);
+        attributeDAO.delete(attribute.getId(), UserAttribute.class);
 
-        USchema schema = userSchemaDAO.find(attrSchemaName, USchema.class);
+        UserSchema attributeSchema =
+                userSchemaDAO.find(attributeSchemaName, UserSchema.class);
         assertNotNull("user attribute schema deleted when deleting values",
-                schema);
+                attributeSchema);
     }
 }

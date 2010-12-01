@@ -35,7 +35,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.datasource.DataSourceUtils;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.context.support.WebApplicationContextUtils;
-import org.syncope.core.persistence.beans.SyncopeConf;
+import org.syncope.core.persistence.beans.SyncopeConfiguration;
 
 /**
  * Load default content in the database.
@@ -94,13 +94,13 @@ public class DefaultContentLoader implements ServletContextListener {
                     ResultSet.CONCUR_READ_ONLY);
 
             resultSet = statement.executeQuery("SELECT * FROM "
-                    + SyncopeConf.class.getSimpleName());
+                    + SyncopeConfiguration.class.getSimpleName());
             resultSet.last();
 
             existingData = resultSet.getRow() > 0;
         } catch (SQLException e) {
             LOG.error("Could not access to table "
-                    + SyncopeConf.class.getSimpleName(), e);
+                    + SyncopeConfiguration.class.getSimpleName(), e);
 
             // Setting this to true make nothing to be done below
             existingData = true;
