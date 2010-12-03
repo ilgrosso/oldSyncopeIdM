@@ -14,7 +14,6 @@
  */
 package org.syncope.core.rest.data;
 
-import org.syncope.core.persistence.util.AttributableUtil;
 import com.opensymphony.workflow.Workflow;
 import com.opensymphony.workflow.spi.Step;
 import java.util.HashSet;
@@ -31,12 +30,12 @@ import org.syncope.client.to.MembershipTO;
 import org.syncope.client.to.UserTO;
 import org.syncope.client.validation.SyncopeClientCompositeErrorException;
 import org.syncope.client.validation.SyncopeClientException;
-import org.syncope.core.persistence.beans.AbstractAttr;
-import org.syncope.core.persistence.beans.AbstractDerAttr;
+import org.syncope.core.persistence.beans.AbstractAttribute;
+import org.syncope.core.persistence.beans.AbstractDerivedAttribute;
 import org.syncope.core.persistence.beans.TargetResource;
 import org.syncope.core.persistence.beans.membership.Membership;
-import org.syncope.core.persistence.beans.membership.MAttr;
-import org.syncope.core.persistence.beans.membership.MDerAttr;
+import org.syncope.core.persistence.beans.membership.MembershipAttribute;
+import org.syncope.core.persistence.beans.membership.MembershipDerivedAttribute;
 import org.syncope.core.persistence.beans.role.SyncopeRole;
 import org.syncope.core.persistence.beans.user.SyncopeUser;
 import org.syncope.core.persistence.propagation.ResourceOperations;
@@ -46,50 +45,8 @@ import org.syncope.types.SyncopeClientExceptionType;
 @Component
 public class UserDataBinder extends AbstractAttributableDataBinder {
 
-    public enum CheckinResultAction {
-
-        CREATE, OVERWRITE, REJECT
-
-    }
-
-    public class CheckInResult {
-
-        private CheckinResultAction action;
-
-        private Long syncopeUserId;
-
-        private Long workflowId;
-
-        public CheckInResult(final CheckinResultAction action,
-                final Long syncopeUserId,
-                final Long workflowId) {
-
-            this.action = action;
-            this.syncopeUserId = syncopeUserId;
-            this.workflowId = workflowId;
-        }
-
-        public CheckinResultAction getAction() {
-            return action;
-        }
-
-        public Long getSyncopeUserId() {
-            return syncopeUserId;
-        }
-
-        public Long getWorkflowId() {
-            return workflowId;
-        }
-    }
-
-    public CheckInResult checkIn(final UserTO userTO) {
-        return new CheckInResult(CheckinResultAction.CREATE, null, null);
-    }
-
-    public SyncopeUser create(final UserTO userTO)
+    public void create(final SyncopeUser user, final UserTO userTO)
             throws SyncopeClientCompositeErrorException, NotFoundException {
-
-        SyncopeUser user = new SyncopeUser();
 
         SyncopeClientCompositeErrorException scce =
                 new SyncopeClientCompositeErrorException(
@@ -112,7 +69,7 @@ public class UserDataBinder extends AbstractAttributableDataBinder {
         }
 
         // memberships
-        SyncopeRole role;
+        SyncopeRole role = null;
         for (MembershipTO membershipTO : userTO.getMemberships()) {
             role = syncopeRoleDAO.find(membershipTO.getRoleId());
 
@@ -143,8 +100,6 @@ public class UserDataBinder extends AbstractAttributableDataBinder {
 
         // attributes, derived attributes and resources
         fill(user, userTO, AttributableUtil.USER, scce);
-
-        return user;
     }
 
     public ResourceOperations update(SyncopeUser user, UserMod userMod)
@@ -211,26 +166,26 @@ public class UserDataBinder extends AbstractAttributableDataBinder {
 
                     Set<Long> attributeIds = new HashSet<Long>(
                             membership.getAttributes().size());
-                    for (AbstractAttr attribute :
+                    for (AbstractAttribute attribute :
                             membership.getAttributes()) {
 
                         attributeIds.add(attribute.getId());
                     }
                     for (Long attributeId : attributeIds) {
                         attributeDAO.delete(attributeId,
-                                MAttr.class);
+                                MembershipAttribute.class);
                     }
 
                     Set<Long> derivedAttributeIds = new HashSet<Long>(
                             membership.getDerivedAttributes().size());
-                    for (AbstractDerAttr derivedAttribute :
+                    for (AbstractDerivedAttribute derivedAttribute :
                             membership.getDerivedAttributes()) {
 
                         derivedAttributeIds.add(derivedAttribute.getId());
                     }
                     for (Long derivedAttributeId : derivedAttributeIds) {
                         derivedAttributeDAO.delete(derivedAttributeId,
-                                MDerAttr.class);
+                                MembershipDerivedAttribute.class);
                     }
                 } else {
                     user.removeMembership(membership);

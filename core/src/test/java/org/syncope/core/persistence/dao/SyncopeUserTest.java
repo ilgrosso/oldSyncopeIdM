@@ -25,7 +25,9 @@ import org.syncope.client.search.MembershipCond;
 import org.syncope.client.search.NodeCond;
 import org.syncope.core.persistence.beans.user.SyncopeUser;
 import org.syncope.core.persistence.AbstractTest;
-import org.syncope.core.persistence.beans.user.UAttrValue;
+import org.syncope.core.persistence.beans.user.UserAttribute;
+import org.syncope.core.persistence.beans.user.UserAttributeValue;
+import org.syncope.core.persistence.beans.user.UserSchema;
 
 @Transactional
 public class SyncopeUserTest extends AbstractTest {
@@ -58,24 +60,46 @@ public class SyncopeUserTest extends AbstractTest {
         assertEquals("did not get expected number of users ", 0, list.size());
     }
 
-    @Test
-    public final void findByAttributeValue() {
-        final UAttrValue usernameValue = new UAttrValue();
-        usernameValue.setStringValue("chicchiricco");
+    public final void findByAttribute() {
+        final UserSchema schema = new UserSchema();
+        schema.setName("username");
 
+        final UserAttribute username = new UserAttribute();
+        username.setSchema(schema);
+
+        final UserAttributeValue usernameValue = new UserAttributeValue();
+        usernameValue.setStringValue("chicchiricco");
+        usernameValue.setAttribute(username);
+
+        username.addValue(usernameValue);
+
+        // get first page
         final List<SyncopeUser> list = syncopeUserDAO.findByAttributeValue(
                 usernameValue);
         assertEquals("did not get expected number of users ", 1, list.size());
     }
 
-    @Test
-    public final void findByAttributeBooleanValue() {
-        final UAttrValue coolValue = new UAttrValue();
-        coolValue.setBooleanValue(true);
+    public final void findByAttributePageAndSize() {
+        final UserSchema schema = new UserSchema();
+        schema.setName("username");
 
-        final List<SyncopeUser> list = syncopeUserDAO.findByAttributeValue(
-                coolValue);
+        final UserAttribute username = new UserAttribute();
+        username.setSchema(schema);
+
+        final UserAttributeValue usernameValue = new UserAttributeValue();
+        usernameValue.setStringValue("chicchiricco");
+        usernameValue.setAttribute(username);
+
+        username.addValue(usernameValue);
+
+        // get first page
+        List<SyncopeUser> list = syncopeUserDAO.findByAttributeValue(
+                usernameValue, 1, 2);
         assertEquals("did not get expected number of users ", 1, list.size());
+
+        // get unexistent page
+        list = syncopeUserDAO.findAll(2, 2);
+        assertEquals("did not get expected number of users ", 0, list.size());
     }
 
     @Test
@@ -137,6 +161,7 @@ public class SyncopeUserTest extends AbstractTest {
         usernameLeafCond.setExpression("fabio.martelli");
 
         final NodeCond cond = NodeCond.getNotLeafCond(usernameLeafCond);
+
         assertTrue(cond.checkValidity());
 
         final List<SyncopeUser> users = syncopeUserDAO.search(cond);
@@ -144,23 +169,6 @@ public class SyncopeUserTest extends AbstractTest {
         assertEquals(1, users.size());
 
         assertEquals(Long.valueOf(1L), users.get(0).getId());
-    }
-
-    @Test
-    public final void searchByBoolean() {
-        final AttributeCond coolLeafCond =
-                new AttributeCond(AttributeCond.Type.EQ);
-        coolLeafCond.setSchema("cool");
-        coolLeafCond.setExpression("true");
-
-        final NodeCond cond = NodeCond.getLeafCond(coolLeafCond);
-        assertTrue(cond.checkValidity());
-
-        final List<SyncopeUser> users = syncopeUserDAO.search(cond);
-        assertNotNull(users);
-        assertEquals(1, users.size());
-
-        assertEquals(Long.valueOf(4L), users.get(0).getId());
     }
 
     @Test

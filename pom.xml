@@ -20,7 +20,7 @@
     <description>Syncope</description>
     <groupId>org.syncope</groupId>
     <artifactId>syncope</artifactId>
-    <version>0.3-SNAPSHOT</version>
+    <version>0.2.2</version>
     <packaging>pom</packaging>
 
     <!-- maven repository on sonatype -->
@@ -44,9 +44,9 @@
     </licenses>
 
     <scm>
-        <connection>scm:svn:http://syncope.googlecode.com/svn/trunk/</connection>
-        <developerConnection>scm:svn:https://syncope.googlecode.com/svn/trunk/</developerConnection>
-        <url>http://syncope.googlecode.com/svn/trunk/</url>
+        <connection>scm:svn:http://syncope.googlecode.com/svn/tags/syncope-0.2.2</connection>
+        <developerConnection>scm:svn:https://syncope.googlecode.com/svn/tags/syncope-0.2.2</developerConnection>
+        <url>http://syncope.googlecode.com/svn/tags/syncope-0.2.2</url>
     </scm>
 
     <issueManagement>
@@ -111,7 +111,6 @@
         <aspectj.version>1.6.9</aspectj.version>
 
         <hibernate.version>3.4.0.GA</hibernate.version>
-        <hibernate-validator.version>4.0.2.GA</hibernate-validator.version>
         <ehcache.version>2.3.0</ehcache.version>
         <ehcache-jgroupsreplication.version>1.4</ehcache-jgroupsreplication.version>
 
@@ -119,7 +118,7 @@
 
         <org.apache.cxf.version>2.2.9</org.apache.cxf.version>
 
-        <hsqldb.version>2.0.0</hsqldb.version>
+        <hsqldb.version>1.8.0.10</hsqldb.version>
 
         <reflections.version>0.9.5-RC2</reflections.version>
 
@@ -198,11 +197,6 @@
                 <groupId>org.hibernate</groupId>
                 <artifactId>hibernate-entitymanager</artifactId>
                 <version>${hibernate.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.hibernate</groupId>
-                <artifactId>hibernate-validator</artifactId>
-                <version>${hibernate-validator.version}</version>
             </dependency>
             <dependency>
                 <groupId>net.sf.ehcache</groupId>
@@ -347,7 +341,7 @@
             </dependency>
 
             <dependency>
-                <groupId>org.hsqldb</groupId>
+                <groupId>hsqldb</groupId>
                 <artifactId>hsqldb</artifactId>
                 <version>${hsqldb.version}</version>
             </dependency>

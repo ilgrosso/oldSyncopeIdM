@@ -16,15 +16,15 @@ package org.syncope.core.rest.data;
 
 import org.springframework.stereotype.Component;
 import org.syncope.client.to.ConfigurationTO;
-import org.syncope.core.persistence.beans.SyncopeConf;
+import org.syncope.core.persistence.beans.SyncopeConfiguration;
 
 @Component
 public class ConfigurationDataBinder {
 
-    public SyncopeConf createSyncopeConfiguration(
+    public SyncopeConfiguration createSyncopeConfiguration(
             final ConfigurationTO configurationTO) {
 
-        SyncopeConf syncopeConfiguration = new SyncopeConf();
+        SyncopeConfiguration syncopeConfiguration = new SyncopeConfiguration();
         syncopeConfiguration.setConfKey(configurationTO.getConfKey());
         syncopeConfiguration.setConfValue(configurationTO.getConfValue());
 
@@ -32,7 +32,7 @@ public class ConfigurationDataBinder {
     }
 
     public ConfigurationTO getConfigurationTO(
-            final SyncopeConf syncopeConfiguration) {
+            final SyncopeConfiguration syncopeConfiguration) {
 
         ConfigurationTO configurationTO = new ConfigurationTO();
         configurationTO.setConfKey(syncopeConfiguration.getConfKey());
