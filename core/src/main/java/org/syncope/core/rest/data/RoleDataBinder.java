@@ -14,7 +14,6 @@
  */
 package org.syncope.core.rest.data;
 
-import org.syncope.core.persistence.util.AttributableUtil;
 import java.util.Collections;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;

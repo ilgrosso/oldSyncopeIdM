@@ -14,13 +14,11 @@
  */
 package org.syncope.console.pages;
 
-import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import org.apache.wicket.PageParameters;
 import org.apache.wicket.Session;
 import org.apache.wicket.markup.html.WebPage;
@@ -33,7 +31,6 @@ import org.apache.wicket.markup.html.form.TextField;
 import org.apache.wicket.markup.html.panel.FeedbackPanel;
 import org.apache.wicket.model.IModel;
 import org.apache.wicket.model.Model;
-import org.syncope.console.SyncopeApplication;
 import org.syncope.console.SyncopeSession;
 import org.syncope.console.SyncopeUser;
 
@@ -70,26 +67,15 @@ public class Login extends WebPage {
 
             @Override
             public void onSubmit() {
-                inputStream = ((SyncopeApplication)getApplication())
-                        .getAuthenticationFile();
-                Authentication auth = new Authentication();
-                Boolean authenticated = auth.authentication(usernameField
-                        .getRawInput(),
-                        passwordField.getRawInput(), inputStream);
-                if (authenticated == true) {
-                    SyncopeUser user = new SyncopeUser();
-                    user.setUsername(usernameField.getRawInput());
-                    ((SyncopeSession)Session.get()).setUser(user);
-                    setResponsePage(new WelcomePage(null));
-                    try {
-                        inputStream.close();
-                    } catch (IOException ex) {
-                        Logger.getLogger(Login.class.getName())
-                                .log(Level.SEVERE, null, ex);
-                    }
-                } else {
+               SyncopeUser user = authenticate(usernameField
+                       .getRawInput(), passwordField.getRawInput());
+
+               if(user != null) {
+                ((SyncopeSession)Session.get()).setUser(user);
+                setResponsePage(new WelcomePage(null));
+               }
+               else
                     error(getString("login-error"));
-                }
             }
         };
 
@@ -98,6 +84,135 @@ public class Login extends WebPage {
         
         add(form);
         add(new FeedbackPanel("feedback"));
+    }
+
+    /**
+     *
+     * @param username
+     * @param password
+     * @return
+     */
+    public SyncopeUser authenticate(String username, String password) {
+
+        SyncopeUser user = null;
+        String roles = "";
+
+        if ("admin".equals(username) && "password".equals(password)) {
+
+
+            List<String> rolesList = getAdminRoles();
+
+            for(int i = 0; i< rolesList.size(); i++) {
+                String role = rolesList.get(i);
+                roles +=role;
+
+                if(i != rolesList.size())
+                    roles += ",";
+            }
+
+            user = new SyncopeUser(username, roles);
+
+            return user;
+        }
+        else  if ("manager".equals(username) && "password".equals(password)) {
+
+            List<String> rolesList = getManagerRoles();
+
+            for (int i = 0; i < rolesList.size(); i++) {
+                String role = rolesList.get(i);
+                roles += role;
+
+                if (i != rolesList.size())
+                    roles += ",";
+
+            }
+
+            user = new SyncopeUser(username, roles);
+
+            return user;
+        }
+        else
+            return null;
+    }
+
+    public List<String> getAdminRoles() {
+        List<String> roles = new ArrayList<String>();
+
+        roles.add("USER_CREATE");
+        roles.add("USER_LIST");
+        roles.add("USER_READ");
+        roles.add("USER_DELETE");
+        roles.add("USER_UPDATE");
+        roles.add("USER_VIEW");
+
+        roles.add("SCHEMA_CREATE");
+        roles.add("SCHEMA_LIST");
+        roles.add("SCHEMA_READ");
+        roles.add("SCHEMA_DELETE");
+        roles.add("SCHEMA_UPDATE");
+
+        roles.add("ROLES_CREATE");
+        roles.add("ROLES_LIST");
+        roles.add("ROLES_READ");
+        roles.add("ROLES_DELETE");
+        roles.add("ROLES_UPDATE");
+
+        roles.add("RESOURCES_CREATE");
+        roles.add("RESOURCES_LIST");
+        roles.add("RESOURCES_READ");
+        roles.add("RESOURCES_DELETE");
+        roles.add("RESOURCES_UPDATE");
+
+        roles.add("CONNECTORS_CREATE");
+        roles.add("CONNECTORS_LIST");
+        roles.add("CONNECTORS_READ");
+        roles.add("CONNECTORS_DELETE");
+        roles.add("CONNECTORS_UPDATE");
+
+        roles.add("REPORT_LIST");
+
+        roles.add("CONFIGURATION_CREATE");
+        roles.add("CONFIGURATION_LIST");
+        roles.add("CONFIGURATION_READ");
+        roles.add("CONFIGURATION_DELETE");
+        roles.add("CONFIGURATION_UPDATE");
+
+        roles.add("TASKS_CREATE");
+        roles.add("TASKS_LIST");
+        roles.add("TASKS_READ");
+        roles.add("TASKS_DELETE");
+        roles.add("TASKS_UPDATE");
+        roles.add("TASKS_EXECUTE");
+
+        return roles;
+    }
+
+    public List<String> getManagerRoles() {
+        List<String> roles = new ArrayList<String>();
+
+        //roles.add("USER_CREATE");
+        roles.add("USER_LIST");
+        roles.add("USER_READ");
+        roles.add("USER_DELETE");
+//        roles.add("USER_UPDATE");
+
+//        roles.add("SCHEMA_CREATE");
+        roles.add("SCHEMA_LIST");
+//        roles.add("SCHEMA_READ");
+//        roles.add("SCHEMA_DELETE");
+//        roles.add("SCHEMA_UPDATE");
+
+         roles.add("CONNECTORS_LIST");
+         roles.add("REPORT_LIST");
+
+//        roles.add("ROLES_CREATE");
+        roles.add("ROLES_LIST");
+        roles.add("ROLES_READ");
+//        roles.add("ROLES_DELETE");
+//        roles.add("ROLES_UPDATE");
+        roles.add("TASKS_LIST");
+
+        return roles;
     }
 
     /**
@@ -118,16 +233,17 @@ public class Login extends WebPage {
             setChoiceRenderer(new LocaleRenderer());
             setModel(new IModel() {
 
+                @Override
                 public Object getObject() {
-
                     return getSession().getLocale();
-
                 }
 
+                @Override
                 public void setObject(Object object) {
                     getSession().setLocale((Locale) object);
                 }
 
+                @Override
                 public void detach() {
                 }
             });

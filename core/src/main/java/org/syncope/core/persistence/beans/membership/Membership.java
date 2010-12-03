@@ -27,10 +27,9 @@ import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
-import javax.validation.Valid;
 import org.syncope.core.persistence.beans.AbstractAttributable;
-import org.syncope.core.persistence.beans.AbstractAttr;
-import org.syncope.core.persistence.beans.AbstractDerAttr;
+import org.syncope.core.persistence.beans.AbstractAttribute;
+import org.syncope.core.persistence.beans.AbstractDerivedAttribute;
 import org.syncope.core.persistence.beans.TargetResource;
 import org.syncope.core.persistence.beans.role.SyncopeRole;
 import org.syncope.core.persistence.beans.user.SyncopeUser;
@@ -54,16 +53,14 @@ public class Membership extends AbstractAttributable {
     private SyncopeRole syncopeRole;
 
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "owner")
-    @Valid
-    private List<MAttr> attributes;
+    private List<MembershipAttribute> attributes;
 
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "owner")
-    @Valid
-    private List<MDerAttr> derivedAttributes;
+    private List<MembershipDerivedAttribute> derivedAttributes;
 
     public Membership() {
-        attributes = new ArrayList<MAttr>();
-        derivedAttributes = new ArrayList<MDerAttr>();
+        attributes = new ArrayList<MembershipAttribute>();
+        derivedAttributes = new ArrayList<MembershipDerivedAttribute>();
         targetResources = Collections.EMPTY_SET;
     }
 
@@ -89,52 +86,52 @@ public class Membership extends AbstractAttributable {
     }
 
     @Override
-    public <T extends AbstractAttr> boolean addAttribute(T attribute) {
-        return attributes.add((MAttr) attribute);
+    public <T extends AbstractAttribute> boolean addAttribute(T attribute) {
+        return attributes.add((MembershipAttribute) attribute);
     }
 
     @Override
-    public <T extends AbstractAttr> boolean removeAttribute(T attribute) {
-        return attributes.remove((MAttr) attribute);
+    public <T extends AbstractAttribute> boolean removeAttribute(T attribute) {
+        return attributes.remove((MembershipAttribute) attribute);
     }
 
     @Override
-    public List<? extends AbstractAttr> getAttributes() {
+    public List<? extends AbstractAttribute> getAttributes() {
         return attributes;
     }
 
     @Override
-    public void setAttributes(List<? extends AbstractAttr> attributes) {
-        this.attributes = (List<MAttr>) attributes;
+    public void setAttributes(List<? extends AbstractAttribute> attributes) {
+        this.attributes = (List<MembershipAttribute>) attributes;
     }
 
     @Override
-    public <T extends AbstractDerAttr> boolean addDerivedAttribute(
+    public <T extends AbstractDerivedAttribute> boolean addDerivedAttribute(
             T derivedAttribute) {
 
         return derivedAttributes.add(
-                (MDerAttr) derivedAttribute);
+                (MembershipDerivedAttribute) derivedAttribute);
     }
 
     @Override
-    public <T extends AbstractDerAttr> boolean removeDerivedAttribute(
+    public <T extends AbstractDerivedAttribute> boolean removeDerivedAttribute(
             T derivedAttribute) {
 
         return derivedAttributes.remove(
-                (MDerAttr) derivedAttribute);
+                (MembershipDerivedAttribute) derivedAttribute);
     }
 
     @Override
-    public List<? extends AbstractDerAttr> getDerivedAttributes() {
+    public List<? extends AbstractDerivedAttribute> getDerivedAttributes() {
         return derivedAttributes;
     }
 
     @Override
     public void setDerivedAttributes(
-            List<? extends AbstractDerAttr> derivedAttributes) {
+            List<? extends AbstractDerivedAttribute> derivedAttributes) {
 
         this.derivedAttributes =
-                (List<MDerAttr>) derivedAttributes;
+                (List<MembershipDerivedAttribute>) derivedAttributes;
     }
 
     @Override

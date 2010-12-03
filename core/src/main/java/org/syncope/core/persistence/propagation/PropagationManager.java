@@ -34,27 +34,23 @@ import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.syncope.core.persistence.ConnectorInstanceLoader;
-import org.syncope.core.persistence.beans.AbstractAttrValue;
 import org.syncope.core.persistence.beans.AbstractSchema;
 import org.syncope.core.persistence.beans.ConnectorInstance;
 import org.syncope.core.persistence.beans.TargetResource;
 import org.syncope.core.persistence.beans.SchemaMapping;
 import org.syncope.core.persistence.beans.Task;
 import org.syncope.core.persistence.beans.TaskExecution;
-import org.syncope.core.persistence.beans.membership.MSchema;
 import org.syncope.core.persistence.beans.membership.Membership;
-import org.syncope.core.persistence.beans.role.RSchema;
 import org.syncope.core.persistence.beans.user.SyncopeUser;
-import org.syncope.core.persistence.beans.user.UAttr;
-import org.syncope.core.persistence.beans.user.UAttrValue;
-import org.syncope.core.persistence.beans.user.USchema;
+import org.syncope.core.persistence.beans.user.UserAttribute;
+import org.syncope.core.persistence.beans.user.UserAttributeValue;
 import org.syncope.core.persistence.dao.SchemaDAO;
 import org.syncope.core.persistence.dao.TaskDAO;
 import org.syncope.core.rest.data.TaskDataBinder;
 import org.syncope.types.PropagationMode;
 import org.syncope.types.ResourceOperationType;
-import org.syncope.types.SourceMappingType;
 import org.syncope.types.SchemaType;
+import org.syncope.types.SchemaValueType;
 import org.syncope.types.TaskExecutionStatus;
 
 /**
@@ -191,7 +187,8 @@ public class PropagationManager {
             final Set<String> syncResourceNames)
             throws PropagationException {
 
-        LOG.debug("Provisioning with user {}:\n{}", user, resourceOperations);
+        LOG.debug("Provisioning with user {}:\n{}",
+                user, resourceOperations);
 
         // Avoid duplicates - see javadoc
         resourceOperations.purge();
@@ -221,58 +218,34 @@ public class PropagationManager {
 
                 task = taskDAO.save(task);
 
-                execution = new TaskExecution();
-                execution.setTask(task);
+                TaskExecution taskExecution = new TaskExecution();
+                taskExecution.setTask(task);
 
                 if (PropagationMode.SYNC.equals(task.getPropagationMode())) {
-                    syncPropagate(execution);
+                    syncPropagate(taskExecution);
 
                     // read execution after saving
-                    execution =
+                    taskExecution =
                             task.getExecutions() != null
                             && !task.getExecutions().isEmpty()
-                            ? task.getExecutions().iterator().next() : null;
+                            ? task.getExecutions().get(0) : null;
 
                 } else {
-                    asyncPropagate(execution);
+                    asyncPropagate(taskExecution);
                 }
 
                 LOG.debug("Execution finished for {}", task);
 
-                if (execution != null
+                if (taskExecution != null
                         && syncResourceNames.contains(resource.getName())
-                        && execution.getStatus()
+                        && taskExecution.getStatus()
                         != TaskExecutionStatus.SUCCESS) {
 
                     throw new PropagationException(resource.getName(),
-                            execution.getMessage());
+                            taskExecution.getMessage());
                 }
             }
         }
-    }
-
-    private Class getSourceMappingTypeClass(
-            SourceMappingType sourceMappingType) {
-
-        Class result;
-
-        switch (sourceMappingType) {
-            case UserSchema:
-                result = USchema.class;
-                break;
-
-            case RoleSchema:
-                result = RSchema.class;
-                break;
-
-            case MembershipSchema:
-                result = MSchema.class;
-
-            default:
-                result = null;
-        }
-
-        return result;
     }
 
     private Map<String, Set<Attribute>> prepareAttributes(SyncopeUser user,
@@ -297,85 +270,81 @@ public class PropagationManager {
         Set objValues;
 
         // syncope user attribute
-        UAttr attr;
-        AbstractSchema schema;
+        UserAttribute userAttribute;
         // syncope user attribute schema type
-        SchemaType schemaType = null;
+        SchemaValueType schemaValueType = null;
         // syncope user attribute values
-        List<AbstractAttrValue> values;
+        List<UserAttributeValue> values;
 
         for (SchemaMapping mapping : resource.getMappings()) {
-            LOG.debug("Processing schema {}", mapping.getSourceAttrName());
+            LOG.debug("Processing schema {} ({})", mapping.getSchemaName(),
+                    mapping.getSchemaType().getClassName());
 
             try {
-                switch (mapping.getSourceMappingType()) {
-                    case UserSchema:
-                    case RoleSchema:
-                    case MembershipSchema:
-                        schema = schemaDAO.find(mapping.getSourceAttrName(),
-                                getSourceMappingTypeClass(
-                                mapping.getSourceMappingType()));
-                        schemaType = schema.getType();
+                AbstractSchema schema = null;
+                try {
+                    // check for schema or constants (AccountId/Password)
+                    mapping.getSchemaType().getSchemaClass().asSubclass(
+                            AbstractSchema.class);
 
-                        attr = user.getAttribute(mapping.getSourceAttrName());
+                    schema = schemaDAO.find(mapping.getSchemaName(),
+                            mapping.getSchemaType().getSchemaClass());
+                } catch (ClassCastException e) {
+                    // ignore exception ... check for AccountId or Password
+                    LOG.debug("Wrong schema type {}",
+                            mapping.getSchemaType().getClassName());
+                }
 
-                        values = attr != null
-                                ? (schema.isUniqueConstraint()
-                                ? Collections.singletonList(
-                                attr.getUniqueValue())
-                                : attr.getValues())
-                                : Collections.EMPTY_LIST;
+                if (schema != null) {
+                    // get defined type for user attribute
+                    schemaValueType = schema.getType();
 
-                        if (LOG.isDebugEnabled()) {
-                            LOG.debug("Retrieved attribute " + attr
-                                    + "\n* SourceAttrName "
-                                    + mapping.getSourceAttrName()
-                                    + "\n* SourceMappingType "
-                                    + mapping.getSourceMappingType()
-                                    + "\n* Attribute values " + values);
-                        }
-                        break;
+                    // get user attribute object
+                    userAttribute = user.getAttribute(mapping.getSchemaName());
 
-                    case SyncopeUserId:
-                    case Password:
-                        schema = null;
-                        schemaType = SchemaType.String;
+                    values = userAttribute != null
+                            ? userAttribute.getValues()
+                            : Collections.EMPTY_LIST;
 
-                        AbstractAttrValue uAttrValue = new UAttrValue();
+                    if (LOG.isDebugEnabled()) {
+                        LOG.debug("Retrieved attribute " + userAttribute
+                                + "\n* Schema " + mapping.getSchemaName()
+                                + "\n* Schema type "
+                                + mapping.getSchemaType().getClassName()
+                                + "\n* Attribute values " + values);
+                    }
+                } else {
+                    schemaValueType = SchemaValueType.String;
 
-                        if (SourceMappingType.SyncopeUserId == mapping.
-                                getSourceMappingType()) {
+                    UserAttributeValue userAttributeValue =
+                            new UserAttributeValue();
 
-                            uAttrValue.setStringValue(user.getId().toString());
-                        }
-                        if (SourceMappingType.Password == mapping.
-                                getSourceMappingType()
-                                && password != null) {
+                    if (SchemaType.AccountId.equals(mapping.getSchemaType())) {
+                        userAttributeValue.setStringValue(
+                                user.getId().toString());
+                    }
+                    if (SchemaType.Password.equals(mapping.getSchemaType())
+                            && password != null) {
 
-                            uAttrValue.setStringValue(password);
-                        }
+                        userAttributeValue.setStringValue(password);
+                    }
 
-                        values = Collections.singletonList(uAttrValue);
-                        break;
-
-                    default:
-                        schema = null;
-                        values = null;
+                    values = Collections.singletonList(userAttributeValue);
                 }
 
                 if (LOG.isDebugEnabled()) {
                     LOG.debug("Define mapping for: "
-                            + "\n* DestAttrName " + mapping.getDestAttrName()
+                            + "\n* Field " + mapping.getField()
                             + "\n* is accountId " + mapping.isAccountid()
                             + "\n* is password " + (mapping.isPassword()
-                            || mapping.getSourceMappingType().equals(
-                            SourceMappingType.Password))
-                            + "\n* mandatory condition "
+                            || mapping.getSchemaType().equals(
+                            SchemaType.Password))
+                            + "\n* nullable condition "
                             + mapping.getMandatoryCondition()
-                            + "\n* Schema " + mapping.getSourceAttrName()
-                            + "\n* SourceMappingType "
-                            + mapping.getSourceMappingType().toString()
-                            + "\n* ClassType " + schemaType.getClassName()
+                            + "\n* Schema " + mapping.getSchemaName()
+                            + "\n* SchemaType "
+                            + mapping.getSchemaType().toString()
+                            + "\n* ClassType " + schemaValueType.getClassName()
                             + "\n* Values " + values);
                 }
 
@@ -384,9 +353,9 @@ public class PropagationManager {
                 // -----------------------------
                 objValues = new HashSet();
 
-                for (AbstractAttrValue value : values) {
+                for (UserAttributeValue value : values) {
                     castToBeApplied =
-                            Class.forName(schemaType.getClassName());
+                            Class.forName(schemaValueType.getClassName());
 
                     if (!FrameworkUtil.isSupportedAttributeType(
                             castToBeApplied)) {
@@ -413,20 +382,25 @@ public class PropagationManager {
                 if (!mapping.isPassword() && !mapping.isAccountid()) {
                     if (schema != null && schema.isMultivalue()) {
                         attributes.add(AttributeBuilder.build(
-                                mapping.getDestAttrName(),
+                                mapping.getField(),
                                 objValues));
                     } else {
                         attributes.add(objValues.isEmpty()
                                 ? AttributeBuilder.build(
-                                mapping.getDestAttrName())
+                                mapping.getField())
                                 : AttributeBuilder.build(
-                                mapping.getDestAttrName(),
+                                mapping.getField(),
                                 objValues.iterator().next()));
                     }
                 }
+            } catch (ClassNotFoundException e) {
+                LOG.warn("Unsupported attribute type "
+                        + schemaValueType.getClassName(), e);
             } catch (Throwable t) {
-                LOG.debug("Attribute '{}' processing failed",
-                        mapping.getSourceAttrName(), t);
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("Attribute '" + mapping.getSchemaName()
+                            + "' processing failed", t);
+                }
             }
         }
 
@@ -536,7 +510,9 @@ public class PropagationManager {
         } finally {
             LOG.debug("Update execution for {}", task);
 
-            if (!triedPropagationRequests.isEmpty()) {
+            if (!triedPropagationRequests.isEmpty()
+                    || execution.getId() != null) {
+
                 execution.setStartDate(startDate);
                 execution.setMessage(taskExecutionMessage);
                 execution.setStatus(taskExecutionStatus);

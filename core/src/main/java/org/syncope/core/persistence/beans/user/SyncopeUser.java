@@ -26,21 +26,23 @@ import java.util.Set;
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.Lob;
 import javax.persistence.NamedQueries;
 import javax.persistence.NamedQuery;
 import javax.persistence.OneToMany;
 import javax.persistence.QueryHint;
+import javax.persistence.TableGenerator;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
-import javax.validation.Valid;
 import org.apache.commons.lang.RandomStringUtils;
 import org.hibernate.annotations.Cache;
 import org.hibernate.annotations.CacheConcurrencyStrategy;
 import org.syncope.core.persistence.beans.AbstractAttributable;
-import org.syncope.core.persistence.beans.AbstractAttr;
-import org.syncope.core.persistence.beans.AbstractDerAttr;
+import org.syncope.core.persistence.beans.AbstractAttribute;
+import org.syncope.core.persistence.beans.AbstractDerivedAttribute;
 import org.syncope.core.persistence.beans.TargetResource;
 import org.syncope.core.persistence.beans.membership.Membership;
 import org.syncope.core.persistence.beans.role.SyncopeRole;
@@ -62,21 +64,21 @@ import org.syncope.core.persistence.beans.role.SyncopeRole;
 public class SyncopeUser extends AbstractAttributable {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.TABLE,
+    generator = "SEQ_SyncopeUser")
+    @TableGenerator(name = "SEQ_SyncopeUser", allocationSize = 100)
     private Long id;
 
     private String password;
 
     @OneToMany(cascade = CascadeType.MERGE, mappedBy = "syncopeUser")
-    @Valid
     private List<Membership> memberships;
 
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "owner")
-    @Valid
-    private List<UAttr> attributes;
+    private List<UserAttribute> attributes;
 
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "owner")
-    @Valid
-    private List<UDerAttr> derivedAttributes;
+    private List<UserDerivedAttribute> derivedAttributes;
 
     @Column(nullable = true)
     private Long workflowId;
@@ -89,8 +91,8 @@ public class SyncopeUser extends AbstractAttributable {
 
     public SyncopeUser() {
         memberships = new ArrayList<Membership>();
-        attributes = new ArrayList<UAttr>();
-        derivedAttributes = new ArrayList<UDerAttr>();
+        attributes = new ArrayList<UserAttribute>();
+        derivedAttributes = new ArrayList<UserDerivedAttribute>();
     }
 
     @Override
@@ -193,49 +195,49 @@ public class SyncopeUser extends AbstractAttributable {
     }
 
     @Override
-    public <T extends AbstractAttr> boolean addAttribute(T attribute) {
-        return attributes.add((UAttr) attribute);
+    public <T extends AbstractAttribute> boolean addAttribute(T attribute) {
+        return attributes.add((UserAttribute) attribute);
     }
 
     @Override
-    public <T extends AbstractAttr> boolean removeAttribute(T attribute) {
-        return attributes.remove((UAttr) attribute);
+    public <T extends AbstractAttribute> boolean removeAttribute(T attribute) {
+        return attributes.remove((UserAttribute) attribute);
     }
 
     @Override
-    public List<? extends AbstractAttr> getAttributes() {
+    public List<? extends AbstractAttribute> getAttributes() {
         return attributes;
     }
 
     @Override
-    public void setAttributes(List<? extends AbstractAttr> attributes) {
-        this.attributes = (List<UAttr>) attributes;
+    public void setAttributes(List<? extends AbstractAttribute> attributes) {
+        this.attributes = (List<UserAttribute>) attributes;
     }
 
     @Override
-    public <T extends AbstractDerAttr> boolean addDerivedAttribute(
+    public <T extends AbstractDerivedAttribute> boolean addDerivedAttribute(
             T derivedAttribute) {
 
-        return derivedAttributes.add((UDerAttr) derivedAttribute);
+        return derivedAttributes.add((UserDerivedAttribute) derivedAttribute);
     }
 
     @Override
-    public <T extends AbstractDerAttr> boolean removeDerivedAttribute(
+    public <T extends AbstractDerivedAttribute> boolean removeDerivedAttribute(
             T derivedAttribute) {
 
-        return derivedAttributes.remove((UDerAttr) derivedAttribute);
+        return derivedAttributes.remove((UserDerivedAttribute) derivedAttribute);
     }
 
     @Override
-    public List<? extends AbstractDerAttr> getDerivedAttributes() {
+    public List<? extends AbstractDerivedAttribute> getDerivedAttributes() {
         return derivedAttributes;
     }
 
     @Override
     public void setDerivedAttributes(
-            List<? extends AbstractDerAttr> derivedAttributes) {
+            List<? extends AbstractDerivedAttribute> derivedAttributes) {
 
-        this.derivedAttributes = (List<UDerAttr>) derivedAttributes;
+        this.derivedAttributes = (List<UserDerivedAttribute>) derivedAttributes;
     }
 
     public Long getWorkflowId() {
@@ -279,6 +281,7 @@ public class SyncopeUser extends AbstractAttributable {
     }
 
     public boolean checkToken(final String token) {
+
         return this.token != null && this.token.equals(token)
                 && tokenExpireTime.after(new Date());
     }

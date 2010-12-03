@@ -14,27 +14,24 @@
  */
 package org.syncope.core.persistence.beans;
 
-import static javax.persistence.EnumType.STRING;
-
 import java.lang.reflect.Constructor;
 import java.text.DecimalFormat;
 import java.text.Format;
 import java.text.SimpleDateFormat;
 import java.util.List;
 import javax.persistence.Basic;
+import static javax.persistence.EnumType.STRING;
+
 import javax.persistence.Column;
 import javax.persistence.Enumerated;
 import javax.persistence.Id;
 import javax.persistence.MappedSuperclass;
 import javax.persistence.Transient;
-import org.hibernate.validator.constraints.Range;
-import org.syncope.core.persistence.validation.attrvalue.BasicValidator;
-import org.syncope.core.persistence.validation.attrvalue.AbstractValidator;
-import org.syncope.core.persistence.validation.entity.SchemaCheck;
-import org.syncope.types.SchemaType;
+import org.syncope.core.persistence.validation.BasicAttributeValidator;
+import org.syncope.core.persistence.validation.AbstractAttributeValidator;
+import org.syncope.types.SchemaValueType;
 
 @MappedSuperclass
-@SchemaCheck
 public abstract class AbstractSchema extends AbstractBaseBean {
 
     private static final ThreadLocal<SimpleDateFormat> DATE_FORMAT =
@@ -60,28 +57,24 @@ public abstract class AbstractSchema extends AbstractBaseBean {
 
     @Column(nullable = false)
     @Enumerated(STRING)
-    private SchemaType type;
+    private SchemaValueType type;
 
     /**
      * Specify if the attribute should be stored on the local repository.
      */
     @Basic
-    @Range(min = 0, max = 1)
     private Integer virtual;
 
     @Column(nullable = false)
     private String mandatoryCondition;
 
     @Basic
-    @Range(min = 0, max = 1)
     private Integer multivalue;
 
     @Basic
-    @Range(min = 0, max = 1)
-    private Integer uniqueConstraint;
+    private Integer uniquevalue;
 
     @Basic
-    @Range(min = 0, max = 1)
     private Integer readonly;
 
     @Column(nullable = true)
@@ -91,16 +84,16 @@ public abstract class AbstractSchema extends AbstractBaseBean {
     private String validatorClass;
 
     @Transient
-    private AbstractValidator validator;
+    private AbstractAttributeValidator validator;
 
     public AbstractSchema() {
         super();
 
-        type = SchemaType.String;
+        type = SchemaValueType.String;
         virtual = getBooleanAsInteger(false);
         mandatoryCondition = Boolean.FALSE.toString();
         multivalue = getBooleanAsInteger(false);
-        uniqueConstraint = getBooleanAsInteger(false);
+        uniquevalue = getBooleanAsInteger(false);
         readonly = getBooleanAsInteger(false);
     }
 
@@ -112,11 +105,11 @@ public abstract class AbstractSchema extends AbstractBaseBean {
         this.name = name;
     }
 
-    public SchemaType getType() {
+    public SchemaValueType getType() {
         return type;
     }
 
-    public void setType(SchemaType type) {
+    public void setType(SchemaValueType type) {
         this.type = type;
     }
 
@@ -144,12 +137,12 @@ public abstract class AbstractSchema extends AbstractBaseBean {
         this.multivalue = getBooleanAsInteger(multivalue);
     }
 
-    public boolean isUniqueConstraint() {
-        return isBooleanAsInteger(uniqueConstraint);
+    public boolean isUniquevalue() {
+        return isBooleanAsInteger(uniquevalue);
     }
 
-    public void setUniqueConstraint(boolean uniquevalue) {
-        this.uniqueConstraint = getBooleanAsInteger(uniquevalue);
+    public void setUniquevalue(boolean uniquevalue) {
+        this.uniquevalue = getBooleanAsInteger(uniquevalue);
     }
 
     public boolean isReadonly() {
@@ -160,7 +153,7 @@ public abstract class AbstractSchema extends AbstractBaseBean {
         this.readonly = getBooleanAsInteger(readonly);
     }
 
-    public AbstractValidator getValidator() {
+    public AbstractAttributeValidator getValidator() {
         if (validator != null) {
             return validator;
         }
@@ -171,7 +164,8 @@ public abstract class AbstractSchema extends AbstractBaseBean {
                         Class.forName(getValidatorClass()).getConstructor(
                         new Class[]{getClass().getSuperclass()});
                 validator =
-                        (AbstractValidator) validatorConstructor.newInstance(
+                        (AbstractAttributeValidator) validatorConstructor.
+                        newInstance(
                         this);
             } catch (Exception e) {
                 LOG.error("Could not instantiate validator of type "
@@ -181,7 +175,7 @@ public abstract class AbstractSchema extends AbstractBaseBean {
         }
 
         if (validator == null) {
-            validator = new BasicValidator(this);
+            validator = new BasicAttributeValidator(this);
         }
 
         return validator;
@@ -245,25 +239,25 @@ public abstract class AbstractSchema extends AbstractBaseBean {
         return result;
     }
 
-    public abstract <T extends AbstractAttr> boolean addAttribute(
+    public abstract <T extends AbstractAttribute> boolean addAttribute(
             T attribute);
 
-    public abstract <T extends AbstractAttr> boolean removeAttribute(
+    public abstract <T extends AbstractAttribute> boolean removeAttribute(
             T attribute);
 
-    public abstract List<? extends AbstractAttr> getAttributes();
+    public abstract List<? extends AbstractAttribute> getAttributes();
 
     public abstract void setAttributes(
-            List<? extends AbstractAttr> attributes);
+            List<? extends AbstractAttribute> attributes);
 
-    public abstract <T extends AbstractDerSchema> boolean addDerivedSchema(
+    public abstract <T extends AbstractDerivedSchema> boolean addDerivedSchema(
             T derivedSchema);
 
-    public abstract <T extends AbstractDerSchema> boolean removeDerivedSchema(
+    public abstract <T extends AbstractDerivedSchema> boolean removeDerivedSchema(
             T derivedSchema);
 
-    public abstract List<? extends AbstractDerSchema> getDerivedSchemas();
+    public abstract List<? extends AbstractDerivedSchema> getDerivedSchemas();
 
     public abstract void setDerivedSchemas(
-            List<? extends AbstractDerSchema> derivedSchemas);
+            List<? extends AbstractDerivedSchema> derivedSchemas);
 }

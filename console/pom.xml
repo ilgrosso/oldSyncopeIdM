@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.syncope</groupId>
         <artifactId>syncope</artifactId>
-        <version>0.3-SNAPSHOT</version>
+        <version>0.2.1</version>
     </parent>
 
     <name>Syncope console</name>
@@ -82,6 +82,12 @@
                     <artifactId>spring</artifactId>
                 </exclusion>
             </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.wicket</groupId>
+            <artifactId>wicket-auth-roles</artifactId>
+            <type>jar</type>
         </dependency>
 
         <dependency>

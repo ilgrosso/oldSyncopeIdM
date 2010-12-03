@@ -23,7 +23,7 @@ import org.syncope.core.persistence.beans.SchemaMapping;
 import org.syncope.core.persistence.beans.role.SyncopeRole;
 import org.syncope.core.persistence.beans.user.SyncopeUser;
 import org.syncope.core.persistence.dao.ResourceDAO;
-import org.syncope.types.SourceMappingType;
+import org.syncope.types.SchemaType;
 
 @Repository
 public class ResourceDAOImpl extends AbstractDAOImpl
@@ -50,30 +50,40 @@ public class ResourceDAOImpl extends AbstractDAOImpl
 
     @Override
     public TargetResource save(final TargetResource resource) {
+        int accountIds = 0;
+        for (SchemaMapping mapping : resource.getMappings()) {
+            if (mapping.isAccountid()) {
+                accountIds++;
+            }
+        }
+        if (accountIds == 0 || accountIds > 1) {
+            throw new IllegalArgumentException("Found '" + accountIds
+                    + "' mappings for account id");
+        }
+
         return entityManager.merge(resource);
     }
 
     @Override
-    public List<SchemaMapping> getMappings(final String sourceAttrName,
-            final SourceMappingType sourceMappingType) {
+    public List<SchemaMapping> getMappings(final String schemaName,
+            final SchemaType schemaType) {
 
         Query query = entityManager.createNamedQuery(
                 "TargetResource.getMappings");
-        query.setParameter("sourceAttrName", sourceAttrName);
-        query.setParameter("sourceMappingType", sourceMappingType);
+        query.setParameter("schemaName", schemaName);
+        query.setParameter("schemaType", schemaType);
 
         return query.getResultList();
     }
 
     @Override
-    public List<SchemaMapping> getMappings(final String sourceAttrName,
-            final SourceMappingType sourceMappingType,
-            final String resourceName) {
+    public List<SchemaMapping> getMappings(final String schemaName,
+            final SchemaType schemaType, final String resourceName) {
 
         Query query = entityManager.createNamedQuery(
                 "TargetResource.getMappingsByTargetResource");
-        query.setParameter("sourceAttrName", sourceAttrName);
-        query.setParameter("sourceMappingType", sourceMappingType);
+        query.setParameter("schemaName", schemaName);
+        query.setParameter("schemaType", schemaType);
         query.setParameter("resourceName", resourceName);
 
         return query.getResultList();
@@ -87,24 +97,24 @@ public class ResourceDAOImpl extends AbstractDAOImpl
                 + "AND m.accountid = 1");
         query.setParameter("resourceName", resourceName);
 
-        return ((SchemaMapping) query.getSingleResult()).getSourceAttrName();
+        return ((SchemaMapping) query.getSingleResult()).getSchemaName();
     }
 
     @Override
-    public void deleteMappings(final String sourceAttrName,
-            final SourceMappingType sourceMappingType) {
+    public void deleteMappings(final String schemaName,
+            final SchemaType schemaType) {
 
-        if (sourceMappingType == SourceMappingType.SyncopeUserId
-                || sourceMappingType == SourceMappingType.Password) {
+        if (schemaType == SchemaType.AccountId
+                || schemaType == SchemaType.Password) {
             return;
         }
 
         Query query = entityManager.createQuery("DELETE FROM "
                 + SchemaMapping.class.getSimpleName()
-                + " m WHERE m.sourceAttrName=:sourceAttrName "
-                + "AND m.sourceMappingType=:sourceMappingType");
-        query.setParameter("sourceAttrName", sourceAttrName);
-        query.setParameter("sourceMappingType", sourceMappingType);
+                + " m WHERE m.schemaName=:schemaName "
+                + "AND m.schemaType=:schemaType");
+        query.setParameter("schemaName", schemaName);
+        query.setParameter("schemaType", schemaType);
 
         int items = query.executeUpdate();
         LOG.debug("Removed {} schema mappings", items);

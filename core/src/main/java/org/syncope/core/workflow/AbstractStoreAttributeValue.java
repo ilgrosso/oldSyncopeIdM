@@ -18,20 +18,20 @@ import com.opensymphony.workflow.FunctionProvider;
 import com.opensymphony.workflow.WorkflowException;
 import java.util.Map;
 import org.syncope.core.persistence.beans.AbstractAttributable;
-import org.syncope.core.persistence.beans.AbstractAttr;
+import org.syncope.core.persistence.beans.AbstractAttribute;
 import org.syncope.core.persistence.beans.AbstractSchema;
 import org.syncope.core.persistence.beans.membership.Membership;
 import org.syncope.core.persistence.beans.role.SyncopeRole;
 import org.syncope.core.persistence.beans.user.SyncopeUser;
 import org.syncope.core.persistence.dao.SchemaDAO;
-import org.syncope.core.persistence.util.AttributableUtil;
+import org.syncope.core.rest.data.AttributableUtil;
 
 abstract class AbstractStoreAttributeValue extends OSWorkflowComponent
         implements FunctionProvider {
 
     protected AttributableUtil attributableUtil;
 
-    protected AbstractAttr getAttribute(Map transientVars, Map args)
+    protected AbstractAttribute getAttribute(Map transientVars, Map args)
             throws WorkflowException {
 
         String schemaName = (String) args.get("schema");
@@ -68,12 +68,12 @@ abstract class AbstractStoreAttributeValue extends OSWorkflowComponent
 
         SchemaDAO schemaDAO = (SchemaDAO) context.getBean("schemaDAOImpl");
         AbstractSchema schema = schemaDAO.find(schemaName,
-                attributableUtil.schemaClass());
+                attributableUtil.getSchemaClass());
         if (schema == null) {
             throw new WorkflowException("Invalid schema: " + schemaName);
         }
 
-        AbstractAttr attribute = attributable.getAttribute(schemaName);
+        AbstractAttribute attribute = attributable.getAttribute(schemaName);
         if (attribute == null) {
             attribute = attributableUtil.newAttribute();
             attribute.setSchema(schema);

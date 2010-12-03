@@ -26,7 +26,7 @@ import org.syncope.core.persistence.beans.TargetResource;
 import org.syncope.core.persistence.beans.SchemaMapping;
 import org.syncope.core.persistence.AbstractTest;
 import org.syncope.identityconnectors.bundles.staticwebservice.WebServiceConnector;
-import org.syncope.types.SourceMappingType;
+import org.syncope.types.SchemaType;
 
 @Transactional
 public class ResourceTest extends AbstractTest {
@@ -89,9 +89,9 @@ public class ResourceTest extends AbstractTest {
         SchemaMapping accountId = new SchemaMapping();
         accountId.setResource(resource);
         accountId.setAccountid(true);
-        accountId.setDestAttrName("username");
-        accountId.setSourceAttrName("username");
-        accountId.setSourceMappingType(SourceMappingType.SyncopeUserId);
+        accountId.setField("username");
+        accountId.setSchemaName("username");
+        accountId.setSchemaType(SchemaType.AccountId);
 
         resource.addMapping(accountId);
 
