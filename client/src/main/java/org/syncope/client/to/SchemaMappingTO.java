@@ -15,39 +15,39 @@
 package org.syncope.client.to;
 
 import org.syncope.client.AbstractBaseBean;
-import org.syncope.types.SourceMappingType;
+import org.syncope.types.SchemaType;
 
 public class SchemaMappingTO extends AbstractBaseBean {
 
     private Long id;
-
     /**
      * Attribute schema to be mapped.
      * Consider that we can associate tha same attribute schema more
      * than once, with different aliases, to different resource attributes.
      */
-    private String sourceAttrName;
-
+    private String schemaName;
     /**
      * Schema type to be mapped.
+     * Possible values are:
+     * * AccountId for an account id;
+     * * Password for a password;
+     * * UserSchema for a user schema;
+     * * RoleSchema for a role schema;
+     * * MembershipSchema for a membership schema.
      */
-    private SourceMappingType sourceMappingType;
-
+    private SchemaType schemaType;
     /**
      * Target resource's field to be mapped.
      */
-    private String destAttrName;
-
+    private String field;
     /**
      * Specify if the mapped target resource's field is the key.
      */
     private boolean accountid;
-
     /**
      * Specify if the mapped target resource's field is the password.
      */
     private boolean password;
-
     /**
      * Specify if the mapped target resource's field is nullable.
      */
@@ -61,12 +61,12 @@ public class SchemaMappingTO extends AbstractBaseBean {
         this.accountid = accountid;
     }
 
-    public String getDestAttrName() {
-        return destAttrName;
+    public String getField() {
+        return field;
     }
 
-    public void setDestAttrName(String destAttrName) {
-        this.destAttrName = destAttrName;
+    public void setField(String field) {
+        this.field = field;
     }
 
     public Long getId() {
@@ -93,19 +93,19 @@ public class SchemaMappingTO extends AbstractBaseBean {
         this.password = password;
     }
 
-    public String getSourceAttrName() {
-        return sourceAttrName;
+    public String getSchemaName() {
+        return schemaName;
     }
 
-    public void setSourceAttrName(String sourceAttrName) {
-        this.sourceAttrName = sourceAttrName;
+    public void setSchemaName(String schemaName) {
+        this.schemaName = schemaName;
     }
 
-    public SourceMappingType getSourceMappingType() {
-        return sourceMappingType;
+    public SchemaType getSchemaType() {
+        return schemaType;
     }
 
-    public void setSourceMappingType(SourceMappingType sourceMappingType) {
-        this.sourceMappingType = sourceMappingType;
+    public void setSchemaType(SchemaType schemaType) {
+        this.schemaType = schemaType;
     }
 }

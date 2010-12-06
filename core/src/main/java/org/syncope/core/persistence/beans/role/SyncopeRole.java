@@ -30,14 +30,12 @@ import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
-import javax.validation.Valid;
 import org.syncope.core.persistence.beans.AbstractAttributable;
-import org.syncope.core.persistence.beans.AbstractAttr;
-import org.syncope.core.persistence.beans.AbstractDerAttr;
+import org.syncope.core.persistence.beans.AbstractAttribute;
+import org.syncope.core.persistence.beans.AbstractDerivedAttribute;
 import org.syncope.core.persistence.beans.Entitlement;
 import org.syncope.core.persistence.beans.membership.Membership;
 import org.syncope.core.persistence.beans.user.SyncopeUser;
-import org.hibernate.validator.constraints.Range;
 
 @Entity
 @Table(uniqueConstraints =
@@ -57,26 +55,21 @@ public class SyncopeRole extends AbstractAttributable {
     private SyncopeRole parent;
 
     @OneToMany(cascade = CascadeType.MERGE, mappedBy = "syncopeRole")
-    @Valid
     private List<Membership> memberships;
 
     @ManyToMany(fetch = FetchType.LAZY)
     private Set<Entitlement> entitlements;
 
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "owner")
-    @Valid
-    private List<RAttr> attributes;
+    private List<RoleAttribute> attributes;
 
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "owner")
-    @Valid
-    private List<RDerAttr> derivedAttributes;
+    private List<RoleDerivedAttribute> derivedAttributes;
 
     @Basic
-    @Range(min = 0, max = 1)
     private Integer inheritAttributes;
 
     @Basic
-    @Range(min = 0, max = 1)
     private Integer inheritDerivedAttributes;
 
     public SyncopeRole() {
@@ -84,8 +77,8 @@ public class SyncopeRole extends AbstractAttributable {
 
         memberships = new ArrayList<Membership>();
         entitlements = new HashSet<Entitlement>();
-        attributes = new ArrayList<RAttr>();
-        derivedAttributes = new ArrayList<RDerAttr>();
+        attributes = new ArrayList<RoleAttribute>();
+        derivedAttributes = new ArrayList<RoleDerivedAttribute>();
         inheritAttributes = getBooleanAsInteger(false);
         inheritDerivedAttributes = getBooleanAsInteger(false);
     }
@@ -99,7 +92,8 @@ public class SyncopeRole extends AbstractAttributable {
         return name;
     }
 
-    public void setName(String name) {
+    public void setName(String name)
+            throws IllegalArgumentException {
         this.name = name;
     }
 
@@ -154,50 +148,50 @@ public class SyncopeRole extends AbstractAttributable {
     }
 
     @Override
-    public <T extends AbstractAttr> boolean addAttribute(T attribute) {
-        return attributes.add((RAttr) attribute);
+    public <T extends AbstractAttribute> boolean addAttribute(T attribute) {
+        return attributes.add((RoleAttribute) attribute);
     }
 
     @Override
-    public <T extends AbstractAttr> boolean removeAttribute(T attribute) {
-        return attributes.remove((RAttr) attribute);
+    public <T extends AbstractAttribute> boolean removeAttribute(T attribute) {
+        return attributes.remove((RoleAttribute) attribute);
     }
 
     @Override
-    public List<? extends AbstractAttr> getAttributes() {
+    public List<? extends AbstractAttribute> getAttributes() {
         return attributes;
     }
 
     @Override
-    public void setAttributes(List<? extends AbstractAttr> attributes) {
-        this.attributes = (List<RAttr>) attributes;
+    public void setAttributes(List<? extends AbstractAttribute> attributes) {
+        this.attributes = (List<RoleAttribute>) attributes;
     }
 
     @Override
-    public <T extends AbstractDerAttr> boolean addDerivedAttribute(
+    public <T extends AbstractDerivedAttribute> boolean addDerivedAttribute(
             T derivedAttribute) {
 
-        return derivedAttributes.add((RDerAttr) derivedAttribute);
+        return derivedAttributes.add((RoleDerivedAttribute) derivedAttribute);
     }
 
     @Override
-    public <T extends AbstractDerAttr> boolean removeDerivedAttribute(
+    public <T extends AbstractDerivedAttribute> boolean removeDerivedAttribute(
             T derivedAttribute) {
 
         return derivedAttributes.remove(
-                (RDerAttr) derivedAttribute);
+                (RoleDerivedAttribute) derivedAttribute);
     }
 
     @Override
-    public List<? extends AbstractDerAttr> getDerivedAttributes() {
+    public List<? extends AbstractDerivedAttribute> getDerivedAttributes() {
         return derivedAttributes;
     }
 
     @Override
     public void setDerivedAttributes(
-            List<? extends AbstractDerAttr> derivedAttributes) {
+            List<? extends AbstractDerivedAttribute> derivedAttributes) {
 
-        this.derivedAttributes = (List<RDerAttr>) derivedAttributes;
+        this.derivedAttributes = (List<RoleDerivedAttribute>) derivedAttributes;
     }
 
     public boolean isInheritAttributes() {

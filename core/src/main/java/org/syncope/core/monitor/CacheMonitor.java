@@ -26,9 +26,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
-/**
- * Log cache hits and misses.
- */
 @Aspect
 public class CacheMonitor {
 
@@ -37,33 +34,10 @@ public class CacheMonitor {
      */
     private static final Logger LOG = LoggerFactory.getLogger(
             CacheMonitor.class);
-
-    /**
-     * Number formatter for hit / miss percentage.
-     */
-    private static final ThreadLocal<NumberFormat> PERCENT_FORMAT =
-            new ThreadLocal<NumberFormat>() {
-
-                @Override
-                protected NumberFormat initialValue() {
-                    return new DecimalFormat("0.0###");
-                }
-            };
-
-    /**
-     * EntityManager.
-     */
+    private static final NumberFormat NF = new DecimalFormat("0.0###");
     @Autowired
     private EntityManager entityManager;
 
-    /**
-     * Intercept any DAO method call and use Hibernate's statistics features
-     * to log cache access.
-     *
-     * @param pjp Aspect's ProceedingJoinPoint
-     * @return DAO method's return value
-     * @throws Throwable if anything goes wrong
-     */
     @Around("execution(* org.syncope.core.persistence.dao..*.*(..))")
     public final Object log(final ProceedingJoinPoint pjp)
             throws Throwable {
@@ -77,16 +51,18 @@ public class CacheMonitor {
                     getStatistics();
             //statistics.logSummary();
 
-            final long hit0 = statistics.getQueryCacheHitCount();
-            final long miss0 = statistics.getQueryCacheMissCount();
+            long hit0 = statistics.getQueryCacheHitCount();
+            long miss0 = statistics.getQueryCacheMissCount();
 
             result = pjp.proceed();
 
-            final long hit1 = statistics.getQueryCacheHitCount();
-            final long miss1 = statistics.getQueryCacheMissCount();
+            long hit1 = statistics.getQueryCacheHitCount();
+            long miss1 = statistics.getQueryCacheMissCount();
 
-            final String ratio = PERCENT_FORMAT.get().
-                    format((double) hit1 / (hit1 + miss1));
+            String ratio;
+            synchronized (NF) {
+                ratio = NF.format((double) hit1 / (hit1 + miss1));
+            }
 
             if (hit1 > hit0) {
                 LOG.debug(

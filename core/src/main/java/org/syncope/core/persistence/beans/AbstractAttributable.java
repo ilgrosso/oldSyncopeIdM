@@ -2,9 +2,9 @@
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
  *  You may obtain a copy of the License at
- *
+ * 
  *       http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  *  Unless required by applicable law or agreed to in writing, software
  *  distributed under the License is distributed on an "AS IS" BASIS,
  *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -18,6 +18,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Set;
 import javax.persistence.FetchType;
 import javax.persistence.ManyToMany;
@@ -32,10 +33,10 @@ public abstract class AbstractAttributable extends AbstractBaseBean {
     @ManyToMany(fetch = FetchType.EAGER)
     protected Set<TargetResource> targetResources;
 
-    public <T extends AbstractAttr> T getAttribute(final String schemaName) {
+    public <T extends AbstractAttribute> T getAttribute(String schemaName) {
         T result = null;
-        T attribute;
-        for (Iterator<? extends AbstractAttr> itor =
+        T attribute = null;
+        for (Iterator<? extends AbstractAttribute> itor =
                 getAttributes().iterator();
                 result == null && itor.hasNext();) {
 
@@ -50,12 +51,12 @@ public abstract class AbstractAttributable extends AbstractBaseBean {
         return result;
     }
 
-    public <T extends AbstractDerAttr> T getDerivedAttribute(
-            final String derivedSchemaName) {
+    public <T extends AbstractDerivedAttribute> T getDerivedAttribute(
+            String derivedSchemaName) throws NoSuchElementException {
 
         T result = null;
-        T derivedAttribute;
-        for (Iterator<? extends AbstractDerAttr> itor =
+        T derivedAttribute = null;
+        for (Iterator<? extends AbstractDerivedAttribute> itor =
                 getDerivedAttributes().iterator();
                 result == null && itor.hasNext();) {
 
@@ -71,14 +72,14 @@ public abstract class AbstractAttributable extends AbstractBaseBean {
         return result;
     }
 
-    public boolean addTargetResource(final TargetResource targetResource) {
-        if (targetResources == null) {
-            targetResources = new HashSet<TargetResource>();
+    public boolean addTargetResource(TargetResource targetResource) {
+        if (this.targetResources == null) {
+            this.targetResources = new HashSet<TargetResource>();
         }
-        return targetResources.add(targetResource);
+        return this.targetResources.add(targetResource);
     }
 
-    public boolean removeTargetResource(final TargetResource targetResource) {
+    public boolean removeTargetResource(TargetResource targetResource) {
         return targetResources == null
                 ? true
                 : targetResources.remove(targetResource);
@@ -106,25 +107,25 @@ public abstract class AbstractAttributable extends AbstractBaseBean {
 
     public abstract Long getId();
 
-    public abstract <T extends AbstractAttr> boolean addAttribute(
+    public abstract <T extends AbstractAttribute> boolean addAttribute(
             T attribute);
 
-    public abstract <T extends AbstractAttr> boolean removeAttribute(
+    public abstract <T extends AbstractAttribute> boolean removeAttribute(
             T attribute);
 
-    public abstract List<? extends AbstractAttr> getAttributes();
+    public abstract List<? extends AbstractAttribute> getAttributes();
 
     public abstract void setAttributes(
-            List<? extends AbstractAttr> attributes);
+            List<? extends AbstractAttribute> attributes);
 
-    public abstract <T extends AbstractDerAttr> boolean addDerivedAttribute(
+    public abstract <T extends AbstractDerivedAttribute> boolean addDerivedAttribute(
             T derivedAttribute);
 
-    public abstract <T extends AbstractDerAttr> boolean removeDerivedAttribute(
+    public abstract <T extends AbstractDerivedAttribute> boolean removeDerivedAttribute(
             T derivedAttribute);
 
-    public abstract List<? extends AbstractDerAttr> getDerivedAttributes();
+    public abstract List<? extends AbstractDerivedAttribute> getDerivedAttributes();
 
     public abstract void setDerivedAttributes(
-            List<? extends AbstractDerAttr> derivedAttributes);
+            List<? extends AbstractDerivedAttribute> derivedAttributes);
 }

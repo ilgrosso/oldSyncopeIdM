@@ -30,7 +30,7 @@ import org.syncope.core.persistence.beans.ConnectorInstance;
 import org.syncope.core.persistence.beans.TargetResource;
 import org.syncope.core.persistence.beans.SchemaMapping;
 import org.syncope.core.persistence.beans.user.SyncopeUser;
-import org.syncope.core.persistence.beans.user.USchema;
+import org.syncope.core.persistence.beans.user.UserSchema;
 import org.syncope.core.persistence.dao.ConnectorInstanceDAO;
 import org.syncope.core.persistence.dao.ResourceDAO;
 import org.syncope.core.persistence.dao.SchemaDAO;
@@ -39,7 +39,7 @@ import org.syncope.core.rest.data.ResourceDataBinder;
 import org.syncope.core.persistence.AbstractTest;
 import org.syncope.core.persistence.beans.Task;
 import org.syncope.core.persistence.dao.TaskDAO;
-import org.syncope.types.SourceMappingType;
+import org.syncope.types.SchemaType;
 
 @Transactional
 public class ResourceTest extends AbstractTest {
@@ -67,15 +67,15 @@ public class ResourceTest extends AbstractTest {
      */
     @Test
     public final void issue42() {
-        USchema userId = schemaDAO.find("userId", USchema.class);
+        UserSchema userId = schemaDAO.find("userId", UserSchema.class);
         int beforeUserIdMappings = resourceDAO.getMappings(
                 userId.getName(),
-                SourceMappingType.UserSchema).size();
+                SchemaType.UserSchema).size();
 
         SchemaMappingTO schemaMappingTO = new SchemaMappingTO();
-        schemaMappingTO.setSourceAttrName("userId");
-        schemaMappingTO.setSourceMappingType(SourceMappingType.UserSchema);
-        schemaMappingTO.setDestAttrName("campo1");
+        schemaMappingTO.setSchemaName("userId");
+        schemaMappingTO.setSchemaType(SchemaType.UserSchema);
+        schemaMappingTO.setField("campo1");
         schemaMappingTO.setAccountid(true);
         schemaMappingTO.setPassword(false);
         schemaMappingTO.setMandatoryCondition("false");
@@ -91,16 +91,18 @@ public class ResourceTest extends AbstractTest {
         resourceTO.setForceMandatoryConstraint(true);
 
         TargetResource resource = resourceDataBinder.getResource(resourceTO);
+
         resource = resourceDAO.save(resource);
+
         resourceDAO.flush();
 
         TargetResource actual = resourceDAO.find("resource-issue42");
         assertEquals(resource, actual);
 
-        userId = schemaDAO.find("userId", USchema.class);
+        userId = schemaDAO.find("userId", UserSchema.class);
         int afterUserIdMappings = resourceDAO.getMappings(
                 userId.getName(),
-                SourceMappingType.UserSchema).size();
+                SchemaType.UserSchema).size();
 
         assertEquals(beforeUserIdMappings, afterUserIdMappings - 1);
     }
@@ -120,17 +122,17 @@ public class ResourceTest extends AbstractTest {
         connector.addResource(resource);
 
         // search for the user schema
-        USchema userSchema =
-                schemaDAO.find("username", USchema.class);
+        UserSchema userSchema =
+                schemaDAO.find("username", UserSchema.class);
 
         SchemaMapping mapping = null;
 
         for (int i = 0; i < 3; i++) {
             mapping = new SchemaMapping();
-            mapping.setDestAttrName("test" + i);
+            mapping.setField("test" + i);
 
-            mapping.setSourceAttrName(userSchema.getName());
-            mapping.setSourceMappingType(SourceMappingType.UserSchema);
+            mapping.setSchemaName(userSchema.getName());
+            mapping.setSchemaType(SchemaType.UserSchema);
             mapping.setMandatoryCondition("false");
 
             resource.addMapping(mapping);
@@ -138,9 +140,9 @@ public class ResourceTest extends AbstractTest {
         SchemaMapping accountId = new SchemaMapping();
         accountId.setResource(resource);
         accountId.setAccountid(true);
-        accountId.setDestAttrName("username");
-        accountId.setSourceAttrName(userSchema.getName());
-        accountId.setSourceMappingType(SourceMappingType.SyncopeUserId);
+        accountId.setField("username");
+        accountId.setSchemaName(userSchema.getName());
+        accountId.setSchemaType(SchemaType.AccountId);
 
         resource.addMapping(accountId);
 

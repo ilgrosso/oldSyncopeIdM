@@ -30,14 +30,11 @@ import javax.persistence.NamedQueries;
 import javax.persistence.NamedQuery;
 import javax.persistence.OneToMany;
 import javax.persistence.QueryHint;
-import javax.validation.Valid;
 import org.hibernate.annotations.Cache;
 import org.hibernate.annotations.CacheConcurrencyStrategy;
 import org.hibernate.annotations.Cascade;
-import org.hibernate.validator.constraints.Range;
 import org.syncope.core.persistence.beans.role.SyncopeRole;
 import org.syncope.core.persistence.beans.user.SyncopeUser;
-import org.syncope.core.persistence.validation.entity.TargetResourceCheck;
 
 /**
  * A resource to which propagation occurs.
@@ -51,24 +48,20 @@ import org.syncope.core.persistence.validation.entity.TargetResourceCheck;
         @QueryHint(name = "org.hibernate.cacheable", value = "true")
     }),
     @NamedQuery(name = "TargetResource.getMappings",
-    query = "SELECT m FROM SchemaMapping m "
-    + "WHERE m.sourceAttrName=:sourceAttrName "
-    + "AND m.sourceMappingType=:sourceMappingType",
+    query = "SELECT m FROM SchemaMapping m WHERE m.schemaName=:schemaName "
+    + "AND m.schemaType=:schemaType",
     hints = {
         @QueryHint(name = "org.hibernate.cacheable", value = "true"),
         @QueryHint(name = "org.hibernate.cacheMode", value = "refresh")
     }),
     @NamedQuery(name = "TargetResource.getMappingsByTargetResource",
-    query = "SELECT m FROM SchemaMapping m "
-    + "WHERE m.sourceAttrName=:sourceAttrName "
-    + "AND m.sourceMappingType=:sourceMappingType "
-    + "AND m.resource.name=:resourceName",
+    query = "SELECT m FROM SchemaMapping m WHERE m.schemaName=:schemaName "
+    + "AND m.schemaType=:schemaType AND m.resource.name=:resourceName",
     hints = {
         @QueryHint(name = "org.hibernate.cacheable", value = "true"),
         @QueryHint(name = "org.hibernate.cacheMode", value = "refresh")
     })
 })
-@TargetResourceCheck
 public class TargetResource extends AbstractBaseBean {
 
     /**
@@ -82,7 +75,6 @@ public class TargetResource extends AbstractBaseBean {
      */
     @Column(nullable = false)
     @Basic
-    @Range(min = 0, max = 1)
     private Integer forceMandatoryConstraint;
 
     /**
@@ -108,7 +100,6 @@ public class TargetResource extends AbstractBaseBean {
      */
     @OneToMany(cascade = CascadeType.MERGE, mappedBy = "resource")
     @Cascade(org.hibernate.annotations.CascadeType.DELETE_ORPHAN)
-    @Valid
     private List<SchemaMapping> mappings;
 
     /**
@@ -116,7 +107,6 @@ public class TargetResource extends AbstractBaseBean {
      */
     @OneToMany(cascade = CascadeType.MERGE, mappedBy = "resource")
     @Cascade(org.hibernate.annotations.CascadeType.DELETE_ORPHAN)
-    @Valid
     private List<Task> tasks;
 
     /**

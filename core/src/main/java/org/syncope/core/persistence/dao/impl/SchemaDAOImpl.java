@@ -20,13 +20,14 @@ import java.util.Set;
 import javax.persistence.Query;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
-import org.syncope.core.persistence.beans.AbstractAttr;
-import org.syncope.core.persistence.beans.AbstractDerSchema;
+import org.syncope.core.persistence.beans.AbstractAttribute;
+import org.syncope.core.persistence.beans.AbstractDerivedSchema;
 import org.syncope.core.persistence.beans.AbstractSchema;
 import org.syncope.core.persistence.dao.AttributeDAO;
 import org.syncope.core.persistence.dao.ResourceDAO;
 import org.syncope.core.persistence.dao.SchemaDAO;
-import org.syncope.core.persistence.util.AttributableUtil;
+import org.syncope.core.persistence.validation.MultiUniqueValueException;
+import org.syncope.types.SchemaType;
 
 @Repository
 public class SchemaDAOImpl extends AbstractDAOImpl
@@ -56,20 +57,26 @@ public class SchemaDAOImpl extends AbstractDAOImpl
     }
 
     @Override
-    public <T extends AbstractSchema> T save(final T schema) {
+    public <T extends AbstractSchema> T save(final T schema)
+            throws MultiUniqueValueException {
+
+        if (schema.isMultivalue() && schema.isUniquevalue()) {
+            throw new MultiUniqueValueException(schema);
+        }
+
         return entityManager.merge(schema);
     }
 
     @Override
-    public void delete(final String name,
-            final AttributableUtil attributableUtil) {
+    public <T extends AbstractSchema> void delete(String name,
+            Class<T> reference) {
 
-        AbstractSchema schema = find(name, attributableUtil.schemaClass());
+        T schema = find(name, reference);
         if (schema == null) {
             return;
         }
 
-        for (AbstractDerSchema derivedSchema : schema.getDerivedSchemas()) {
+        for (AbstractDerivedSchema derivedSchema : schema.getDerivedSchemas()) {
             derivedSchema.removeSchema(schema);
         }
         schema.getDerivedSchemas().clear();
@@ -77,7 +84,7 @@ public class SchemaDAOImpl extends AbstractDAOImpl
         Set<Long> attributeIds =
                 new HashSet<Long>(schema.getAttributes().size());
         Class attributeClass = null;
-        for (AbstractAttr attribute : schema.getAttributes()) {
+        for (AbstractAttribute attribute : schema.getAttributes()) {
             attributeIds.add(attribute.getId());
             attributeClass = attribute.getClass();
         }
@@ -85,7 +92,7 @@ public class SchemaDAOImpl extends AbstractDAOImpl
             attributeDAO.delete(attributeId, attributeClass);
         }
 
-        resourceDAO.deleteMappings(name, attributableUtil.sourceMappingType());
+        resourceDAO.deleteMappings(name, SchemaType.byClass(reference));
 
         entityManager.remove(schema);
     }
