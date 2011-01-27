@@ -1,13 +1,13 @@
 #summary Hereby the outline of the data managed by Syncope.
-#labels Phase-Design,Datadefinition,ER,Entity-Relationship
+#labels Phase-Design,Datadefinition
 
 = Introduction =
 
 Data design is represented through the following Entity-Relationship diagram:
 
-http://syncope.googlecode.com/svn/wiki/images/data.png
+http://syncope.googlecode.com/svn/wiki/images/syncopeDataModel.png
 
-In the code implementation, we make deep use of [http://www.hibernate.org/ Hibernate's] and [http://www.springsource.org/ Spring's] features.
+In the code implementation, deep usage of JPA ([http://www.hibernate.org/ Hibernate]) and [http://www.springsource.org/ Spring] features is performed.
 
 = Details =
 
