@@ -1,0 +1,60 @@
+#summary How to get started with Syncope.
+#labels Phase-Deploy
+
+= Introduction =
+
+This document describes how to get started with Syncope. This includes building the core and the console. This page helps you get both web applications up and running with your own project as quickly as possible.
+
+The preferred way to start a Syncope project is to use the archetype to generate a Maven project. You need to have Maven (version 2.2.1 or higher) installed. This page also assumes that you have some basic knowledge on how to use Maven.
+
+== Creating a project ==
+
+Maven archetypes are templates of projects. Maven can generate a new project from such a template. For a project using Syncope, you need the website archetype. In the folder in which the new project folder should be created, type the command shown below. On Windows, run the command on a single line and leave out the line continuation characters ('\').
+
+{{{
+mvn archetype:generate -DarchetypeGroupId=org.syncope -DarchetypeArtifactId=syncope-archetype -DarchetypeVersion=0.2
+}}}
+
+You may want to change the archetype version: change the archetypeVersion to that of the newest release or tag of the archetype project:
+  * stable releases can be found at http://repo1.maven.org/maven2/org/syncope/syncope-archetype/
+  * snapshot releases can be found at https://oss.sonatype.org/content/groups/public/org/syncope/syncope-archetype/
+
+
+The archetype is configured with default values for all properties required by the archetype. If you want to customize any of these property values, type 'n' when prompted for confirmation.
+
+You will be asked for:
+
+  1. the groupId, (something like 'com.mycompany')
+  1. the artifactId (something like 'myproject')
+  1. the version number (you can use the default, it is good practice to have 'SNAPSHOT' in the version number during development and the maven release plugin makes use of that string. But ensure to comply to the desired numbering scheme for your project).
+  1. the package name. This is the java package name. A folder structure according to this name will be generated automatically. Use the default, which is equal to the groupId.
+
+Maven will create a project for you (in a newly created directory named after the value of the artifactId property you specified ) containing two subprojects:
+
+  1. core - a pre-configured RESTful server, with JPA persistence
+  1. console - a web interface for dealing with the core
+
+Now build your project using the following command in the root folder of your project:
+
+{{{
+mvn clean package
+}}}
+
+This will produce two WAR files:
+
+  * core/target/{artifactId}-{version}.war
+  * console/target/console-{version}.war 
+
+You can now run your project in the built-in Tomcat servlet container.
+
+== Running a project ==
+
+For a fast development cycle, you can run both the core/console from the command lines using Tomcat and the Cargo maven plug-in.
+
+To run the core and the console, run the following command from the console directory:
+
+{{{
+mvn cargo:start
+}}}
+
+The console is now available at http://localhost:9080/syncope-console/; the base URL for RESTful services is at http://localhost:9080/syncope/rest.
