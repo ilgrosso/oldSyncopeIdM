@@ -12,7 +12,10 @@ The preferred way to start a Syncope project is to use the archetype to generate
 Maven archetypes are templates of projects. Maven can generate a new project from such a template. For a project using Syncope, you need the website archetype. In the folder in which the new project folder should be created, type the command shown below. On Windows, run the command on a single line and leave out the line continuation characters ('\').
 
 {{{
-mvn archetype:generate -DarchetypeGroupId=org.syncope -DarchetypeArtifactId=syncope-archetype -DarchetypeVersion=0.2
+mvn archetype:generate \
+    -DarchetypeGroupId=org.syncope \
+    -DarchetypeArtifactId=syncope-archetype \
+    -DarchetypeVersion=0.2
 }}}
 
 You may want to change the archetype version: change the archetypeVersion to that of the newest release or tag of the archetype project:
@@ -58,3 +61,5 @@ mvn cargo:start
 }}}
 
 The console is now available at http://localhost:9080/syncope-console/; the base URL for RESTful services is at http://localhost:9080/syncope/rest.
+
+To test out your fresh installation, go to http://localhost:9080/syncope-console/ and log in with credentials 'admin' / 'password'.
