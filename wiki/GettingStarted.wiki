@@ -1,5 +1,5 @@
 #summary How to get started with Syncope.
-#labels Phase-Deploy
+#labels Phase-Deploy,Featured
 
 = Introduction =
 
