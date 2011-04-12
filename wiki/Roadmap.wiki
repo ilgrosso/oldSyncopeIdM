@@ -1,6 +1,6 @@
 #labels Featured
 Syncope will have the following releases (see images below to know more about details and timeline):
-  1. May 2nd 2011 [http://code.google.com/p/syncope/issues/list?can=2&q=label%3AMilestone-Release-20110502 issue list]
+  1. May 10th 2011 [http://code.google.com/p/syncope/issues/list?can=2&q=label%3AMilestone-Release-20110510 issue list]
   1. Q2 2011 [http://code.google.com/p/syncope/issues/list?can=2&q=label%3AMilestone-Release-2011Q2 issue list]
   1. Q3 2011 [http://code.google.com/p/syncope/issues/list?can=2&q=label%3AMilestone-Release-2011Q3 issue list]
   1. Q4 2011 [http://code.google.com/p/syncope/issues/list?can=2&q=label%3AMilestone-Release-2011Q4 issue list]
