@@ -14,12 +14,11 @@
  */
 package org.syncope.client.to;
 
-import org.syncope.types.ConnConfPropSchema;
 import java.util.ArrayList;
 import java.util.List;
 import org.syncope.client.AbstractBaseBean;
 
-public class ConnBundleTO extends AbstractBaseBean {
+public class ConnectorBundleTO extends AbstractBaseBean {
 
     private String displayName;
 
@@ -29,11 +28,7 @@ public class ConnBundleTO extends AbstractBaseBean {
 
     private String connectorName;
 
-    private List<ConnConfPropSchema> properties;
-
-    public ConnBundleTO() {
-        properties = new ArrayList<ConnConfPropSchema>();
-    }
+    private List<String> properties;
 
     public String getBundleName() {
         return bundleName;
@@ -59,20 +54,23 @@ public class ConnBundleTO extends AbstractBaseBean {
         this.displayName = displayName;
     }
 
-    public List<ConnConfPropSchema> getProperties() {
+    public List<String> getProperties() {
+        if (this.properties == null) this.properties = new ArrayList<String>();
         return properties;
     }
 
-    public void setProperties(List<ConnConfPropSchema> properties) {
+    public void setProperties(List<String> properties) {
         this.properties = properties;
     }
 
-    public boolean addProperty(ConnConfPropSchema property) {
-        return properties.add(property);
+    public boolean addProperty(String property) {
+        if (this.properties == null) this.properties = new ArrayList<String>();
+        return this.properties.add(property);
     }
 
-    public boolean removeProperty(ConnConfPropSchema property) {
-        return properties.remove(property);
+    public boolean removeProperty(String property) {
+        if (this.properties == null) return true;
+        return this.properties.remove(property);
     }
 
     public String getVersion() {

@@ -50,13 +50,13 @@ public class ConfigurationRestClient extends AbstractBaseRestClient {
      * @return ConfigurationTO object if the configuration exists,
      * null otherwise
      */
-    public ConfigurationTO readConfiguration(String key)
+    public ConfigurationTO readConfiguration(String confKey)
             throws SyncopeClientCompositeErrorException {
 
         ConfigurationTO configurationTO =
                 restTemplate.getForObject(baseURL
-                + "configuration/read/{key}.json", ConfigurationTO.class,
-                key);
+                + "configuration/read/{confKey}.json", ConfigurationTO.class,
+                confKey);
 
 
         return configurationTO;
@@ -97,16 +97,16 @@ public class ConfigurationRestClient extends AbstractBaseRestClient {
     }
 
     /**
-     * Deelete a configuration by key
+     * Deelete a configuration by confKey
      * @throws UnsupportedEncodingException
      */
-    public void deleteConfiguration(String key)
+    public void deleteConfiguration(String confKey)
             throws
             UnsupportedEncodingException, HttpStatusCodeException {
 
         restTemplate.delete(baseURL
-                + "configuration/delete/{key}.json",
-                key);
+                + "configuration/delete/{confKey}.json",
+                confKey);
     }
 
     /**

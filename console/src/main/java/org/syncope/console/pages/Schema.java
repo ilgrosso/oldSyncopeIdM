@@ -62,6 +62,7 @@ public class Schema extends BasePage {
         RoleSchema,
         UserSchema,
         MembershipSchema
+
     };
 
     private enum SchemaDerivedType {
@@ -69,8 +70,8 @@ public class Schema extends BasePage {
         RoleDerivedSchema,
         UserDerivedSchema,
         MembershipDerivedSchema
-    };
 
+    };
     private static final int WIN_WIDTH = 400;
 
     private static final int WIN_HEIGHT = 200;
@@ -1316,15 +1317,15 @@ public class Schema extends BasePage {
             List<SchemaTO> list;
             switch (schemaType) {
                 case UserSchema:
-                    list = restClient.getSchemas("user");
+                    list = restClient.getAllUserSchemas();
                     break;
 
                 case RoleSchema:
-                    list = restClient.getSchemas("role");
+                    list = restClient.getAllRoleSchemas();
                     break;
 
                 case MembershipSchema:
-                    list = restClient.getSchemas("membership");
+                    list = restClient.getAllMemberhipSchemas();
                     break;
 
                 default:
@@ -1376,11 +1377,11 @@ public class Schema extends BasePage {
             List<DerivedSchemaTO> list = null;
 
             if (schema == SchemaDerivedType.RoleDerivedSchema) {
-                list = restClient.getDerivedSchemas("role");
+                list = restClient.getAllRoleDerivedSchemas();
             } else if (schema == SchemaDerivedType.UserDerivedSchema) {
-                list = restClient.getDerivedSchemas("user");
+                list = restClient.getAllUserDerivedSchemas();
             } else if (schema == SchemaDerivedType.MembershipDerivedSchema) {
-                list = restClient.getDerivedSchemas("membership");
+                list = restClient.getAllMembershipDerivedSchemas();
             }
 
             return list;

@@ -25,7 +25,6 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.syncope.core.persistence.beans.user.SyncopeUser;
 import org.syncope.core.persistence.dao.UserDAO;
-import org.syncope.types.CipherAlgorithm;
 
 @Configurable
 public class SyncopeAuthenticationProvider implements AuthenticationProvider {
@@ -77,12 +76,9 @@ public class SyncopeAuthenticationProvider implements AuthenticationProvider {
 
         boolean authenticated;
         SyncopeUser passwordUser = new SyncopeUser();
-
+        passwordUser.setPassword(
+                authentication.getCredentials().toString());
         if (adminUser.equals(authentication.getPrincipal())) {
-            passwordUser.setPassword(
-                    authentication.getCredentials().toString(),
-                    CipherAlgorithm.MD5);
-
             authenticated = adminMD5Password.equalsIgnoreCase(
                     passwordUser.getPassword());
         } else {
@@ -99,10 +95,6 @@ public class SyncopeAuthenticationProvider implements AuthenticationProvider {
                 throw new UsernameNotFoundException(
                         "Could not find any user with id " + id);
             }
-
-            passwordUser.setPassword(
-                    authentication.getCredentials().toString(),
-                    user.getCipherAlgoritm());
 
             authenticated = user.getPassword().equalsIgnoreCase(
                     passwordUser.getPassword());

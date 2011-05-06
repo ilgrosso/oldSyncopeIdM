@@ -14,14 +14,13 @@
  */
 package org.syncope.client.to;
 
-import org.syncope.types.ConnConfProperty;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Set;
 import org.syncope.client.AbstractBaseBean;
 import org.syncope.types.ConnectorCapability;
 
-public class ConnInstanceTO extends AbstractBaseBean {
+public class ConnectorInstanceTO extends AbstractBaseBean {
 
     private Long id;
 
@@ -31,14 +30,14 @@ public class ConnInstanceTO extends AbstractBaseBean {
 
     private String connectorName;
 
-    private Set<ConnConfProperty> configuration;
+    private Set<PropertyTO> configuration;
 
     private Set<ConnectorCapability> capabilities;
 
     private String displayName;
 
-    public ConnInstanceTO() {
-        configuration = new HashSet<ConnConfProperty>();
+    public ConnectorInstanceTO() {
+        configuration = new HashSet<PropertyTO>();
         capabilities = EnumSet.noneOf(ConnectorCapability.class);
     }
 
@@ -66,19 +65,19 @@ public class ConnInstanceTO extends AbstractBaseBean {
         this.version = bundleversion;
     }
 
-    public Set<ConnConfProperty> getConfiguration() {
+    public Set<PropertyTO> getConfiguration() {
         return this.configuration;
     }
 
-    public boolean addConfiguration(ConnConfProperty property) {
+    public boolean addConfiguration(PropertyTO property) {
         return this.configuration.add(property);
     }
 
-    public boolean removeConfiguration(ConnConfProperty property) {
+    public boolean removeConfiguration(PropertyTO property) {
         return this.configuration.remove(property);
     }
 
-    public void setConfiguration(Set<ConnConfProperty> configuration) {
+    public void setConfiguration(Set<PropertyTO> configuration) {
         if (configuration == null || configuration.isEmpty()) {
             this.configuration.clear();
         } else {
@@ -106,7 +105,7 @@ public class ConnInstanceTO extends AbstractBaseBean {
         return capabilities;
     }
 
-    public void setCapabilities(final Set<ConnectorCapability> capabilities) {
+    public void setCapabilities(Set<ConnectorCapability> capabilities) {
         this.capabilities.clear();
         if (capabilities != null && !capabilities.isEmpty()) {
             this.capabilities.addAll(capabilities);

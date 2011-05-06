@@ -21,8 +21,8 @@ import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 import org.syncope.core.persistence.beans.user.UDerSchema;
+import org.syncope.core.persistence.beans.user.USchema;
 import org.syncope.core.persistence.AbstractTest;
-import org.syncope.core.util.AttributableUtil;
 
 @Transactional
 public class DerSchemaTest extends AbstractTest {
@@ -54,6 +54,10 @@ public class DerSchemaTest extends AbstractTest {
                 new UDerSchema();
         derivedAttributeSchema.setName("cn2");
         derivedAttributeSchema.setExpression("firstname surname");
+        derivedAttributeSchema.addSchema(
+                schemaDAO.find("firstname", USchema.class));
+        derivedAttributeSchema.addSchema(
+                schemaDAO.find("surname", USchema.class));
 
         derSchemaDAO.save(derivedAttributeSchema);
 
@@ -68,9 +72,8 @@ public class DerSchemaTest extends AbstractTest {
         UDerSchema attributeSchema =
                 derSchemaDAO.find("cn", UDerSchema.class);
 
-        derSchemaDAO.delete(
-                attributeSchema.getName(),
-                AttributableUtil.USER);
+        derSchemaDAO.delete(attributeSchema.getName(),
+                UDerSchema.class);
 
         UDerSchema actual =
                 derSchemaDAO.find("cn", UDerSchema.class);

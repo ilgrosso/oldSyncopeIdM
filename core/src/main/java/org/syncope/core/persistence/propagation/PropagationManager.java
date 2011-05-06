@@ -36,11 +36,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.syncope.core.persistence.ConnInstanceLoader;
+import org.syncope.core.persistence.ConnectorInstanceLoader;
 import org.syncope.core.persistence.beans.AbstractAttrValue;
-import org.syncope.core.persistence.beans.AbstractDerSchema;
 import org.syncope.core.persistence.beans.AbstractSchema;
-import org.syncope.core.persistence.beans.ConnInstance;
+import org.syncope.core.persistence.beans.ConnectorInstance;
 import org.syncope.core.persistence.beans.TargetResource;
 import org.syncope.core.persistence.beans.SchemaMapping;
 import org.syncope.core.persistence.beans.Task;
@@ -51,13 +50,10 @@ import org.syncope.core.persistence.beans.role.RSchema;
 import org.syncope.core.persistence.beans.user.SyncopeUser;
 import org.syncope.core.persistence.beans.user.UAttr;
 import org.syncope.core.persistence.beans.user.UAttrValue;
-import org.syncope.core.persistence.beans.user.UDerAttr;
 import org.syncope.core.persistence.beans.user.USchema;
-import org.syncope.core.persistence.dao.DerSchemaDAO;
 import org.syncope.core.persistence.dao.SchemaDAO;
 import org.syncope.core.persistence.dao.TaskDAO;
 import org.syncope.core.persistence.dao.TaskExecutionDAO;
-import org.syncope.core.util.JexlUtil;
 import org.syncope.core.workflow.Constants;
 import org.syncope.core.workflow.WFUtils;
 import org.syncope.types.PropagationMode;
@@ -84,12 +80,6 @@ public class PropagationManager {
     private SchemaDAO schemaDAO;
 
     /**
-     * Derived Schema DAO.
-     */
-    @Autowired
-    private DerSchemaDAO derSchemaDAO;
-
-    /**
      * Task DAO.
      */
     @Autowired
@@ -106,12 +96,6 @@ public class PropagationManager {
      */
     @Resource(name = "taskExecutionWorkflow")
     private Workflow workflow;
-
-    /**
-     * JEXL engine for evaluating connector's account link.
-     */
-    @Autowired
-    private JexlUtil jexlUtil;
 
     /**
      * Create the user on every associated resource.
@@ -316,17 +300,6 @@ public class PropagationManager {
             case MembershipSchema:
                 result = MSchema.class;
 
-            case UserDerivedSchema:
-                result = USchema.class;
-                break;
-
-            case RoleDerivedSchema:
-                result = RSchema.class;
-                break;
-
-            case MembershipDerivedSchema:
-                result = MSchema.class;
-
             default:
                 result = null;
         }
@@ -356,11 +329,7 @@ public class PropagationManager {
 
         // syncope user attribute
         UAttr attr;
-        UDerAttr derAttr;
-
         AbstractSchema schema;
-        AbstractDerSchema derSchema;
-
         // syncope user attribute schema type
         SchemaType schemaType = null;
         // syncope user attribute values
@@ -369,26 +338,17 @@ public class PropagationManager {
         for (SchemaMapping mapping : resource.getMappings()) {
             LOG.debug("Processing schema {}", mapping.getSourceAttrName());
 
-            schema = null;
-            derSchema = null;
-            values = null;
-
             try {
                 switch (mapping.getSourceMappingType()) {
                     case UserSchema:
                     case RoleSchema:
                     case MembershipSchema:
-
-                        schema = schemaDAO.find(
-                                mapping.getSourceAttrName(),
+                        schema = schemaDAO.find(mapping.getSourceAttrName(),
                                 getSourceMappingTypeClass(
                                 mapping.getSourceMappingType()));
-
-
                         schemaType = schema.getType();
 
-                        attr = user.getAttribute(
-                                mapping.getSourceAttrName());
+                        attr = user.getAttribute(mapping.getSourceAttrName());
 
                         values = attr != null
                                 ? (schema.isUniqueConstraint()
@@ -397,50 +357,14 @@ public class PropagationManager {
                                 : attr.getValues())
                                 : Collections.EMPTY_LIST;
 
-                        LOG.debug("Retrieved attribute {}", attr
+                        LOG.debug("Retrieved attribute {}"
                                 + "\n* SourceAttrName {}"
                                 + "\n* SourceMappingType {}"
                                 + "\n* Attribute values {}",
-                                new Object[]{
+                                new Object[]{attr,
                                     mapping.getSourceAttrName(),
                                     mapping.getSourceMappingType(),
                                     values});
-                        break;
-
-                    case UserDerivedSchema:
-                    case RoleDerivedSchema:
-                    case MembershipDerivedSchema:
-
-                        derSchema = derSchemaDAO.find(
-                                mapping.getSourceAttrName(),
-                                getSourceMappingTypeClass(
-                                mapping.getSourceMappingType()));
-
-                        schemaType = SchemaType.String;
-
-                        derAttr = user.getDerivedAttribute(
-                                mapping.getSourceAttrName());
-
-                        if (derAttr != null) {
-                            AbstractAttrValue value = new UAttrValue();
-                            value.setStringValue(
-                                    derAttr.getValue(user.getAttributes()));
-
-                            values = Collections.singletonList(value);
-                        } else {
-                            values = Collections.EMPTY_LIST;
-                        }
-
-
-                        LOG.debug("Retrieved attribute {}", derAttr
-                                + "\n* SourceAttrName {}"
-                                + "\n* SourceMappingType {}"
-                                + "\n* Attribute values {}",
-                                new Object[]{
-                                    mapping.getSourceAttrName(),
-                                    mapping.getSourceMappingType(),
-                                    values});
-
                         break;
 
                     case SyncopeUserId:
@@ -450,11 +374,13 @@ public class PropagationManager {
 
                         AbstractAttrValue uAttrValue = new UAttrValue();
 
-                        if (SourceMappingType.SyncopeUserId == mapping.getSourceMappingType()) {
+                        if (SourceMappingType.SyncopeUserId == mapping.
+                                getSourceMappingType()) {
 
                             uAttrValue.setStringValue(user.getId().toString());
                         }
-                        if (SourceMappingType.Password == mapping.getSourceMappingType()
+                        if (SourceMappingType.Password == mapping.
+                                getSourceMappingType()
                                 && password != null) {
 
                             uAttrValue.setStringValue(password);
@@ -464,7 +390,8 @@ public class PropagationManager {
                         break;
 
                     default:
-                        break;
+                        schema = null;
+                        values = null;
                 }
 
                 if (LOG.isDebugEnabled()) {
@@ -505,6 +432,7 @@ public class PropagationManager {
 
                 if (mapping.isAccountid()) {
                     accountId = objValues.iterator().next().toString();
+                    attributes.add(new Name(accountId));
                 }
 
                 if (mapping.isPassword()) {
@@ -533,14 +461,6 @@ public class PropagationManager {
             }
         }
 
-        if (accountId != null) {
-            String evaluatedAccountLink = jexlUtil.evaluateWithAttributes(
-                    resource.getAccountLink(), user.getAttributes());
-
-            attributes.add(new Name(evaluatedAccountLink.isEmpty()
-                    ? accountId : evaluatedAccountLink));
-        }
-
         return Collections.singletonMap(accountId, attributes);
     }
 
@@ -554,11 +474,11 @@ public class PropagationManager {
         final Set<String> triedPropagationRequests = new HashSet<String>();
 
         try {
-            ConnInstance connectorInstance =
+            ConnectorInstance connectorInstance =
                     task.getResource().getConnector();
 
             ConnectorFacadeProxy connector =
-                    ConnInstanceLoader.getConnector(
+                    ConnectorInstanceLoader.getConnector(
                     connectorInstance.getId().toString());
 
             if (connector == null) {

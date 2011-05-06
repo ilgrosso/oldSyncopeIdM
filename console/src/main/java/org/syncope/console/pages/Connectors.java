@@ -41,7 +41,7 @@ import org.apache.wicket.model.IModel;
 import org.apache.wicket.model.Model;
 import org.apache.wicket.model.PropertyModel;
 import org.apache.wicket.spring.injection.annot.SpringBean;
-import org.syncope.client.to.ConnInstanceTO;
+import org.syncope.client.to.ConnectorInstanceTO;
 import org.syncope.client.to.ResourceTO;
 import org.syncope.console.commons.Constants;
 import org.syncope.console.commons.PreferenceManager;
@@ -110,16 +110,16 @@ public class Connectors extends BasePage {
         columns.add(new PropertyColumn(new Model(getString("bundleName")),
                 "bundleName", "bundleName"));
 
-        columns.add(new AbstractColumn<ConnInstanceTO>(new Model<String>(
+        columns.add(new AbstractColumn<ConnectorInstanceTO>(new Model<String>(
                 getString("edit"))) {
 
             @Override
             public void populateItem(
-                    final Item<ICellPopulator<ConnInstanceTO>> cellItem,
+                    final Item<ICellPopulator<ConnectorInstanceTO>> cellItem,
                     final String componentId,
-                    final IModel<ConnInstanceTO> model) {
+                    final IModel<ConnectorInstanceTO> model) {
 
-                final ConnInstanceTO connectorTO = model.getObject();
+                final ConnectorInstanceTO connectorTO = model.getObject();
 
                 final AjaxLink editLink = new IndicatingAjaxLink("editLink") {
 
@@ -153,16 +153,16 @@ public class Connectors extends BasePage {
             }
         });
 
-        columns.add(new AbstractColumn<ConnInstanceTO>(
+        columns.add(new AbstractColumn<ConnectorInstanceTO>(
                 new Model<String>(getString("delete"))) {
 
             @Override
             public void populateItem(
-                    final Item<ICellPopulator<ConnInstanceTO>> cellItem,
+                    final Item<ICellPopulator<ConnectorInstanceTO>> cellItem,
                     final String componentId,
-                    final IModel<ConnInstanceTO> model) {
+                    final IModel<ConnectorInstanceTO> model) {
 
-                final ConnInstanceTO connectorTO = model.getObject();
+                final ConnectorInstanceTO connectorTO = model.getObject();
 
                 AjaxLink deleteLink = new IndicatingDeleteOnConfirmAjaxLink(
                         "deleteLink") {
@@ -171,7 +171,7 @@ public class Connectors extends BasePage {
                     public void onClick(final AjaxRequestTarget target) {
 
                         if (!checkDeleteIsForbidden(connectorTO)) {
-                            restClient.delete(connectorTO.getId());
+                            restClient.deleteConnector(connectorTO.getId());
                             info(getString("operation_succeded"));
                         } else {
                             error(getString("delete_error"));
@@ -230,7 +230,7 @@ public class Connectors extends BasePage {
                     public Page createPage() {
                         ConnectorModalPage form = new ConnectorModalPage(
                                 Connectors.this, editConnectorWin,
-                                new ConnInstanceTO(), true);
+                                new ConnectorInstanceTO(), true);
                         return form;
                     }
                 });
@@ -274,7 +274,7 @@ public class Connectors extends BasePage {
      * @param ConnectorInstanceTO object to check
      * @return true if the action is forbidden, false otherwise
      */
-    public boolean checkDeleteIsForbidden(ConnInstanceTO connectorTO) {
+    public boolean checkDeleteIsForbidden(ConnectorInstanceTO connectorTO) {
 
         boolean forbidden = false;
         List<ResourceTO> resources = resourceRestClient.getAllResources();
@@ -318,21 +318,21 @@ public class Connectors extends BasePage {
         this.operationResult = operationResult;
     }
 
-    class ConnectorsProvider extends SortableDataProvider<ConnInstanceTO> {
+    class ConnectorsProvider extends SortableDataProvider<ConnectorInstanceTO> {
 
-        private SortableDataProviderComparator<ConnInstanceTO> comparator;
+        private SortableDataProviderComparator<ConnectorInstanceTO> comparator;
 
         public ConnectorsProvider() {
             //Default sorting
             setSort("id", true);
             comparator =
-                    new SortableDataProviderComparator<ConnInstanceTO>(
+                    new SortableDataProviderComparator<ConnectorInstanceTO>(
                     this);
         }
 
         @Override
-        public Iterator<ConnInstanceTO> iterator(int first, int count) {
-            List<ConnInstanceTO> list = getConnectorsListDB();
+        public Iterator<ConnectorInstanceTO> iterator(int first, int count) {
+            List<ConnectorInstanceTO> list = getConnectorsListDB();
 
             Collections.sort(list, comparator);
 
@@ -345,19 +345,19 @@ public class Connectors extends BasePage {
         }
 
         @Override
-        public IModel<ConnInstanceTO> model(
-                final ConnInstanceTO connector) {
+        public IModel<ConnectorInstanceTO> model(
+                final ConnectorInstanceTO connector) {
 
-            return new AbstractReadOnlyModel<ConnInstanceTO>() {
+            return new AbstractReadOnlyModel<ConnectorInstanceTO>() {
 
                 @Override
-                public ConnInstanceTO getObject() {
+                public ConnectorInstanceTO getObject() {
                     return connector;
                 }
             };
         }
 
-        public List<ConnInstanceTO> getConnectorsListDB() {
+        public List<ConnectorInstanceTO> getConnectorsListDB() {
             return restClient.getAllConnectors();
         }
     }

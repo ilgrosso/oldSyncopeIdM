@@ -22,19 +22,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 import org.syncope.core.persistence.beans.AbstractDerAttr;
 import org.syncope.core.persistence.beans.AbstractDerSchema;
+import org.syncope.core.persistence.beans.AbstractSchema;
 import org.syncope.core.persistence.dao.DerAttrDAO;
 import org.syncope.core.persistence.dao.DerSchemaDAO;
-import org.syncope.core.persistence.dao.ResourceDAO;
-import org.syncope.core.util.AttributableUtil;
 
 @Repository
 public class DerSchemaDAOImpl extends AbstractDAOImpl implements DerSchemaDAO {
 
     @Autowired
     private DerAttrDAO derivedAttributeDAO;
-
-    @Autowired
-    private ResourceDAO resourceDAO;
 
     @Override
     public <T extends AbstractDerSchema> T find(final String name,
@@ -58,34 +54,31 @@ public class DerSchemaDAOImpl extends AbstractDAOImpl implements DerSchemaDAO {
     }
 
     @Override
-    public void delete(final String name,
-            final AttributableUtil attributableUtil) {
+    public <T extends AbstractDerSchema> void delete(final String name,
+            final Class<T> reference) {
 
-        final AbstractDerSchema derivedSchema =
-                find(name, attributableUtil.derivedSchemaClass());
-
+        T derivedSchema = find(name, reference);
         if (derivedSchema == null) {
             return;
         }
 
-        final Set<Long> derivedAttributeIds =
+        for (AbstractSchema schema : derivedSchema.getSchemas()) {
+            schema.removeDerivedSchema(derivedSchema);
+        }
+        derivedSchema.getSchemas().clear();
+
+        Set<Long> derivedAttributeIds =
                 new HashSet<Long>(derivedSchema.getDerivedAttributes().size());
-
         Class attributeClass = null;
-
         for (AbstractDerAttr attribute :
                 derivedSchema.getDerivedAttributes()) {
 
             derivedAttributeIds.add(attribute.getId());
             attributeClass = attribute.getClass();
         }
-
         for (Long derivedAttributeId : derivedAttributeIds) {
             derivedAttributeDAO.delete(derivedAttributeId, attributeClass);
         }
-
-        resourceDAO.deleteMappings(
-                name, attributableUtil.derivedSourceMappingType());
 
         entityManager.remove(derivedSchema);
     }

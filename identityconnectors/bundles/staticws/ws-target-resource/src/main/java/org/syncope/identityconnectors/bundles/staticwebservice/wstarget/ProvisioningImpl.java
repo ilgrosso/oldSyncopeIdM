@@ -266,7 +266,7 @@ public class ProvisioningImpl implements Provisioning {
     public String create(List<WSAttributeValue> data)
             throws ProvisioningException {
 
-        LOG.debug("Create request received with data {}", data);
+        LOG.debug("Create request received");
 
         List<WSAttribute> schema = schema();
         Set<String> schemaNames = new HashSet<String>();
@@ -282,15 +282,17 @@ public class ProvisioningImpl implements Provisioning {
             conn = connect();
             Statement statement = conn.createStatement();
 
-            StringBuilder keys = new StringBuilder();
-            StringBuilder values = new StringBuilder();
+            StringBuffer keys = new StringBuffer();
+            StringBuffer values = new StringBuffer();
 
             String accountid = null;
             String value;
 
             for (WSAttributeValue attr : data) {
                 if (schemaNames.contains(attr.getName())) {
-                    LOG.debug("Bind attribute: {}", attr);
+                    if (LOG.isDebugEnabled()) {
+                        LOG.debug("Bind attribute: " + attr);
+                    }
 
                     if (attr.getValues() == null
                             || attr.getValues().isEmpty()) {
@@ -473,14 +475,6 @@ public class ProvisioningImpl implements Provisioning {
         attr = new WSAttribute();
         attr.setName("surname");
         attr.setNullable(true);
-        attr.setPassword(false);
-        attr.setKey(false);
-        attr.setType("String");
-        attrs.add(attr);
-
-        attr = new WSAttribute();
-        attr.setName("fullname");
-        attr.setNullable(false);
         attr.setPassword(false);
         attr.setKey(false);
         attr.setType("String");

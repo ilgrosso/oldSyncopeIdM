@@ -42,7 +42,6 @@ import org.syncope.client.validation.SyncopeClientCompositeErrorException;
 import org.syncope.client.validation.SyncopeClientException;
 import org.syncope.core.persistence.beans.user.SyncopeUser;
 import org.syncope.core.workflow.Constants;
-import org.syncope.types.CipherAlgorithm;
 import org.syncope.types.SyncopeClientExceptionType;
 
 public class UserTestITCase extends AbstractTest {
@@ -86,11 +85,6 @@ public class UserTestITCase extends AbstractTest {
         DateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
         loginDateTO.addValue(sdf.format(new Date()));
         userTO.addAttribute(loginDateTO);
-
-        // add a derived attribute
-        AttributeTO cnTO = new AttributeTO();
-        cnTO.setSchema("cn");
-        userTO.addDerivedAttribute(cnTO);
 
         return userTO;
     }
@@ -591,7 +585,7 @@ public class UserTestITCase extends AbstractTest {
         userTO = restTemplate.postForObject(BASE_URL + "user/activate",
                 userTO, UserTO.class);
 
-        assertFalse(userTO.getDerivedAttributes().isEmpty());
+        assertTrue(userTO.getDerivedAttributes().isEmpty());
         assertEquals(1, userTO.getMemberships().size());
 
         AttributeMod attributeMod = new AttributeMod();
@@ -620,7 +614,7 @@ public class UserTestITCase extends AbstractTest {
                 userMod, UserTO.class);
 
         SyncopeUser passwordTestUser = new SyncopeUser();
-        passwordTestUser.setPassword("newPassword", CipherAlgorithm.MD5);
+        passwordTestUser.setPassword("newPassword");
         assertEquals(passwordTestUser.getPassword(),
                 userTO.getPassword());
 

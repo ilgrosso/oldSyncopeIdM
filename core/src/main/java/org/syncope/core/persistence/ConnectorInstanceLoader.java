@@ -18,12 +18,10 @@ import java.io.File;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import javassist.NotFoundException;
 import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
 import org.identityconnectors.common.IOUtil;
-import org.identityconnectors.common.l10n.CurrentLocale;
 import org.identityconnectors.framework.api.ConnectorInfoManager;
 import org.identityconnectors.framework.api.ConnectorInfoManagerFactory;
 import org.slf4j.Logger;
@@ -31,9 +29,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.context.ConfigurableApplicationContext;
-import org.syncope.core.persistence.beans.ConnInstance;
+import org.syncope.core.persistence.beans.ConnectorInstance;
 import org.syncope.core.persistence.beans.SyncopeConf;
-import org.syncope.core.persistence.dao.ConnInstanceDAO;
+import org.syncope.core.persistence.dao.ConnectorInstanceDAO;
 import org.syncope.core.persistence.dao.MissingConfKeyException;
 import org.syncope.core.persistence.dao.ConfDAO;
 import org.syncope.core.persistence.propagation.ConnectorFacadeProxy;
@@ -42,13 +40,13 @@ import org.syncope.core.util.ApplicationContextManager;
 /**
  * Load identity connector instances on application startup.
  */
-public class ConnInstanceLoader implements ServletContextListener {
+public class ConnectorInstanceLoader implements ServletContextListener {
 
     /**
      * Logger.
      */
     private static final Logger LOG = LoggerFactory.getLogger(
-            ConnInstanceLoader.class);
+            ConnectorInstanceLoader.class);
 
     public static ConnectorInfoManager getConnectorManager()
             throws NotFoundException {
@@ -68,11 +66,11 @@ public class ConnInstanceLoader implements ServletContextListener {
         }
 
         // 2. Find bundles inside that directory
-        File bundleDirectory = new File(connectorBundleDir.getValue());
+        File bundleDirectory = new File(connectorBundleDir.getConfValue());
         String[] bundleFiles = bundleDirectory.list();
         if (bundleFiles == null) {
             throw new NotFoundException("Bundles from dir "
-                    + connectorBundleDir.getValue());
+                    + connectorBundleDir.getConfValue());
         }
 
         List<URL> bundleFileURLs = new ArrayList<URL>();
@@ -89,7 +87,7 @@ public class ConnInstanceLoader implements ServletContextListener {
         }
         if (bundleFileURLs.isEmpty()) {
             throw new NotFoundException("Bundles from dir "
-                    + connectorBundleDir.getValue());
+                    + connectorBundleDir.getConfValue());
         }
         LOG.debug("Bundle file URLs: {}", bundleFileURLs);
 
@@ -117,7 +115,7 @@ public class ConnInstanceLoader implements ServletContextListener {
         return (ConnectorFacadeProxy) getBeanFactory().getBean(id);
     }
 
-    public static void registerConnector(final ConnInstance instance)
+    public static void registerConnector(final ConnectorInstance instance)
             throws NotFoundException {
 
         if (getBeanFactory().containsSingleton(instance.getId().toString())) {
@@ -142,15 +140,12 @@ public class ConnInstanceLoader implements ServletContextListener {
         ConfigurableApplicationContext context =
                 ApplicationContextManager.getApplicationContext();
 
-        ConnInstanceDAO connectorInstanceDAO =
-                (ConnInstanceDAO) context.getBean("connInstanceDAOImpl");
+        ConnectorInstanceDAO connectorInstanceDAO =
+                (ConnectorInstanceDAO) context.getBean(
+                "connectorInstanceDAOImpl");
 
-        // This is needed to avoid encoding problems when sending error
-        // messages via REST
-        CurrentLocale.set(Locale.ENGLISH);
-
-        List<ConnInstance> instances = connectorInstanceDAO.findAll();
-        for (ConnInstance instance : instances) {
+        List<ConnectorInstance> instances = connectorInstanceDAO.findAll();
+        for (ConnectorInstance instance : instances) {
             try {
                 LOG.error("register connector {}", instance);
                 registerConnector(instance);

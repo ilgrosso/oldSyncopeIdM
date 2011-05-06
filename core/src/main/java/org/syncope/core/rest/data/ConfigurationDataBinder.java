@@ -25,8 +25,8 @@ public class ConfigurationDataBinder {
             final ConfigurationTO configurationTO) {
 
         SyncopeConf syncopeConfiguration = new SyncopeConf();
-        syncopeConfiguration.setKey(configurationTO.getKey());
-        syncopeConfiguration.setValue(configurationTO.getValue());
+        syncopeConfiguration.setConfKey(configurationTO.getConfKey());
+        syncopeConfiguration.setConfValue(configurationTO.getConfValue());
 
         return syncopeConfiguration;
     }
@@ -35,8 +35,8 @@ public class ConfigurationDataBinder {
             final SyncopeConf syncopeConfiguration) {
 
         ConfigurationTO configurationTO = new ConfigurationTO();
-        configurationTO.setKey(syncopeConfiguration.getKey());
-        configurationTO.setValue(syncopeConfiguration.getValue());
+        configurationTO.setConfKey(syncopeConfiguration.getConfKey());
+        configurationTO.setConfValue(syncopeConfiguration.getConfValue());
 
         return configurationTO;
     }

@@ -16,10 +16,13 @@
  */
 package org.syncope.console.pages;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import org.apache.wicket.ajax.AjaxRequestTarget;
 import org.apache.wicket.ajax.IAjaxCallDecorator;
 import org.apache.wicket.ajax.calldecorator.AjaxPreprocessingCallDecorator;
@@ -43,7 +46,8 @@ import org.apache.wicket.model.LoadableDetachableModel;
 import org.apache.wicket.model.Model;
 import org.apache.wicket.model.PropertyModel;
 import org.apache.wicket.spring.injection.annot.SpringBean;
-import org.syncope.client.to.ConnInstanceTO;
+import org.apache.wicket.util.string.Strings;
+import org.syncope.client.to.ConnectorInstanceTO;
 import org.syncope.client.to.ResourceTO;
 import org.syncope.client.to.SchemaMappingTO;
 import org.syncope.client.validation.SyncopeClientCompositeErrorException;
@@ -65,85 +69,96 @@ public class ResourceModalPage extends BaseModalPage {
     @SpringBean
     private ConnectorRestClient connectorRestClient;
 
+    private TextField resourceName;
+
+    private DropDownChoice connector;
+
+    private CheckBox forceMandatoryConstraint;
+
+    private DropDownChoice<PropagationMode> optionalPropagationMode;
+
+    private ConnectorInstanceTO connectorTO = new ConnectorInstanceTO();
+
+    private ResourceTO resource;
+
+    private AjaxButton submit;
+
+    private AjaxButton addSchemaMappingBtn;
+
+    private List<String> accountIdAttributesNames;
+
+    private List<String> passwordAttributesNames;
+
+    private List<String> userSchemaAttributesNames;
+
+    private List<String> roleSchemaAttributesNames;
+
+    private List<String> membershipSchemaAttributesNames;
+
+    /** Custom validation's errors map*/
+    private Map<String, String> errors = new HashMap<String, String>();
+
+    private ListView mappingUserSchemaView;
+
     @SpringBean
     private ResourceRestClient restClient;
 
-    private List<String> uSchemaAttrNames;
+    private WebMarkupContainer mappingUserSchemaContainer;
 
-    private List<String> uDerSchemaAttrNames;
-
-    private List<String> rSchemaAttrNames;
-
-    private List<String> rDerSchemaAttrNames;
-
-    private List<String> mSchemaAttrNames;
-
-    private List<String> mDerSchemaAttrNames;
-
-    private WebMarkupContainer mappingContainer;
-
-    public ResourceModalPage(final Resources basePage, final ModalWindow window,
+    /**
+     *
+     * @param basePage base
+     * @param modalWindow modal window
+     * @param connectorTO
+     * @param create : set to true only if a CREATE operation is required
+     */
+    public ResourceModalPage(final BasePage basePage, final ModalWindow window,
             final ResourceTO resourceTO, final boolean createFlag) {
 
-        super();
+        this.resource = resourceTO;
 
-        uSchemaAttrNames =
-                schemaRestClient.getSchemaNames("user");
-        uDerSchemaAttrNames =
-                schemaRestClient.getDerivedSchemaNames("user");
+        setupChoiceListsPopulators();
 
-        rSchemaAttrNames =
-                schemaRestClient.getSchemaNames("role");
-        rDerSchemaAttrNames =
-                schemaRestClient.getDerivedSchemaNames("role");
+        //setupSchemaMappingsList(resourceTO.getMappings());
 
-        mSchemaAttrNames =
-                schemaRestClient.getSchemaNames("membership");
-        mDerSchemaAttrNames =
-                schemaRestClient.getDerivedSchemaNames("membership");
+        Form resourceForm = new Form("ResourceForm");
 
-        final IModel<List<ConnInstanceTO>> connectors =
-                new LoadableDetachableModel<List<ConnInstanceTO>>() {
+        resourceForm.setModel(new CompoundPropertyModel(resourceTO));
 
-                    @Override
-                    protected List<ConnInstanceTO> load() {
-                        return connectorRestClient.getAllConnectors();
-                    }
-                };
-
-        final IModel<List<SourceMappingType>> sourceMappingTypes =
-                new LoadableDetachableModel<List<SourceMappingType>>() {
-
-                    @Override
-                    protected List<SourceMappingType> load() {
-                        return Arrays.asList(SourceMappingType.values());
-                    }
-                };
-
-        final ConnInstanceTO connectorTO = new ConnInstanceTO();
         if (!createFlag) {
             connectorTO.setId(resourceTO.getConnectorId());
         }
 
-        Form resourceForm = new Form("ResourceForm");
-        resourceForm.setModel(new CompoundPropertyModel(resourceTO));
+        IModel connectors = new LoadableDetachableModel() {
 
-        TextField resourceName = new TextField("name");
+            @Override
+            protected Object load() {
+                return connectorRestClient.getAllConnectors();
+            }
+        };
+
+        final IModel sourceMappingTypes = new LoadableDetachableModel() {
+
+            @Override
+            protected Object load() {
+
+                return Arrays.asList(SourceMappingType.values());
+
+            }
+        };
+
+        resourceName = new TextField("name");
         resourceName.setEnabled(createFlag);
         resourceName.setRequired(true);
         resourceName.setOutputMarkupId(true);
+
         resourceForm.add(resourceName);
 
-        TextField accountLink = new TextField("accountLink");
-        accountLink.setOutputMarkupId(true);
-        resourceForm.add(accountLink);
-
-        CheckBox forceMandatoryConstraint =
-                new CheckBox("forceMandatoryConstraint");
+        forceMandatoryConstraint = new CheckBox("forceMandatoryConstraint");
         forceMandatoryConstraint.setOutputMarkupId(true);
         resourceForm.add(forceMandatoryConstraint);
 
-        DropDownChoice<PropagationMode> optionalPropagationMode =
+        optionalPropagationMode =
                 new DropDownChoice<PropagationMode>("optionalPropagationMode");
         optionalPropagationMode.setModel(new IModel<PropagationMode>() {
 
@@ -167,19 +182,19 @@ public class ResourceModalPage extends BaseModalPage {
         resourceForm.add(optionalPropagationMode);
 
         ChoiceRenderer renderer = new ChoiceRenderer("displayName", "id");
-        DropDownChoice<ConnInstanceTO> connector =
-                new DropDownChoice<ConnInstanceTO>("connectors",
-                new Model<ConnInstanceTO>(connectorTO), connectors, renderer);
+        connector = new DropDownChoice("connectors", new Model(connectorTO),
+                connectors, renderer);
         connector.setEnabled(createFlag);
-        connector.setModel(new IModel<ConnInstanceTO>() {
+        connector.setModel(new IModel() {
 
             @Override
-            public ConnInstanceTO getObject() {
+            public Object getObject() {
                 return connectorTO;
             }
 
             @Override
-            public void setObject(final ConnInstanceTO connector) {
+            public void setObject(Object object) {
+                ConnectorInstanceTO connector = (ConnectorInstanceTO) object;
                 resourceTO.setConnectorId(connector.getId());
             }
 
@@ -187,49 +202,37 @@ public class ResourceModalPage extends BaseModalPage {
             public void detach() {
             }
         });
+
         connector.setRequired(true);
         connector.setEnabled(createFlag);
+
         resourceForm.add(connector);
 
-        mappingContainer = new WebMarkupContainer("mappingContainer");
-        mappingContainer.setOutputMarkupId(true);
-        resourceForm.add(mappingContainer);
+        mappingUserSchemaView = new ListView("mappingsUserSchema",
+                resourceTO.getMappings()) {
 
-        ListView<SchemaMappingTO> mappings = new ListView<SchemaMappingTO>(
-                "mappings", resourceTO.getMappings()) {
+            SchemaMappingTO mappingTO = null;
+
+            DropDownChoice schemaAttributeChoice = null;
 
             @Override
-            protected void populateItem(
-                    final ListItem<SchemaMappingTO> item) {
-
-                final SchemaMappingTO mappingTO = item.getModelObject();
+            protected void populateItem(final ListItem item) {
+                mappingTO = (SchemaMappingTO) item.getDefaultModelObject();
 
                 item.add(new AjaxDecoratedCheckbox("toRemove",
-                        new Model(Boolean.FALSE)) {
+                        new Model(new Boolean(""))) {
 
                     @Override
                     protected void onUpdate(final AjaxRequestTarget target) {
-                        int index = -1;
-                        for (int i = 0; i < resourceTO.getMappings().size()
-                                && index == -1; i++) {
-
-                            if (mappingTO.equals(
-                                    resourceTO.getMappings().get(i))) {
-
-                                index = i;
-                            }
-                        }
-
-                        if (index != -1) {
-                            resourceTO.getMappings().remove(index);
-                            item.getParent().removeAll();
-                            target.addComponent(mappingContainer);
-                        }
+                        int id = new Integer(getParent().getId());
+                        resourceTO.getMappings().remove(id);
+                        target.addComponent(mappingUserSchemaContainer);
                     }
 
                     @Override
                     protected IAjaxCallDecorator getAjaxCallDecorator() {
-                        return new AjaxPreprocessingCallDecorator(super.getAjaxCallDecorator()) {
+                        return new AjaxPreprocessingCallDecorator(super.
+                                getAjaxCallDecorator()) {
 
                             @Override
                             public CharSequence preDecorateScript(
@@ -243,118 +246,106 @@ public class ResourceModalPage extends BaseModalPage {
                         };
                     }
                 });
+                item.add(new TextField("field",
+                        new PropertyModel(mappingTO, "destAttrName")).
+                        setRequired(true).
+                        setLabel(new Model(getString("fieldName"))));
 
-                DropDownChoice<String> schemaAttrChoice =
-                        new DropDownChoice<String>(
-                        "sourceAttrNames", new PropertyModel<String>(
-                        mappingTO, "sourceAttrName"), (IModel) null);
-
-                schemaAttrChoice.setOutputMarkupId(true);
+                schemaAttributeChoice =
+                        new DropDownChoice("schemaAttributes",
+                        new PropertyModel(mappingTO, "sourceAttrName"),
+                        (IModel) null);
 
                 if (mappingTO.getSourceMappingType() == null) {
-                    schemaAttrChoice.setChoices(Collections.EMPTY_LIST);
-                } else {
-                    switch (mappingTO.getSourceMappingType()) {
-                        case UserSchema:
-                            schemaAttrChoice.setChoices(uSchemaAttrNames);
-                            break;
-
-                        case UserDerivedSchema:
-                            schemaAttrChoice.setChoices(uDerSchemaAttrNames);
-                            break;
-
-                        case RoleSchema:
-                            schemaAttrChoice.setChoices(rSchemaAttrNames);
-                            break;
-
-                        case RoleDerivedSchema:
-                            schemaAttrChoice.setChoices(rDerSchemaAttrNames);
-                            break;
-
-                        case MembershipSchema:
-                            schemaAttrChoice.setChoices(mSchemaAttrNames);
-                            break;
-
-                        case MembershipDerivedSchema:
-                            schemaAttrChoice.setChoices(mDerSchemaAttrNames);
-                            break;
-
-                        case SyncopeUserId:
-                            schemaAttrChoice.setEnabled(false);
-                            schemaAttrChoice.setRequired(false);
-                            schemaAttrChoice.setChoices(Collections.EMPTY_LIST);
-                            mappingTO.setSourceAttrName("SyncopeUserId");
-                            break;
-
-                        case Password:
-                            schemaAttrChoice.setEnabled(false);
-                            schemaAttrChoice.setRequired(false);
-                            schemaAttrChoice.setChoices(Collections.EMPTY_LIST);
-                            mappingTO.setSourceAttrName("Password");
-                            break;
-
-                        default:
-                            schemaAttrChoice.setChoices(
-                                    Collections.EMPTY_LIST);
-                    }
+                    schemaAttributeChoice.setChoices(Collections.emptyList());
+                } else if (mappingTO.getSourceMappingType().equals(
+                        SourceMappingType.UserSchema)) {
+                    schemaAttributeChoice.setChoices(userSchemaAttributesNames);
+                    schemaAttributeChoice.setRequired(true);
+                } else if (mappingTO.getSourceMappingType().equals(
+                        SourceMappingType.RoleSchema)) {
+                    schemaAttributeChoice.setChoices(roleSchemaAttributesNames);
+                    schemaAttributeChoice.setRequired(true);
+                } else if (mappingTO.getSourceMappingType().equals(
+                        SourceMappingType.MembershipSchema)) {
+                    schemaAttributeChoice.setChoices(
+                            membershipSchemaAttributesNames);
+                    schemaAttributeChoice.setRequired(true);
+                } else if (mappingTO.getSourceMappingType().equals(
+                        SourceMappingType.SyncopeUserId)) {
+                    schemaAttributeChoice.setEnabled(false);
+                    schemaAttributeChoice.setRequired(false);
+                    schemaAttributeChoice.setChoices(Collections.emptyList());
+                    mappingTO.setSourceAttrName("SyncopeUserId");
+                } else if (mappingTO.getSourceMappingType().equals(
+                        SourceMappingType.Password)) {
+                    schemaAttributeChoice.setEnabled(false);
+                    schemaAttributeChoice.setRequired(false);
+                    schemaAttributeChoice.setChoices(Collections.emptyList());
+                    mappingTO.setSourceAttrName("Password");
                 }
-                item.add(schemaAttrChoice);
+
+                schemaAttributeChoice.setOutputMarkupId(true);
+                item.add(schemaAttributeChoice);
 
                 item.add(new SourceMappingTypesDropDownChoice(
                         "sourceMappingTypes",
-                        new PropertyModel<SourceMappingType>(mappingTO,
-                        "sourceMappingType"), sourceMappingTypes,
-                        schemaAttrChoice).setRequired(true).
-                        setOutputMarkupId(true));
-
-                item.add(new TextField("destAttrName",
-                        new PropertyModel(mappingTO, "destAttrName")).setRequired(true).
-                        setLabel(new Model(getString("fieldName"))).
+                        new PropertyModel(mappingTO, "sourceMappingType"),
+                        sourceMappingTypes, schemaAttributeChoice).setRequired(
+                        true).
                         setOutputMarkupId(true));
 
                 item.add(new AutoCompleteTextField("mandatoryCondition",
                         new PropertyModel(mappingTO, "mandatoryCondition")) {
 
                     @Override
-                    protected Iterator getChoices(final String input) {
-                        List<String> choices;
-                        if ("true".startsWith(input.toLowerCase())) {
-                            choices = Collections.singletonList("true");
-                        } else if ("false".startsWith(input.toLowerCase())) {
-                            choices = Collections.singletonList("true");
-                        } else {
-                            choices = Collections.EMPTY_LIST;
+                    protected Iterator getChoices(String input) {
+                        List<String> choices = new ArrayList<String>();
+
+                        if (Strings.isEmpty(input)) {
+                            choices = Collections.emptyList();
+                            return choices.iterator();
                         }
+
+                        if ("true".startsWith(input.toLowerCase())) {
+                            choices.add("true");
+                        } else if ("false".startsWith(input.toLowerCase())) {
+                            choices.add("false");
+                        }
+
 
                         return choices.iterator();
                     }
                 });
-
                 item.add(new CheckBox("accountId",
                         new PropertyModel(mappingTO, "accountid")));
-
                 item.add(new CheckBox("password",
                         new PropertyModel(mappingTO, "password")));
             }
         };
-        mappings.setReuseItems(true);
-        mappingContainer.add(mappings);
 
-        AjaxButton addSchemaMappingBtn = new IndicatingAjaxButton(
+        mappingUserSchemaContainer =
+                new WebMarkupContainer("mappingUserSchemaContainer");
+        mappingUserSchemaContainer.add(mappingUserSchemaView);
+        mappingUserSchemaContainer.setOutputMarkupId(true);
+
+        resourceForm.add(mappingUserSchemaContainer);
+
+        addSchemaMappingBtn = new IndicatingAjaxButton(
                 "addUserSchemaMappingBtn", new Model(getString("add"))) {
 
             @Override
-            protected void onSubmit(final AjaxRequestTarget target,
-                    final Form form) {
-
+            protected void onSubmit(AjaxRequestTarget target, Form form) {
                 resourceTO.getMappings().add(new SchemaMappingTO());
-                target.addComponent(mappingContainer);
+                target.addComponent(mappingUserSchemaContainer);
             }
         };
+
         addSchemaMappingBtn.setDefaultFormProcessing(false);
+
         resourceForm.add(addSchemaMappingBtn);
 
-        AjaxButton submit = new IndicatingAjaxButton("submit", new Model(
+        submit = new IndicatingAjaxButton("submit", new Model(
                 getString("submit"))) {
 
             @Override
@@ -364,32 +355,35 @@ public class ResourceModalPage extends BaseModalPage {
                 ResourceTO resourceTO =
                         (ResourceTO) form.getDefaultModelObject();
 
-                int accountIdCount = 0;
-                for (SchemaMappingTO mapping : resourceTO.getMappings()) {
-                    if (mapping.isAccountid()) {
-                        accountIdCount++;
+                try {
+                    resourceFormCustomValidation();
+                } catch (IllegalArgumentException e) {
+
+                    for (String error : errors.values()) {
+                        error(error);
                     }
+
+                    errors.clear();
+                    return;
                 }
-                if (accountIdCount == 0 || accountIdCount > 1) {
-                    error(getString("accountIdValidation"));
-                    basePage.setOperationResult(false);
-                } else {
-                    try {
-                        if (createFlag) {
-                            restClient.create(resourceTO);
-                        } else {
-                            restClient.update(resourceTO);
-                        }
 
-                        basePage.setOperationResult(true);
-                        window.close(target);
-                    } catch (SyncopeClientCompositeErrorException e) {
-                        error(getString("error") + ":" + e.getMessage());
-                        basePage.setOperationResult(false);
-
-                        LOG.error("While creating or updating resource "
-                                + resourceTO);
+                Resources callerPage = (Resources) basePage;
+                try {
+                    if (createFlag) {
+                        restClient.createResource(resourceTO);
+                    } else {
+                        restClient.updateResource(resourceTO);
                     }
+
+                    callerPage.setOperationResult(true);
+
+                    window.close(target);
+                } catch (SyncopeClientCompositeErrorException e) {
+                    error(getString("error") + ":" + e.getMessage());
+                    callerPage.setOperationResult(false);
+
+                    LOG.error("While creating or updating resource "
+                            + resourceTO);
                 }
             }
 
@@ -400,75 +394,192 @@ public class ResourceModalPage extends BaseModalPage {
                 target.addComponent(feedbackPanel);
             }
         };
+
+        String allowedRoles;
+
+        if (createFlag) {
+            allowedRoles = xmlRolesReader.getAllAllowedRoles("Resources",
+                    "create");
+        } else {
+            allowedRoles = xmlRolesReader.getAllAllowedRoles("Resources",
+                    "update");
+        }
+
+        MetaDataRoleAuthorizationStrategy.authorize(submit, ENABLE,
+                allowedRoles);
+
         resourceForm.add(submit);
 
         add(resourceForm);
-
-        MetaDataRoleAuthorizationStrategy.authorize(submit, ENABLE,
-                xmlRolesReader.getAllAllowedRoles("Resources",
-                createFlag ? "create" : "update"));
     }
 
     /**
-     * Extension class of DropDownChoice.
-     * It's purposed for storing values in the
+     * Checks that at most one SchemaMapping has been set as 'AccountId' and as
+     * 'Password'.
+     */
+    public void resourceFormCustomValidation() {
+        int count = 0;
+
+        for (SchemaMappingTO schemaMapping : resource.getMappings()) {
+
+            if (schemaMapping.isAccountid()) {
+                count++;
+            }
+
+            if (count > 1) {
+                errors.put("accountId", getString("accountIdValidation"));
+                break;
+            }
+
+        }
+
+        count = 0;
+
+        for (SchemaMappingTO schemaMapping : resource.getMappings()) {
+
+            if (schemaMapping.isPassword()) {
+                count++;
+            }
+
+            if (count > 1) {
+                errors.put("password", getString("passwordValidation"));
+                break;
+            }
+
+
+        }
+
+        if (errors.size() > 0) {
+            throw new IllegalArgumentException(getString("customValidation"));
+        }
+    }
+
+    /**
+     * Set User and Role Schemas list for populating different views.
+     * @param schemaMappingTos
+    
+    public void setupSchemaMappingsList(List<SchemaMappingTO> mappings) {
+    schemaMappingTOs = new ArrayList<SchemaMappingTO>();
+
+    if (mappings != null) {
+    for (SchemaMappingTO schemaMappingTO :  mappings) {
+    schemaMappingTOs.add(schemaMappingTO);
+    }
+    } else {
+    schemaMappingTOs.add(new SchemaMappingTO());
+    }
+    }*/
+    /**
+     * Setup choice-list populators.
+     */
+    public void setupChoiceListsPopulators() {
+        List<String> accountIdList = new ArrayList<String>();
+        accountIdList.add("accountId");
+        setAccountIdAttributesNames(accountIdList);
+
+        List<String> passwordList = new ArrayList<String>();
+        passwordList.add("password");
+        setPasswordAttributesNames(passwordList);
+
+        setRoleSchemaAttributesNames(schemaRestClient.getAllRoleSchemasNames());
+        setUserSchemaAttributesNames(schemaRestClient.getAllUserSchemasNames());
+        setMembershipSchemaAttributesNames(schemaRestClient.
+                getAllMembershipSchemasNames());
+    }
+
+    public List<String> getMembershipSchemaAttributesNames() {
+        return membershipSchemaAttributesNames;
+    }
+
+    public void setMembershipSchemaAttributesNames(
+            List<String> membershipSchemaAttributesNames) {
+        this.membershipSchemaAttributesNames = membershipSchemaAttributesNames;
+    }
+
+    public List<String> getRoleSchemaAttributesNames() {
+        return roleSchemaAttributesNames;
+    }
+
+    public void setRoleSchemaAttributesNames(
+            List<String> roleSchemaAttributesNames) {
+        this.roleSchemaAttributesNames = roleSchemaAttributesNames;
+    }
+
+    public List<String> getUserSchemaAttributesNames() {
+        return userSchemaAttributesNames;
+    }
+
+    public void setUserSchemaAttributesNames(
+            List<String> userSchemaAttributesNames) {
+        this.userSchemaAttributesNames = userSchemaAttributesNames;
+    }
+
+    public List<String> getAccountIdAttributesNames() {
+        return accountIdAttributesNames;
+    }
+
+    public void setAccountIdAttributesNames(
+            List<String> accountIdAttributesNames) {
+        this.accountIdAttributesNames = accountIdAttributesNames;
+    }
+
+    public List<String> getPasswordAttributesNames() {
+        return passwordAttributesNames;
+    }
+
+    public void setPasswordAttributesNames(List<String> passwordAttributesNames) {
+        this.passwordAttributesNames = passwordAttributesNames;
+    }
+
+    /**
+     * Extension class of DropDownChoice. It's purposed for storing values in the
      * corresponding property model after pressing 'Add' button.
      */
-    private class SourceMappingTypesDropDownChoice extends DropDownChoice {
+    public class SourceMappingTypesDropDownChoice extends DropDownChoice {
 
-        public SourceMappingTypesDropDownChoice(final String id,
-                final PropertyModel<SourceMappingType> model,
-                final IModel imodel,
-                final DropDownChoice<String> chooserToPopulate) {
+        SchemaMappingTO schemaMappingModel;
 
+        public SourceMappingTypesDropDownChoice(String id, final PropertyModel model,
+                IModel imodel, final DropDownChoice chooserToPopulate) {
             super(id, model, imodel);
+
+            schemaMappingModel = (SchemaMappingTO) model.getTarget();
 
             add(new AjaxFormComponentUpdatingBehavior("onchange") {
 
-                @Override
-                protected void onUpdate(final AjaxRequestTarget target) {
-                    chooserToPopulate.setChoices(
-                            new LoadableDetachableModel<List<String>>() {
+                protected void onUpdate(AjaxRequestTarget target) {
+                    chooserToPopulate.setChoices(new LoadableDetachableModel() {
 
-                                @Override
-                                protected List<String> load() {
-                                    List<String> result;
-                                    switch (model.getObject()) {
-                                        case UserSchema:
-                                            result = uSchemaAttrNames;
-                                            break;
+                        @Override
+                        protected Object load() {
+                            SourceMappingType sourceMType = schemaMappingModel.
+                                    getSourceMappingType();
 
-                                        case UserDerivedSchema:
-                                            result = uDerSchemaAttrNames;
-                                            break;
+                            if (sourceMType == null) {
+                                return Collections.emptyList();
+                            }
+                            if (sourceMType.equals(SourceMappingType.RoleSchema)) {
+                                return roleSchemaAttributesNames;
+                            } else if (sourceMType.equals(
+                                    SourceMappingType.UserSchema)) {
+                                return userSchemaAttributesNames;
+                            } else if (sourceMType.equals(
+                                    SourceMappingType.MembershipSchema)) {
+                                return membershipSchemaAttributesNames;
+                            } else if (sourceMType.equals(
+                                    SourceMappingType.SyncopeUserId)) {
+                                return Collections.emptyList();
+                            } else if (sourceMType.equals(
+                                    SourceMappingType.Password)) {
+                                return Collections.emptyList();
+                            } else {
+                                return Collections.emptyList();
+                            }
 
-                                        case RoleSchema:
-                                            result = rSchemaAttrNames;
-                                            break;
-
-                                        case RoleDerivedSchema:
-                                            result = rDerSchemaAttrNames;
-                                            break;
-
-                                        case MembershipSchema:
-                                            result = mSchemaAttrNames;
-                                            break;
-
-                                        case MembershipDerivedSchema:
-                                            result = mDerSchemaAttrNames;
-                                            break;
-
-                                        case SyncopeUserId:
-                                        case Password:
-                                        default:
-                                            result = Collections.EMPTY_LIST;
-                                    }
-
-                                    return result;
-                                }
-                            });
+                        }
+                    });
                     target.addComponent(chooserToPopulate);
-                    target.addComponent(mappingContainer);
+                    target.addComponent(mappingUserSchemaContainer);
                 }
             });
         }

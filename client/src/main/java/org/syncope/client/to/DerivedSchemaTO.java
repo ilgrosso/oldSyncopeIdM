@@ -14,6 +14,8 @@
  */
 package org.syncope.client.to;
 
+import java.util.HashSet;
+import java.util.Set;
 import org.syncope.client.AbstractBaseBean;
 
 public class DerivedSchemaTO extends AbstractBaseBean {
@@ -21,6 +23,12 @@ public class DerivedSchemaTO extends AbstractBaseBean {
     private String name;
 
     private String expression;
+
+    private Set<String> schemas;
+
+    public DerivedSchemaTO() {
+        schemas = new HashSet<String>();
+    }
 
     public String getName() {
         return name;
@@ -36,5 +44,21 @@ public class DerivedSchemaTO extends AbstractBaseBean {
 
     public void setExpression(String expression) {
         this.expression = expression;
+    }
+
+    public boolean addSchema(String schema) {
+        return schemas.add(schema);
+    }
+
+    public boolean removeSchema(String schema) {
+        return schemas.remove(schema);
+    }
+
+    public Set<String> getSchemas() {
+        return schemas;
+    }
+
+    public void setSchemas(Set<String> schemas) {
+        this.schemas = schemas;
     }
 }
