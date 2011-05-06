@@ -14,12 +14,8 @@
  */
 package org.syncope.core.persistence.propagation;
 
-import java.io.File;
-import java.net.URI;
 import java.util.Set;
 import javassist.NotFoundException;
-import org.identityconnectors.common.security.GuardedByteArray;
-import org.identityconnectors.common.security.GuardedString;
 import org.identityconnectors.framework.api.APIConfiguration;
 import org.identityconnectors.framework.api.ConfigurationProperties;
 import org.identityconnectors.framework.api.ConnectorFacade;
@@ -32,10 +28,9 @@ import org.identityconnectors.framework.common.objects.OperationOptions;
 import org.identityconnectors.framework.common.objects.Uid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.util.ClassUtils;
-import org.syncope.types.ConnConfProperty;
-import org.syncope.core.persistence.ConnInstanceLoader;
-import org.syncope.core.persistence.beans.ConnInstance;
+import org.syncope.client.to.PropertyTO;
+import org.syncope.core.persistence.ConnectorInstanceLoader;
+import org.syncope.core.persistence.beans.ConnectorInstance;
 import org.syncope.types.ConnectorCapability;
 import org.syncope.types.PropagationMode;
 import org.syncope.types.ResourceOperationType;
@@ -60,7 +55,7 @@ public class ConnectorFacadeProxy {
 
     /**
      * Set of configure connecto instance capabilities.
-     * @see org.syncope.core.persistence.beans.ConnInstance
+     * @see org.syncope.core.persistence.beans.ConnectorInstance
      */
     private final Set<ConnectorCapability> capabitilies;
 
@@ -68,7 +63,7 @@ public class ConnectorFacadeProxy {
      * Use the passed connector instance to build a ConnectorFacade that will
      * be used to make all wrapped calls.
      *
-     * @param connInstance the connector instance configuration
+     * @param connectorInstance the connector instance configuration
      * @throws NotFoundException when not able to fetch all the required data
      * @see ConnectorKey
      * @see ConnectorInfo
@@ -76,14 +71,14 @@ public class ConnectorFacadeProxy {
      * @see ConfigurationProperties
      * @see ConnectorFacade
      */
-    public ConnectorFacadeProxy(final ConnInstance connInstance)
+    public ConnectorFacadeProxy(final ConnectorInstance connectorInstance)
             throws NotFoundException {
 
         // specify a connector.
         ConnectorKey key = new ConnectorKey(
-                connInstance.getBundleName(),
-                connInstance.getVersion(),
-                connInstance.getConnectorName());
+                connectorInstance.getBundleName(),
+                connectorInstance.getVersion(),
+                connectorInstance.getConnectorName());
 
         if (key == null) {
             throw new NotFoundException("Connector Key");
@@ -96,8 +91,10 @@ public class ConnectorFacadeProxy {
         }
 
         // get the specified connector.
-        ConnectorInfo info = ConnInstanceLoader.getConnectorManager().
-                findConnectorInfo(key);
+        ConnectorInfo info =
+                ConnectorInstanceLoader.getConnectorManager().findConnectorInfo(
+                key);
+
         if (info == null) {
             throw new NotFoundException("Connector Info");
         }
@@ -128,77 +125,26 @@ public class ConnectorFacadeProxy {
         }
 
         // Set all of the ConfigurationProperties needed by the connector.
-        Class propertySchemaClass;
-        Object propertyValue;
-        for (ConnConfProperty property : connInstance.getConfiguration()) {
-            if (property.getValue() != null) {
-                try {
-                    propertySchemaClass = ClassUtils.forName(
-                            property.getSchema().getType(),
-                            ClassUtils.getDefaultClassLoader());
-
-                    if (GuardedString.class.equals(propertySchemaClass)) {
-                        propertyValue = new GuardedString(
-                                property.getValue().toCharArray());
-                    } else if (GuardedByteArray.class.equals(
-                            propertySchemaClass)) {
-
-                        propertyValue = new GuardedByteArray(
-                                property.getValue().getBytes());
-                    } else if (Character.class.equals(propertySchemaClass)
-                            || char.class.equals(propertySchemaClass)) {
-
-                        propertyValue = property.getValue().toCharArray()[0];
-                    } else if (Integer.class.equals(propertySchemaClass)
-                            || int.class.equals(propertySchemaClass)) {
-
-                        propertyValue = Integer.valueOf(property.getValue());
-                    } else if (Long.class.equals(propertySchemaClass)
-                            || long.class.equals(propertySchemaClass)) {
-
-                        propertyValue = Long.valueOf(property.getValue());
-                    } else if (Float.class.equals(propertySchemaClass)
-                            || float.class.equals(propertySchemaClass)) {
-
-                        propertyValue = Float.valueOf(property.getValue());
-                    } else if (Double.class.equals(propertySchemaClass)
-                            || double.class.equals(propertySchemaClass)) {
-
-                        propertyValue = Double.valueOf(property.getValue());
-                    } else if (Boolean.class.equals(propertySchemaClass)
-                            || boolean.class.equals(propertySchemaClass)) {
-
-                        propertyValue = Boolean.valueOf(property.getValue());
-                    } else if (URI.class.equals(propertySchemaClass)) {
-                        propertyValue = URI.create(property.getValue());
-                    } else if (File.class.equals(propertySchemaClass)) {
-                        propertyValue = new File(property.getValue());
-                    } else if (String[].class.equals(propertySchemaClass)) {
-                        propertyValue = property.getValue().split(" ");
-                    } else {
-                        propertyValue = property.getValue();
-                    }
-
-                    properties.setPropertyValue(
-                            property.getSchema().getName(), propertyValue);
-                } catch (Throwable t) {
-                    LOG.error("Invalid ConnConfProperty specified: {}",
-                            property, t);
-                }
-            }
+        for (PropertyTO property : connectorInstance.getConfiguration()) {
+            properties.setPropertyValue(
+                    property.getKey(), property.getValue());
         }
 
         // Use the ConnectorFacadeFactory's newInstance() method to get
         // a new connector.
-        connector = ConnectorFacadeFactory.getInstance().newInstance(apiConfig);
+        ConnectorFacade connector =
+                ConnectorFacadeFactory.getInstance().newInstance(apiConfig);
+
         if (connector == null) {
             throw new NotFoundException("Connector");
         }
 
         // Make sure we have set up the Configuration properly
         connector.validate();
+        //connector.test(); //needs a target resource deployed
 
-        this.capabitilies = connInstance.getCapabilities();
+        this.connector = connector;
+        this.capabitilies = connectorInstance.getCapabilities();
     }
 
     public Uid resolveUsername(

@@ -29,8 +29,8 @@ public class ConfigurationTestITCase extends AbstractTest {
     @Test
     public void create() {
         ConfigurationTO configurationTO = new ConfigurationTO();
-        configurationTO.setKey("testKey");
-        configurationTO.setValue("testValue");
+        configurationTO.setConfKey("testKey");
+        configurationTO.setConfValue("testValue");
 
         ConfigurationTO newConfigurationTO = restTemplate.postForObject(
                 BASE_URL + "configuration/create",
@@ -39,25 +39,24 @@ public class ConfigurationTestITCase extends AbstractTest {
     }
 
     @Test
-    public void delete()
-            throws UnsupportedEncodingException {
+    public void delete() throws UnsupportedEncodingException {
         try {
-            restTemplate.delete(BASE_URL + "configuration/delete/{key}.json",
+            restTemplate.delete(BASE_URL + "configuration/delete/{confKey}.json",
                     "nonExistent");
         } catch (HttpStatusCodeException e) {
             assertEquals(e.getStatusCode(), HttpStatus.NOT_FOUND);
         }
 
         ConfigurationTO tokenLengthTO = restTemplate.getForObject(
-                BASE_URL + "configuration/read/{key}.json",
+                BASE_URL + "configuration/read/{confKey}.json",
                 ConfigurationTO.class,
                 "token.length");
 
-        restTemplate.delete(BASE_URL + "configuration/delete/{key}.json",
+        restTemplate.delete(BASE_URL + "configuration/delete/{confKey}.json",
                 "token.length");
         try {
             restTemplate.getForObject(
-                    BASE_URL + "configuration/read/{key}.json",
+                    BASE_URL + "configuration/read/{confKey}.json",
                     ConfigurationTO.class,
                     "token.length");
         } catch (HttpStatusCodeException e) {
@@ -85,7 +84,7 @@ public class ConfigurationTestITCase extends AbstractTest {
     @Test
     public void read() {
         ConfigurationTO configurationTO = restTemplate.getForObject(BASE_URL
-                + "configuration/read/{key}.json",
+                + "configuration/read/{confKey}.json",
                 ConfigurationTO.class, "token.expireTime");
 
         assertNotNull(configurationTO);
@@ -94,8 +93,8 @@ public class ConfigurationTestITCase extends AbstractTest {
     @Test
     public void update() {
         ConfigurationTO configurationTO = new ConfigurationTO();
-        configurationTO.setKey("token.expireTime");
-        configurationTO.setValue("61");
+        configurationTO.setConfKey("token.expireTime");
+        configurationTO.setConfValue("61");
 
         ConfigurationTO newConfigurationTO = restTemplate.postForObject(
                 BASE_URL + "configuration/update",

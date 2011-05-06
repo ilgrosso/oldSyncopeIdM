@@ -17,6 +17,8 @@ package org.syncope.core.rest.data;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import org.apache.commons.jexl2.JexlEngine;
+import org.apache.commons.jexl2.JexlException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
@@ -27,12 +29,10 @@ import org.syncope.client.to.ResourceTO;
 import org.syncope.client.to.SchemaMappingTO;
 import org.syncope.client.validation.SyncopeClientCompositeErrorException;
 import org.syncope.client.validation.SyncopeClientException;
-import org.syncope.core.persistence.beans.ConnInstance;
+import org.syncope.core.persistence.beans.ConnectorInstance;
 import org.syncope.core.persistence.beans.TargetResource;
 import org.syncope.core.persistence.beans.SchemaMapping;
-import org.syncope.core.persistence.dao.ConnInstanceDAO;
-import org.syncope.core.util.JexlUtil;
-import org.syncope.types.SourceMappingType;
+import org.syncope.core.persistence.dao.ConnectorInstanceDAO;
 import org.syncope.types.SyncopeClientExceptionType;
 
 @Component
@@ -48,10 +48,10 @@ public class ResourceDataBinder {
         "id", "resource"};
 
     @Autowired
-    private ConnInstanceDAO connectorInstanceDAO;
+    private ConnectorInstanceDAO connectorInstanceDAO;
 
     @Autowired
-    private JexlUtil jexlUtil;
+    private JexlEngine jexlEngine;
 
     public TargetResource getResource(ResourceTO resourceTO)
             throws SyncopeClientCompositeErrorException {
@@ -62,6 +62,10 @@ public class ResourceDataBinder {
     public TargetResource getResource(TargetResource resource,
             ResourceTO resourceTO)
             throws SyncopeClientCompositeErrorException {
+
+        SyncopeClientCompositeErrorException compositeErrorException =
+                new SyncopeClientCompositeErrorException(
+                HttpStatus.BAD_REQUEST);
 
         SyncopeClientException requiredValuesMissing =
                 new SyncopeClientException(
@@ -75,7 +79,7 @@ public class ResourceDataBinder {
             requiredValuesMissing.addElement("name");
         }
 
-        ConnInstance connector = null;
+        ConnectorInstance connector = null;
 
         if (resourceTO.getConnectorId() != null) {
             connector = connectorInstanceDAO.find(resourceTO.getConnectorId());
@@ -88,11 +92,11 @@ public class ResourceDataBinder {
         // Throw composite exception if there is at least one element set
         // in the composing exceptions
         if (!requiredValuesMissing.getElements().isEmpty()) {
-            SyncopeClientCompositeErrorException scce =
-                    new SyncopeClientCompositeErrorException(
-                    HttpStatus.BAD_REQUEST);
-            scce.addException(requiredValuesMissing);
-            throw scce;
+            compositeErrorException.addException(requiredValuesMissing);
+        }
+
+        if (compositeErrorException.hasExceptions()) {
+            throw compositeErrorException;
         }
 
         resource.setName(resourceTO.getName());
@@ -108,8 +112,6 @@ public class ResourceDataBinder {
 
         resource.setMappings(
                 getSchemaMappings(resource, resourceTO.getMappings()));
-
-        resource.setAccountLink(resourceTO.getAccountLink());
 
         return resource;
     }
@@ -141,15 +143,13 @@ public class ResourceDataBinder {
         resourceTO.setName(resource.getName());
 
         // set the connector instance
-        ConnInstance connector = resource.getConnector();
+        ConnectorInstance connector = resource.getConnector();
 
         resourceTO.setConnectorId(
                 connector != null ? connector.getId() : null);
 
         // set the mappings
         resourceTO.setMappings(getSchemaMappingTOs(resource.getMappings()));
-
-        resourceTO.setAccountLink(resource.getAccountLink());
 
         resourceTO.setForceMandatoryConstraint(
                 resource.isForceMandatoryConstraint());
@@ -161,7 +161,8 @@ public class ResourceDataBinder {
     }
 
     private List<SchemaMapping> getSchemaMappings(
-            TargetResource resource, List<SchemaMappingTO> mappings) {
+            TargetResource resource,
+            List<SchemaMappingTO> mappings) {
 
         if (mappings == null) {
             return null;
@@ -175,7 +176,8 @@ public class ResourceDataBinder {
         return schemaMappings;
     }
 
-    private SchemaMapping getSchemaMapping(TargetResource resource,
+    private SchemaMapping getSchemaMapping(
+            TargetResource resource,
             SchemaMappingTO mappingTO)
             throws SyncopeClientCompositeErrorException {
 
@@ -194,20 +196,7 @@ public class ResourceDataBinder {
         }
 
         if (mappingTO.getSourceAttrName() == null) {
-            switch (mappingTO.getSourceMappingType()) {
-                case SyncopeUserId:
-                    mappingTO.setSourceAttrName(
-                            SourceMappingType.SyncopeUserId.toString());
-                    break;
-
-                case Password:
-                    mappingTO.setSourceAttrName(
-                            SourceMappingType.Password.toString());
-                    break;
-
-                default:
-                    requiredValuesMissing.addElement("sourceAttrName");
-            }
+            requiredValuesMissing.addElement("sourceAttrName");
         }
         if (mappingTO.getDestAttrName() == null) {
             requiredValuesMissing.addElement("destAttrName");
@@ -230,7 +219,12 @@ public class ResourceDataBinder {
             compositeErrorException.addException(requiredValuesMissing);
         }
 
-        if (!jexlUtil.isExpressionValid(mappingTO.getMandatoryCondition())) {
+        try {
+            jexlEngine.createExpression(mappingTO.getMandatoryCondition());
+        } catch (JexlException e) {
+            LOG.error("Invalid mandatory condition: "
+                    + mappingTO.getMandatoryCondition(), e);
+
             SyncopeClientException invalidMandatoryCondition =
                     new SyncopeClientException(
                     SyncopeClientExceptionType.InvalidValues);

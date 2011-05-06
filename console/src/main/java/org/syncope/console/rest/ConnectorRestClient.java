@@ -17,8 +17,8 @@ package org.syncope.console.rest;
 import java.util.Arrays;
 import java.util.List;
 import org.springframework.stereotype.Component;
-import org.syncope.client.to.ConnBundleTO;
-import org.syncope.client.to.ConnInstanceTO;
+import org.syncope.client.to.ConnectorBundleTO;
+import org.syncope.client.to.ConnectorInstanceTO;
 import org.syncope.client.validation.SyncopeClientCompositeErrorException;
 
 /**
@@ -31,20 +31,30 @@ public class ConnectorRestClient extends AbstractBaseRestClient {
      * Get all connectors.
      * @return ConnectorInstanceTOs
      */
-    public List<ConnInstanceTO> getAllConnectors() {
-        return Arrays.asList(restTemplate.getForObject(
+    public List<ConnectorInstanceTO> getAllConnectors() {
+        List<ConnectorInstanceTO> connectors = null;
+
+        connectors = Arrays.asList(restTemplate.getForObject(
                 baseURL + "connector/list.json",
-                ConnInstanceTO[].class));
+                ConnectorInstanceTO[].class));
+
+        return connectors;
     }
 
     /**
      * Create new connector.
      * @param schemaTO
      */
-    public void create(ConnInstanceTO connectorTO) {
-        restTemplate.postForObject(baseURL
-                + "connector/create.json", connectorTO,
-                ConnInstanceTO.class);
+    public void createConnector(ConnectorInstanceTO connectorTO) {
+        ConnectorInstanceTO actual = null;
+
+        try {
+            actual = restTemplate.postForObject(baseURL
+                    + "connector/create.json", connectorTO,
+                    ConnectorInstanceTO.class);
+        } catch (SyncopeClientCompositeErrorException e) {
+            LOG.error("While creating a connector", e);
+        }
     }
 
     /**
@@ -52,13 +62,13 @@ public class ConnectorRestClient extends AbstractBaseRestClient {
      * @param name (e.g.:surname)
      * @return schemaTO
      */
-    public ConnInstanceTO read(String name) {
-        ConnInstanceTO schema = null;
+    public ConnectorInstanceTO readConnector(String name) {
+        ConnectorInstanceTO schema = null;
 
         try {
             schema = restTemplate.getForObject(
                     baseURL + "connector/read/" + name + ".json",
-                    ConnInstanceTO.class);
+                    ConnectorInstanceTO.class);
         } catch (SyncopeClientCompositeErrorException e) {
             LOG.error("While reading a connector", e);
         }
@@ -70,11 +80,15 @@ public class ConnectorRestClient extends AbstractBaseRestClient {
      * Update an already existent connector.
      * @param schemaTO updated
      */
-    public void update(ConnInstanceTO connectorTO) {
-        restTemplate.postForObject(
-                baseURL + "connector/update.json",
-                connectorTO,
-                ConnInstanceTO.class);
+    public void updateConnector(ConnectorInstanceTO connectorTO) {
+        try {
+            restTemplate.postForObject(
+                    baseURL + "connector/update.json",
+                    connectorTO,
+                    ConnectorInstanceTO.class);
+        } catch (SyncopeClientCompositeErrorException e) {
+            LOG.error("While updating a connector", e);
+        }
     }
 
     /**
@@ -82,7 +96,7 @@ public class ConnectorRestClient extends AbstractBaseRestClient {
      * @param name (e.g.:surname)
      * @return schemaTO
      */
-    public void delete(Long id) {
+    public void deleteConnector(Long id) {
         try {
             restTemplate.delete(baseURL
                     + "connector/delete/{connectorId}.json", id.toString());
@@ -91,13 +105,13 @@ public class ConnectorRestClient extends AbstractBaseRestClient {
         }
     }
 
-    public List<ConnBundleTO> getAllBundles() {
-        List<ConnBundleTO> bundles = null;
+    public List<ConnectorBundleTO> getAllBundles() {
+        List<ConnectorBundleTO> bundles = null;
 
         try {
             bundles = Arrays.asList(restTemplate.getForObject(
-                    baseURL + "connector/bundle/list",
-                    ConnBundleTO[].class));
+                    baseURL + "connector/getBundles.json",
+                    ConnectorBundleTO[].class));
         } catch (SyncopeClientCompositeErrorException e) {
             LOG.error("While getting connector bundles", e);
         }

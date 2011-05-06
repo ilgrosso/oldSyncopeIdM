@@ -66,7 +66,7 @@ public class TargetResource extends AbstractBaseBean {
      * The resource type is identified by the associated connector.
      */
     @ManyToOne(fetch = FetchType.EAGER)
-    private ConnInstance connector;
+    private ConnectorInstance connector;
 
     /**
      * Users associated to this resource.
@@ -87,12 +87,6 @@ public class TargetResource extends AbstractBaseBean {
     @Cascade(org.hibernate.annotations.CascadeType.DELETE_ORPHAN)
     @Valid
     private List<SchemaMapping> mappings;
-
-    /**
-     * A JEXL expression for determining how to link user account id in
-     * Syncope DB to user account id in target resource's DB.
-     */
-    private String accountLink;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -129,11 +123,11 @@ public class TargetResource extends AbstractBaseBean {
                 getBooleanAsInteger(forceMandatoryConstraint);
     }
 
-    public ConnInstance getConnector() {
+    public ConnectorInstance getConnector() {
         return connector;
     }
 
-    public void setConnector(ConnInstance connector) {
+    public void setConnector(ConnectorInstance connector) {
         this.connector = connector;
     }
 
@@ -198,14 +192,6 @@ public class TargetResource extends AbstractBaseBean {
         if (mappings != null) {
             this.mappings.addAll(mappings);
         }
-    }
-
-    public String getAccountLink() {
-        return accountLink;
-    }
-
-    public void setAccountLink(String accountLink) {
-        this.accountLink = accountLink;
     }
 
     public String getName() {

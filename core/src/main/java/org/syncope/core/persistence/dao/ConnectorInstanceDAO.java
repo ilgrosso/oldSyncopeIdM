@@ -15,16 +15,16 @@
 package org.syncope.core.persistence.dao;
 
 import java.util.List;
-import org.syncope.core.persistence.beans.ConnInstance;
+import org.syncope.core.persistence.beans.ConnectorInstance;
 import org.syncope.core.persistence.validation.entity.InvalidEntityException;
 
-public interface ConnInstanceDAO extends DAO {
+public interface ConnectorInstanceDAO extends DAO {
 
-    ConnInstance find(Long id);
+    ConnectorInstance find(Long id);
 
-    List<ConnInstance> findAll();
+    List<ConnectorInstance> findAll();
 
-    ConnInstance save(ConnInstance connector)
+    ConnectorInstance save(ConnectorInstance connector)
             throws InvalidEntityException;
 
     void delete(Long id);

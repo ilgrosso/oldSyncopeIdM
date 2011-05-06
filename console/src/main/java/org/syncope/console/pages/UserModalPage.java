@@ -32,8 +32,6 @@ import javax.swing.tree.DefaultMutableTreeNode;
 import org.apache.wicket.Component;
 import org.apache.wicket.Page;
 import org.apache.wicket.ajax.AjaxRequestTarget;
-import org.apache.wicket.ajax.IAjaxCallDecorator;
-import org.apache.wicket.ajax.calldecorator.AjaxPreprocessingCallDecorator;
 import org.apache.wicket.ajax.markup.html.AjaxLink;
 import org.apache.wicket.ajax.markup.html.form.AjaxButton;
 import org.apache.wicket.authorization.strategies.role.metadata.MetaDataRoleAuthorizationStrategy;
@@ -47,10 +45,8 @@ import org.apache.wicket.markup.html.WebMarkupContainer;
 import org.apache.wicket.markup.html.WebMarkupContainerWithAssociatedMarkup;
 import org.apache.wicket.markup.html.basic.Label;
 import org.apache.wicket.markup.html.form.ChoiceRenderer;
-import org.apache.wicket.markup.html.form.DropDownChoice;
 import org.apache.wicket.markup.html.form.Form;
 import org.apache.wicket.markup.html.form.PasswordTextField;
-import org.apache.wicket.markup.html.form.TextField;
 import org.apache.wicket.markup.html.list.ListItem;
 import org.apache.wicket.markup.html.list.ListView;
 import org.apache.wicket.markup.html.panel.Panel;
@@ -58,7 +54,6 @@ import org.apache.wicket.markup.html.tree.BaseTree;
 import org.apache.wicket.markup.html.tree.LinkTree;
 import org.apache.wicket.model.CompoundPropertyModel;
 import org.apache.wicket.model.IModel;
-import org.apache.wicket.model.LoadableDetachableModel;
 import org.apache.wicket.model.Model;
 import org.apache.wicket.model.PropertyModel;
 import org.apache.wicket.model.util.ListModel;
@@ -67,7 +62,6 @@ import org.syncope.client.mod.AttributeMod;
 import org.syncope.client.mod.MembershipMod;
 import org.syncope.client.mod.UserMod;
 import org.syncope.client.to.AttributeTO;
-import org.syncope.client.to.DerivedSchemaTO;
 import org.syncope.client.to.MembershipTO;
 import org.syncope.client.to.ResourceTO;
 import org.syncope.client.to.RoleTO;
@@ -83,7 +77,6 @@ import org.syncope.console.rest.SchemaRestClient;
 import org.syncope.console.rest.UserRestClient;
 import org.syncope.console.wicket.ajax.markup.html.IndicatingDeleteOnConfirmAjaxLink;
 import org.syncope.console.wicket.markup.html.form.AjaxCheckBoxPanel;
-import org.syncope.console.wicket.markup.html.form.AjaxDecoratedCheckbox;
 import org.syncope.console.wicket.markup.html.form.AjaxTextFieldPanel;
 import org.syncope.console.wicket.markup.html.form.DateFieldPanel;
 import org.syncope.types.SchemaType;
@@ -148,270 +141,173 @@ public class UserModalPage extends BaseModalPage {
         setupSchemaWrappers(createFlag, userTO);
         setupMemberships(createFlag, userTO);
 
-        final IModel<List<String>> derivedSchemaNames =
-                new LoadableDetachableModel<List<String>>() {
-
-                    @Override
-                    protected List<String> load() {
-                        return schemaRestClient.getDerivedSchemaNames("user");
-                    }
-                };
-
-        final ListView userAttributesView =
-                new ListView("userSchemas", schemaWrappers) {
-
-                    @Override
-                    protected void populateItem(ListItem item) {
-                        final SchemaWrapper schemaWrapper =
-                                (SchemaWrapper) item.getDefaultModelObject();
-
-                        final SchemaTO schemaTO = schemaWrapper.getSchemaTO();
-
-                        item.add(new Label("name",
-                                schemaWrapper.getSchemaTO().getName()));
-
-                        item.add(new ListView("fields", schemaWrapper.getValues()) {
-
-                            Panel panel;
-
-                            @Override
-                            protected void populateItem(final ListItem item) {
-
-                                String mandatoryCondition = schemaTO.getMandatoryCondition();
-                                boolean required = false;
-
-                                if (mandatoryCondition.equalsIgnoreCase("true")) {
-                                    required = true;
-                                }
-
-                                if (schemaTO.getType() == SchemaType.String) {
-                                    panel = new AjaxTextFieldPanel("panel",
-                                            schemaTO.getName(), new Model() {
-
-                                        @Override
-                                        public Serializable getObject() {
-                                            return (String) item.getModelObject();
-                                        }
-
-                                        @Override
-                                        public void setObject(Serializable object) {
-                                            item.setModelObject((String) object);
-                                        }
-                                    }, required, schemaTO.isReadonly());
-                                } else if (schemaTO.getType() == SchemaType.Boolean) {
-                                    panel = new AjaxCheckBoxPanel("panel",
-                                            schemaTO.getName(), new Model() {
-
-                                        @Override
-                                        public Serializable getObject() {
-                                            return (String) item.getModelObject();
-                                        }
-
-                                        @Override
-                                        public void setObject(Serializable object) {
-                                            Boolean val = (Boolean) object;
-                                            item.setModelObject(val.toString());
-                                        }
-                                    }, required, schemaTO.isReadonly());
-
-                                } else if (schemaTO.getType() == SchemaType.Date) {
-                                    panel = new DateFieldPanel("panel",
-                                            schemaTO.getName(), new Model() {
-
-                                        @Override
-                                        public Serializable getObject() {
-                                            DateFormat formatter =
-                                                    new SimpleDateFormat(
-                                                    schemaTO.getConversionPattern());
-                                            Date date = new Date();
-                                            try {
-                                                String dateValue = (String) item.getModelObject();
-                                                //Default value:yyyy-MM-dd
-                                                if (!dateValue.equals("")) {
-                                                    date = formatter.parse(
-                                                            dateValue);
-                                                } else {
-                                                    date = null;
-                                                }
-                                            } catch (ParseException e) {
-                                                LOG.error("While parsing date", e);
-                                            }
-                                            return date;
-                                        }
-
-                                        @Override
-                                        public void setObject(Serializable object) {
-                                            Date date = (Date) object;
-                                            Format formatter = new SimpleDateFormat(
-                                                    schemaTO.getConversionPattern());
-                                            String val = formatter.format(date);
-                                            item.setModelObject(val);
-                                        }
-                                    }, schemaTO.getConversionPattern(),
-                                            required,
-                                            schemaTO.isReadonly(), userForm);
-                                } else {
-                                    panel = new AjaxTextFieldPanel("panel",
-                                            schemaTO.getName(), new Model() {
-
-                                        @Override
-                                        public Serializable getObject() {
-                                            return (String) item.getModelObject();
-                                        }
-
-                                        @Override
-                                        public void setObject(Serializable object) {
-                                            item.setModelObject((String) object);
-                                        }
-                                    }, required, schemaTO.isReadonly());
-                                }
-
-                                item.add(panel);
-                            }
-                        });
-
-                        AjaxButton addButton = new IndicatingAjaxButton("add",
-                                new Model(getString("add"))) {
-
-                            @Override
-                            protected void onSubmit(AjaxRequestTarget target,
-                                    Form form) {
-                                schemaWrapper.getValues().add("");
-
-                                target.addComponent(container);
-                            }
-                        };
-
-                        AjaxButton dropButton = new IndicatingAjaxButton("drop",
-                                new Model(getString("drop"))) {
-
-                            @Override
-                            protected void onSubmit(AjaxRequestTarget target,
-                                    Form form) {
-                                //Drop the last component added
-                                schemaWrapper.getValues().remove(
-                                        schemaWrapper.getValues().size() - 1);
-
-                                target.addComponent(container);
-                            }
-                        };
-
-                        if (schemaTO.getType() == SchemaType.Boolean) {
-                            addButton.setVisible(false);
-                            dropButton.setVisible(false);
-                        }
-
-                        addButton.setDefaultFormProcessing(false);
-                        addButton.setVisible(schemaTO.isMultivalue());
-
-                        dropButton.setDefaultFormProcessing(false);
-                        dropButton.setVisible(schemaTO.isMultivalue());
-
-                        if (schemaWrapper.getValues().size() == 1) {
-                            dropButton.setVisible(false);
-                        }
-
-                        if (schemaTO.isReadonly()) {
-                            addButton.setEnabled(false);
-                            dropButton.setEnabled(false);
-                        }
-
-                        item.add(addButton);
-                        item.add(dropButton);
-                    }
-                };
-
-        userForm.add(userAttributesView);
-
-        //--------------------------------
-        // Derived attributes container
-        //--------------------------------
-        final WebMarkupContainer derivedAttributesContainer =
-                new WebMarkupContainer("derivedAttributesContainer");
-        derivedAttributesContainer.setOutputMarkupId(true);
-        userForm.add(derivedAttributesContainer);
-
-        AjaxButton addDerivedAttributeBtn = new IndicatingAjaxButton(
-                "addDerivedAttributeBtn",
-                new Model(getString("addDerivedAttributeBtn"))) {
+        final ListView userAttributesView = new ListView("userSchemas",
+                schemaWrappers) {
 
             @Override
-            protected void onSubmit(final AjaxRequestTarget target,
-                    final Form form) {
+            protected void populateItem(ListItem item) {
+                final SchemaWrapper schemaWrapper =
+                        (SchemaWrapper) item.getDefaultModelObject();
 
-                userTO.getDerivedAttributes().add(new AttributeTO());
-                target.addComponent(derivedAttributesContainer);
-            }
-        };
-        addDerivedAttributeBtn.setDefaultFormProcessing(false);
-        userForm.add(addDerivedAttributeBtn);
+                final SchemaTO schemaTO = schemaWrapper.getSchemaTO();
 
-        ListView<AttributeTO> derivedAttributes = new ListView<AttributeTO>(
-                "derivedAttributes", userTO.getDerivedAttributes()) {
+                item.add(new Label("name",
+                        schemaWrapper.getSchemaTO().getName()));
 
-            @Override
-            protected void populateItem(final ListItem<AttributeTO> item) {
-                final AttributeTO derivedAttributeTO = item.getModelObject();
+                item.add(new ListView("fields", schemaWrapper.getValues()) {
 
-                item.add(new AjaxDecoratedCheckbox("toRemove",
-                        new Model(Boolean.FALSE)) {
+                    Panel panel;
 
                     @Override
-                    protected void onUpdate(final AjaxRequestTarget target) {
-                        userTO.getDerivedAttributes().remove(derivedAttributeTO);
-                        item.getParent().removeAll();
-                        target.addComponent(derivedAttributesContainer);
-                    }
+                    protected void populateItem(final ListItem item) {
 
-                    @Override
-                    protected IAjaxCallDecorator getAjaxCallDecorator() {
-                        return new AjaxPreprocessingCallDecorator(
-                                super.getAjaxCallDecorator()) {
+                        String mandatoryCondition = schemaTO.
+                                getMandatoryCondition();
+                        boolean required = false;
 
-                            @Override
-                            public CharSequence preDecorateScript(
-                                    final CharSequence script) {
+                        if (mandatoryCondition.equalsIgnoreCase("true")) {
+                            required = true;
+                        }
 
-                                return "if (confirm('"
-                                        + getString("confirmDelete") + "'))"
-                                        + "{" + script + "} "
-                                        + "else {this.checked = false;}";
-                            }
-                        };
+                        if (schemaTO.getType() == SchemaType.String) {
+                            panel = new AjaxTextFieldPanel("panel",
+                                    schemaTO.getName(), new Model() {
+
+                                @Override
+                                public Serializable getObject() {
+                                    return (String) item.getModelObject();
+                                }
+
+                                @Override
+                                public void setObject(Serializable object) {
+                                    item.setModelObject((String) object);
+                                }
+                            }, required, schemaTO.isReadonly());
+                        } else if (schemaTO.getType() == SchemaType.Boolean) {
+                            panel = new AjaxCheckBoxPanel("panel",
+                                    schemaTO.getName(), new Model() {
+
+                                @Override
+                                public Serializable getObject() {
+                                    return (String) item.getModelObject();
+                                }
+
+                                @Override
+                                public void setObject(Serializable object) {
+                                    Boolean val = (Boolean) object;
+                                    item.setModelObject(val.toString());
+                                }
+                            }, required, schemaTO.isReadonly());
+
+                        } else if (schemaTO.getType() == SchemaType.Date) {
+                            panel = new DateFieldPanel("panel",
+                                    schemaTO.getName(), new Model() {
+
+                                @Override
+                                public Serializable getObject() {
+                                    DateFormat formatter =
+                                            new SimpleDateFormat(
+                                            schemaTO.getConversionPattern());
+                                    Date date = new Date();
+                                    try {
+                                        String dateValue = (String) item.
+                                                getModelObject();
+                                        //Default value:yyyy-MM-dd
+                                        if (!dateValue.equals("")) {
+                                            date = formatter.parse(
+                                                    dateValue);
+                                        } else {
+                                            date = null;
+                                        }
+                                    } catch (ParseException e) {
+                                        LOG.error("While parsing date", e);
+                                    }
+                                    return date;
+                                }
+
+                                @Override
+                                public void setObject(Serializable object) {
+                                    Date date = (Date) object;
+                                    Format formatter = new SimpleDateFormat(
+                                            schemaTO.getConversionPattern());
+                                    String val = formatter.format(date);
+                                    item.setModelObject(val);
+                                }
+                            }, schemaTO.getConversionPattern(),
+                                    required,
+                                    schemaTO.isReadonly(), userForm);
+                        } else {
+                            panel = new AjaxTextFieldPanel("panel",
+                                    schemaTO.getName(), new Model() {
+
+                                @Override
+                                public Serializable getObject() {
+                                    return (String) item.getModelObject();
+                                }
+
+                                @Override
+                                public void setObject(Serializable object) {
+                                    item.setModelObject((String) object);
+                                }
+                            }, required, schemaTO.isReadonly());
+                        }
+
+                        item.add(panel);
                     }
                 });
 
-                final DropDownChoice<String> derivedSchemaChoice =
-                        new DropDownChoice<String>(
-                        "schema",
-                        new PropertyModel<String>(derivedAttributeTO, "schema"),
-                        derivedSchemaNames);
+                AjaxButton addButton = new IndicatingAjaxButton("add",
+                        new Model(getString("add"))) {
 
-                derivedSchemaChoice.setOutputMarkupId(true);
+                    @Override
+                    protected void onSubmit(AjaxRequestTarget target,
+                            Form form) {
+                        schemaWrapper.getValues().add("");
 
-                if (derivedAttributeTO.getSchema() != null) {
-                    item.add(derivedSchemaChoice.setEnabled(Boolean.FALSE));
-                } else {
-                    item.add(derivedSchemaChoice.setRequired(true));
+                        target.addComponent(container);
+                    }
+                };
+
+                AjaxButton dropButton = new IndicatingAjaxButton("drop",
+                        new Model(getString("drop"))) {
+
+                    @Override
+                    protected void onSubmit(AjaxRequestTarget target,
+                            Form form) {
+                        //Drop the last component added
+                        schemaWrapper.getValues().remove(
+                                schemaWrapper.getValues().size() - 1);
+
+                        target.addComponent(container);
+                    }
+                };
+
+                if (schemaTO.getType() == SchemaType.Boolean) {
+                    addButton.setVisible(false);
+                    dropButton.setVisible(false);
                 }
 
-                final List<String> values = derivedAttributeTO.getValues();
+                addButton.setDefaultFormProcessing(false);
+                addButton.setVisible(schemaTO.isMultivalue());
 
-                if (values == null || values.isEmpty()) {
-                    item.add(new TextField(
-                            "derivedAttributeValue",
-                            new Model(null)).setVisible(Boolean.FALSE));
-                } else {
-                    item.add(new TextField(
-                            "derivedAttributeValue",
-                            new Model(values.get(0))).setEnabled(
-                            Boolean.FALSE));
+                dropButton.setDefaultFormProcessing(false);
+                dropButton.setVisible(schemaTO.isMultivalue());
+
+                if (schemaWrapper.getValues().size() == 1) {
+                    dropButton.setVisible(false);
                 }
+
+                if (schemaTO.isReadonly()) {
+                    addButton.setEnabled(false);
+                    dropButton.setEnabled(false);
+                }
+
+                item.add(addButton);
+                item.add(dropButton);
             }
         };
-        derivedAttributes.setReuseItems(true);
-        derivedAttributesContainer.add(derivedAttributes);
-        //--------------------------------
+
+        userForm.add(userAttributesView);
 
         ListModel<ResourceTO> selectedResources = new ListModel<ResourceTO>();
         selectedResources.setObject(getSelectedResources(userTO));
@@ -446,7 +342,6 @@ public class UserModalPage extends BaseModalPage {
                 }
             }
         });
-
         container.add(mandatoryPassword);
 
         container.setOutputMarkupId(true);
@@ -460,11 +355,10 @@ public class UserModalPage extends BaseModalPage {
             protected void onSubmit(final AjaxRequestTarget target,
                     final Form form) {
 
-                UserTO userTO = (UserTO) form.getModelObject();
-
+                UserTO userTO = (UserTO) form.getDefaultModelObject();
                 try {
-                    userTO.setResources(getResourcesSet(
-                            resourcesPalette.getModelCollection()));
+                    userTO.setResources(getResourcesSet(resourcesPalette.
+                            getModelCollection()));
                     userTO.setAttributes(getUserAttributesList());
                     userTO.setMemberships(getMembershipsSet());
 
@@ -522,7 +416,8 @@ public class UserModalPage extends BaseModalPage {
             protected void onNodeLinkClicked(final Object node,
                     final BaseTree tree, final AjaxRequestTarget target) {
 
-                final RoleTO roleTO = (RoleTO) ((DefaultMutableTreeNode) node).getUserObject();
+                final RoleTO roleTO = (RoleTO) ((DefaultMutableTreeNode) node).
+                        getUserObject();
 
                 membershipWin.setPageCreator(new ModalWindow.PageCreator() {
 
@@ -636,22 +531,6 @@ public class UserModalPage extends BaseModalPage {
         return resources;
     }
 
-    private List<DerivedSchemaTO> getSelectedDerivedSchemas(final UserTO userTO) {
-        List<AttributeTO> attributes = userTO.getDerivedAttributes();
-
-        List<DerivedSchemaTO> schemas = new ArrayList<DerivedSchemaTO>();
-
-        DerivedSchemaTO schema;
-
-        for (AttributeTO attribute : attributes) {
-            schema = new DerivedSchemaTO();
-            schema.setName(attribute.getSchema());
-            schemas.add(schema);
-        }
-
-        return schemas;
-    }
-
     private List<ResourceTO> getAvailableResources(final UserTO userTO) {
         List<ResourceTO> resources = new ArrayList<ResourceTO>();
 
@@ -664,10 +543,6 @@ public class UserModalPage extends BaseModalPage {
         return resources;
     }
 
-    private List<DerivedSchemaTO> getAvailableDerivedSchemas(final UserTO userTO) {
-        return schemaRestClient.getDerivedSchemas("user");
-    }
-
     /**
      * Create a copy of old userTO object.
      * @param userTO the original TO
@@ -678,36 +553,22 @@ public class UserModalPage extends BaseModalPage {
         oldUser.setId(userTO.getId());
         oldUser.setPassword(userTO.getPassword());
 
-        AttributeTO attributeTO;
+        AttributeTO tempAttr;
         for (AttributeTO attribute : userTO.getAttributes()) {
-            attributeTO = new AttributeTO();
-            attributeTO.setReadonly(attribute.isReadonly());
+            tempAttr = new AttributeTO();
+            tempAttr.setReadonly(attribute.isReadonly());
 
-            attributeTO.setSchema(attribute.getSchema());
+            tempAttr.setSchema(attribute.getSchema());
 
-            for (String value : attribute.getValues()) {
-                attributeTO.addValue(value);
+            for (String tempVal : attribute.getValues()) {
+                tempAttr.getValues().add(tempVal);
             }
 
-            oldUser.addAttribute(attributeTO);
+            oldUser.getAttributes().add(tempAttr);
         }
 
-        for (AttributeTO attribute : userTO.getDerivedAttributes()) {
-            attributeTO = new AttributeTO();
-            attributeTO.setReadonly(attribute.isReadonly());
-
-            attributeTO.setSchema(attribute.getSchema());
-
-            for (String value : attribute.getValues()) {
-                attributeTO.addValue(value);
-            }
-
-            oldUser.addDerivedAttribute(attributeTO);
-        }
-
-        for (String resource : userTO.getResources()) {
-            oldUser.addResource(resource);
-        }
+        oldUser.setResources(userTO.getResources());
+        oldUser.setMemberships(new ArrayList<MembershipTO>());
 
         MembershipTO membership;
 
@@ -716,7 +577,7 @@ public class UserModalPage extends BaseModalPage {
             membership.setId(membershipTO.getId());
             membership.setRoleId(membershipTO.getRoleId());
             membership.setAttributes(membershipTO.getAttributes());
-            oldUser.addMembership(membership);
+            oldUser.getMemberships().add(membership);
         }
     }
 
@@ -737,7 +598,7 @@ public class UserModalPage extends BaseModalPage {
         schemaWrappers = new ArrayList<SchemaWrapper>();
         SchemaWrapper schemaWrapper;
 
-        List<SchemaTO> schemas = schemaRestClient.getSchemas("user");
+        List<SchemaTO> schemas = schemaRestClient.getAllUserSchemas();
 
         boolean found = false;
 
@@ -838,37 +699,18 @@ public class UserModalPage extends BaseModalPage {
      * @param userTO
      */
     private void setupUserMod(final UserTO userTO) {
-        userMod = new UserMod();
-
         //1.Check if the password has been changed and update it
-        if (oldUser.getPassword() != null
-                && !oldUser.getPassword().equals(userTO.getPassword())) {
+        if (!oldUser.getPassword().equals(userTO.getPassword())) {
+            userMod = new UserMod();
             userMod.setPassword(userTO.getPassword());
         }
 
-        //2.Update user's schema derived attributes
-        final List<AttributeTO> newDerivedAttributes =
-                userTO.getDerivedAttributes();
-
-        final List<AttributeTO> oldDerivedAttributes =
-                oldUser.getDerivedAttributes();
-
-        for (AttributeTO oldDerivedAttribute : oldDerivedAttributes) {
-            userMod.addDerivedAttributeToBeRemoved(
-                    oldDerivedAttribute.getSchema());
-        }
-
-        for (AttributeTO newDerivedAttribute : newDerivedAttributes) {
-            userMod.addDerivedAttributeToBeAdded(
-                    newDerivedAttribute.getSchema());
-        }
-
-        //3.Update user's schema attributes
+        //2.Update user's schema attributes
         for (AttributeTO attributeTO : userTO.getAttributes()) {
             searchAndUpdateAttribute(attributeTO);
         }
 
-        //4.Update user's resources
+        //3.Update user's resources
         for (String resource : userTO.getResources()) {
             searchAndAddResource(resource);
         }
@@ -878,7 +720,7 @@ public class UserModalPage extends BaseModalPage {
             searchAndDropResource(resource, userTO);
         }
 
-        //5.Update user's memberships
+        //4.Update user's memberships
         for (MembershipTO membership : userTO.getMemberships()) {
             searchAndUpdateMembership(membership);
         }
@@ -902,7 +744,8 @@ public class UserModalPage extends BaseModalPage {
         for (AttributeTO oldAttribute : oldUser.getAttributes()) {
             if (attributeTO.getSchema().equals(oldAttribute.getSchema())) {
 
-                if (!attributeTO.equals(oldAttribute) && !oldAttribute.isReadonly()) {
+                if (!attributeTO.equals(oldAttribute) && !oldAttribute.
+                        isReadonly()) {
 
                     if (attributeTO.getValues().size() > 1) {
                         attributeMod.setValuesToBeAdded(
@@ -997,37 +840,31 @@ public class UserModalPage extends BaseModalPage {
      * Update the Membership.
      * @param new membershipTO
      */
-    private void searchAndUpdateMembership(MembershipTO membership) {
+    private void searchAndUpdateMembership(MembershipTO newMembership) {
         boolean found = false;
         boolean attrFound = false;
 
         MembershipMod membershipMod = new MembershipMod();
-        membershipMod.setRole(membership.getRoleId());
+        membershipMod.setRole(newMembership.getRoleId());
 
         AttributeMod attributeMod;
 
         //1. If the membership exists update it
         for (MembershipTO oldMembership : oldUser.getMemberships()) {
-            if (membership.getRoleId() == oldMembership.getRoleId()) {
+            if (newMembership.getRoleId() == oldMembership.getRoleId()) {
 
-                for (AttributeTO newDerivedAttribute :
-                        membership.getDerivedAttributes()) {
-                    membershipMod.addDerivedAttributeToBeAdded(
-                            newDerivedAttribute.getSchema());
-                }
-
-                for (AttributeTO newAttribute : membership.getAttributes()) {
+                for (AttributeTO newAttribute : newMembership.getAttributes()) {
                     for (AttributeTO oldAttribute :
                             oldMembership.getAttributes()) {
 
-                        if (oldAttribute.getSchema().equals(
-                                newAttribute.getSchema())) {
+                        if (oldAttribute.getSchema().equals(newAttribute.
+                                getSchema())) {
 
                             attributeMod = new AttributeMod();
                             attributeMod.setSchema(newAttribute.getSchema());
 
-                            attributeMod.setValuesToBeAdded(
-                                    newAttribute.getValues());
+                            attributeMod.setValuesToBeAdded(newAttribute.
+                                    getValues());
 
                             membershipMod.addAttributeToBeUpdated(attributeMod);
                             attrFound = true;
@@ -1060,7 +897,7 @@ public class UserModalPage extends BaseModalPage {
         if (!found) {
             Set<AttributeMod> attributes = new HashSet<AttributeMod>();
 
-            for (AttributeTO newAttribute : membership.getAttributes()) {
+            for (AttributeTO newAttribute : newMembership.getAttributes()) {
                 attributeMod = new AttributeMod();
                 attributeMod.setSchema(newAttribute.getSchema());
                 attributeMod.setValuesToBeAdded(newAttribute.getValues());

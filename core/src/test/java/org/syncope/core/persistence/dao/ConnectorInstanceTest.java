@@ -21,21 +21,20 @@ import static org.junit.Assert.*;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
-import org.syncope.types.ConnConfProperty;
-import org.syncope.core.persistence.beans.ConnInstance;
+import org.syncope.client.to.PropertyTO;
+import org.syncope.core.persistence.beans.ConnectorInstance;
 import org.syncope.core.persistence.AbstractTest;
 import org.syncope.identityconnectors.bundles.staticwebservice.WebServiceConnector;
-import org.syncope.types.ConnConfPropSchema;
 
 @Transactional
-public class ConnInstanceTest extends AbstractTest {
+public class ConnectorInstanceTest extends AbstractTest {
 
     @Autowired
-    private ConnInstanceDAO connectorInstanceDAO;
+    private ConnectorInstanceDAO connectorInstanceDAO;
 
     @Test
     public final void findById() {
-        ConnInstance connectorInstance = connectorInstanceDAO.find(100L);
+        ConnectorInstance connectorInstance = connectorInstanceDAO.find(100L);
 
         assertNotNull("findById did not work", connectorInstance);
 
@@ -54,7 +53,7 @@ public class ConnInstanceTest extends AbstractTest {
     @Test
     public final void save()
             throws ClassNotFoundException {
-        ConnInstance connectorInstance = new ConnInstance();
+        ConnectorInstance connectorInstance = new ConnectorInstance();
 
         // set connector version
         connectorInstance.setVersion("1.0");
@@ -69,22 +68,14 @@ public class ConnInstanceTest extends AbstractTest {
         connectorInstance.setDisplayName("New");
 
         // set the connector configuration using PropertyTO
-        Set<ConnConfProperty> conf = new HashSet<ConnConfProperty>();
+        Set<PropertyTO> conf = new HashSet<PropertyTO>();
 
-        ConnConfPropSchema endpointSchema = new ConnConfPropSchema();
-        endpointSchema.setName("endpoint");
-        endpointSchema.setType(String.class.getName());
-        endpointSchema.setRequired(true);
-        ConnConfProperty endpoint = new ConnConfProperty();
-        endpoint.setSchema(endpointSchema);
+        PropertyTO endpoint = new PropertyTO();
+        endpoint.setKey("endpoint");
         endpoint.setValue("http://host.domain");
 
-        ConnConfPropSchema servicenameSchema = new ConnConfPropSchema();
-        servicenameSchema.setName("servicename");
-        servicenameSchema.setType(String.class.getName());
-        servicenameSchema.setRequired(true);
-        ConnConfProperty servicename = new ConnConfProperty();
-        servicename.setSchema(servicenameSchema);
+        PropertyTO servicename = new PropertyTO();
+        servicename.setKey("servicename");
         servicename.setValue("Provisioning");
 
         conf.add(endpoint);
@@ -95,7 +86,7 @@ public class ConnInstanceTest extends AbstractTest {
         assertFalse(connectorInstance.getConfiguration().isEmpty());
 
         // perform save operation
-        ConnInstance actual =
+        ConnectorInstance actual =
                 connectorInstanceDAO.save(connectorInstance);
 
         assertNotNull("save did not work", actual.getId());
@@ -124,13 +115,13 @@ public class ConnInstanceTest extends AbstractTest {
 
     @Test
     public final void delete() {
-        ConnInstance connectorInstance = connectorInstanceDAO.find(100L);
+        ConnectorInstance connectorInstance = connectorInstanceDAO.find(100L);
 
         assertNotNull("find to delete did not work", connectorInstance);
 
         connectorInstanceDAO.delete(connectorInstance.getId());
 
-        ConnInstance actual = connectorInstanceDAO.find(100L);
+        ConnectorInstance actual = connectorInstanceDAO.find(100L);
         assertNull("delete did not work", actual);
     }
 }

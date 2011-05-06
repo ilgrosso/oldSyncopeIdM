@@ -21,13 +21,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 import org.syncope.core.persistence.beans.user.UDerAttr;
 import org.syncope.core.persistence.beans.user.UDerSchema;
+import org.syncope.core.persistence.beans.user.USchema;
 import org.syncope.core.persistence.dao.AttrDAO;
 import org.syncope.core.persistence.dao.DerAttrDAO;
 import org.syncope.core.persistence.dao.DerSchemaDAO;
 import org.syncope.core.persistence.dao.SchemaDAO;
 import org.syncope.core.persistence.dao.UserDAO;
 import org.syncope.core.persistence.AbstractTest;
-import org.syncope.core.util.AttributableUtil;
 
 @Transactional
 public class DerSchemaTest extends AbstractTest {
@@ -49,14 +49,16 @@ public class DerSchemaTest extends AbstractTest {
 
     @Test
     public final void test() {
-        UDerSchema schema = derSchemaDAO.find("cn", UDerSchema.class);
-
-        derSchemaDAO.delete(schema.getName(), AttributableUtil.USER);
+        derSchemaDAO.delete("cn", UDerSchema.class);
 
         derSchemaDAO.flush();
 
-        assertNull(derSchemaDAO.find(schema.getName(), UDerSchema.class));
+        assertNull(derSchemaDAO.find("cn", UDerSchema.class));
         assertNull(derAttrDAO.find(1000L, UDerAttr.class));
-        assertNull(userDAO.find(3L).getDerivedAttribute(schema.getName()));
+        assertTrue(schemaDAO.find("surname",
+                USchema.class).getDerivedSchemas().isEmpty());
+        assertTrue(schemaDAO.find("firstname",
+                USchema.class).getDerivedSchemas().isEmpty());
+        assertNull(userDAO.find(3L).getDerivedAttribute("cn"));
     }
 }

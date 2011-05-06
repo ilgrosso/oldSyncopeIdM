@@ -14,6 +14,8 @@
  */
 package org.syncope.core.rest.data;
 
+import org.apache.commons.jexl2.JexlEngine;
+import org.apache.commons.jexl2.JexlException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
@@ -25,7 +27,7 @@ import org.syncope.client.validation.SyncopeClientCompositeErrorException;
 import org.syncope.client.validation.SyncopeClientException;
 import org.syncope.core.persistence.beans.AbstractDerSchema;
 import org.syncope.core.persistence.beans.AbstractSchema;
-import org.syncope.core.util.JexlUtil;
+import org.syncope.core.persistence.dao.SchemaDAO;
 import org.syncope.types.SyncopeClientExceptionType;
 
 @Component
@@ -41,7 +43,10 @@ public class DerivedSchemaDataBinder {
         "schemas", "derivedAttributes"};
 
     @Autowired
-    private JexlUtil jexlUtil;
+    private SchemaDAO schemaDAO;
+
+    @Autowired
+    private JexlEngine jexlEngine;
 
     private <T extends AbstractSchema> AbstractDerSchema populate(
             AbstractDerSchema derivedSchema,
@@ -59,7 +64,12 @@ public class DerivedSchemaDataBinder {
             scce.addException(requiredValuesMissing);
         }
 
-        if (!jexlUtil.isExpressionValid(derivedSchemaTO.getExpression())) {
+        try {
+            jexlEngine.createExpression(derivedSchemaTO.getExpression());
+        } catch (JexlException e) {
+            LOG.error("Invalid derived schema expression: "
+                    + derivedSchemaTO.getExpression(), e);
+
             SyncopeClientException invalidMandatoryCondition =
                     new SyncopeClientException(
                     SyncopeClientExceptionType.InvalidValues);
@@ -75,6 +85,16 @@ public class DerivedSchemaDataBinder {
 
         BeanUtils.copyProperties(derivedSchemaTO, derivedSchema,
                 ignoreDerivedSchemaProperties);
+
+        AbstractSchema abstractSchema = null;
+        for (String schema : derivedSchemaTO.getSchemas()) {
+            abstractSchema = schemaDAO.find(schema, reference);
+            if (abstractSchema != null) {
+                derivedSchema.addSchema(abstractSchema);
+            } else {
+                LOG.error("Unmatched schema name: " + schema);
+            }
+        }
 
         return derivedSchema;
     }
@@ -105,6 +125,10 @@ public class DerivedSchemaDataBinder {
         DerivedSchemaTO derivedSchemaTO = new DerivedSchemaTO();
         BeanUtils.copyProperties(derivedSchema, derivedSchemaTO,
                 ignoreDerivedSchemaProperties);
+
+        for (AbstractSchema schema : derivedSchema.getSchemas()) {
+            derivedSchemaTO.addSchema(schema.getName());
+        }
 
         return derivedSchemaTO;
     }

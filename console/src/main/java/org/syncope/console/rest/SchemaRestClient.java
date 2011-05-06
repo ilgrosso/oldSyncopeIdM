@@ -30,16 +30,16 @@ import org.syncope.client.validation.SyncopeClientCompositeErrorException;
 public class SchemaRestClient extends AbstractBaseRestClient {
 
     /**
-     * Get schemas.
-     * @return List of schamas.
+     * Get all user's schemas.
+     * @return SchemaTOs
      */
-    public List<SchemaTO> getSchemas(String kind) {
+    public List<SchemaTO> getAllUserSchemas() {
         List<SchemaTO> userSchemas = null;
 
         try {
             userSchemas = Arrays.asList(
                     restTemplate.getForObject(
-                    baseURL + "schema/" + kind + "/list.json",
+                    baseURL + "schema/user/list.json",
                     SchemaTO[].class));
         } catch (SyncopeClientCompositeErrorException e) {
             LOG.error("While getting all user schemas", e);
@@ -49,69 +49,64 @@ public class SchemaRestClient extends AbstractBaseRestClient {
     }
 
     /**
-     * Get schema names.
-     * @return List of schema names.
+     * Get all user's schemas names.
+     * @return String list of schemas' names.
      */
-    public List<String> getSchemaNames(String kind) {
+    public List<String> getAllUserSchemasNames() {
 
-        final List<String> schemasNames = new ArrayList<String>();
-
+        List<SchemaTO> userSchemas = null;
+        List<String> schemasNames = new ArrayList<String>();
         try {
-            final List<SchemaTO> userSchemas = Arrays.asList(
-                    restTemplate.getForObject(baseURL
-                    + "schema/" + kind + "/list.json", SchemaTO[].class));
-
-            for (SchemaTO schemaTO : userSchemas) {
-                schemasNames.add(schemaTO.getName());
-            }
-
+            userSchemas = Arrays.asList(restTemplate.getForObject(
+                    baseURL
+                    + "schema/user/list.json", SchemaTO[].class));
         } catch (SyncopeClientCompositeErrorException e) {
             LOG.error("While getting all user schema names", e);
+        }
+
+        for (SchemaTO schemaTO : userSchemas) {
+            schemasNames.add(schemaTO.getName());
         }
 
         return schemasNames;
     }
 
     /**
-     * Get derived schemas.
-     * @return List of derived schemas.
+     * Get all user's derived schemas.
+     * @return DerivedSchemaTOs
      */
-    public List<DerivedSchemaTO> getDerivedSchemas(String kind) {
+    public List<DerivedSchemaTO> getAllUserDerivedSchemas() {
 
         List<DerivedSchemaTO> userDerivedSchemas = null;
-
         try {
             userDerivedSchemas = Arrays.asList(
                     restTemplate.getForObject(
-                    baseURL + "derivedSchema/" + kind + "/list.json",
+                    baseURL + "derivedSchema/user/list.json",
                     DerivedSchemaTO[].class));
         } catch (SyncopeClientCompositeErrorException e) {
             LOG.error("While getting all user derived schemas", e);
         }
-
         return userDerivedSchemas;
     }
 
     /**
-     * Get derived schema names.
-     * @return List of derived schema names.
+     * Get all user's derived schemas names.
+     * @return String list of derived schemas' names.
      */
-    public List<String> getDerivedSchemaNames(String kind) {
+    public List<String> getAllUserDerivedSchemasNames() {
 
-        final List<String> userDerivedSchemasNames = new ArrayList<String>();
-
+        List<DerivedSchemaTO> userDerivedSchemas = null;
+        List<String> userDerivedSchemasNames = new ArrayList<String>();
         try {
-            final List<DerivedSchemaTO> userDerivedSchemas =
-                    Arrays.asList(restTemplate.getForObject(baseURL
-                    + "derivedSchema/" + kind + "/list.json",
-                    DerivedSchemaTO[].class));
-
-            for (DerivedSchemaTO schemaTO : userDerivedSchemas) {
-                userDerivedSchemasNames.add(schemaTO.getName());
-            }
-
+            userDerivedSchemas = Arrays.asList(restTemplate.getForObject(
+                    baseURL
+                    + "derivedSchema/user/list.json", DerivedSchemaTO[].class));
         } catch (SyncopeClientCompositeErrorException e) {
             LOG.error("While getting all user derived schema names", e);
+        }
+
+        for (DerivedSchemaTO schemaTO : userDerivedSchemas) {
+            userDerivedSchemasNames.add(schemaTO.getName());
         }
 
         return userDerivedSchemasNames;
@@ -236,6 +231,70 @@ public class SchemaRestClient extends AbstractBaseRestClient {
     }
 
     /**
+     * Get all role's schemas.
+     * @return SchemaTOs
+     */
+    public List<SchemaTO> getAllRoleSchemas() {
+
+        List<SchemaTO> roleSchemas = null;
+
+        try {
+            roleSchemas = Arrays.asList(restTemplate.getForObject(
+                    baseURL + "schema/role/list.json", SchemaTO[].class));
+        } catch (SyncopeClientCompositeErrorException e) {
+            LOG.error("While creating a derived user schema", e);
+        }
+
+        return roleSchemas;
+    }
+
+    /**
+     * Get all role's schemas names.
+     * @return String list of role schemas' names
+     */
+    public List<String> getAllRoleSchemasNames() {
+
+        List<SchemaTO> roleSchemas = null;
+        List<String> roleSchemasNames = new ArrayList<String>();
+
+        try {
+            roleSchemas = Arrays.asList(restTemplate.getForObject(
+                    baseURL + "schema/role/list.json", SchemaTO[].class));
+        } catch (SyncopeClientCompositeErrorException e) {
+            LOG.error("While getting all role schema names", e);
+        }
+
+        for (SchemaTO schemaTO : roleSchemas) {
+            roleSchemasNames.add(schemaTO.getName());
+        }
+
+        return roleSchemasNames;
+    }
+
+    /**
+     * Get all role's schemas names.
+     * @return String list of role schemas' names
+     */
+    public List<String> getAllMembershipSchemasNames() {
+
+        List<SchemaTO> membershipSchemas = null;
+        List<String> membershipSchemasNames = new ArrayList<String>();
+
+        try {
+            membershipSchemas = Arrays.asList(restTemplate.getForObject(
+                    baseURL + "schema/membership/list.json", SchemaTO[].class));
+        } catch (SyncopeClientCompositeErrorException e) {
+            LOG.error("While getting all membership schema names", e);
+        }
+
+        for (SchemaTO schemaTO : membershipSchemas) {
+            membershipSchemasNames.add(schemaTO.getName());
+        }
+
+        return membershipSchemasNames;
+    }
+
+    /**
      * Create new user schema.
      * @param schemaTO
      */
@@ -292,6 +351,24 @@ public class SchemaRestClient extends AbstractBaseRestClient {
         } catch (SyncopeClientCompositeErrorException e) {
             LOG.error("While deleting a role schema", e);
         }
+    }
+
+    /**
+     * Get all role's derived schemas.
+     * @return DerivedSchemaTOs
+     */
+    public List<DerivedSchemaTO> getAllRoleDerivedSchemas() {
+        List<DerivedSchemaTO> roleDerivedSchemas = null;
+
+        try {
+            roleDerivedSchemas = Arrays.asList(restTemplate.getForObject(
+                    baseURL
+                    + "derivedSchema/role/list.json", DerivedSchemaTO[].class));
+        } catch (SyncopeClientCompositeErrorException e) {
+            LOG.error("While getting all role derived schemas", e);
+        }
+
+        return roleDerivedSchemas;
     }
 
     /**
@@ -354,6 +431,25 @@ public class SchemaRestClient extends AbstractBaseRestClient {
         } catch (SyncopeClientCompositeErrorException e) {
             LOG.error("While deleting a role derived schema", e);
         }
+    }
+
+    /**
+     * Get all role's schemas.
+     * @return SchemaTOs
+     */
+    public List<SchemaTO> getAllMemberhipSchemas() {
+
+        List<SchemaTO> memberhipSchemas = null;
+
+        try {
+            memberhipSchemas = Arrays.asList(restTemplate.getForObject(
+                    baseURL
+                    + "schema/membership/list.json", SchemaTO[].class));
+        } catch (SyncopeClientCompositeErrorException e) {
+            LOG.error("While getting all membership schemas", e);
+        }
+
+        return memberhipSchemas;
     }
 
     /**
@@ -430,6 +526,25 @@ public class SchemaRestClient extends AbstractBaseRestClient {
             LOG.error("While getting all validators", e);
         }
         return validators;
+    }
+
+    /**
+     * Get all membership's derived schemas.
+     * @return DerivedSchemaTOs
+     */
+    public List<DerivedSchemaTO> getAllMembershipDerivedSchemas() {
+        List<DerivedSchemaTO> roleDerivedSchemas = null;
+
+        try {
+            roleDerivedSchemas = Arrays.asList(restTemplate.getForObject(
+                    baseURL
+                    + "derivedSchema/membership/list.json",
+                    DerivedSchemaTO[].class));
+        } catch (SyncopeClientCompositeErrorException e) {
+            LOG.error("While getting all membership derived schemas", e);
+        }
+
+        return roleDerivedSchemas;
     }
 
     /**

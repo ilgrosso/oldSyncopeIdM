@@ -26,20 +26,18 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 import org.syncope.client.to.ResourceTO;
 import org.syncope.client.to.SchemaMappingTO;
-import org.syncope.core.persistence.beans.ConnInstance;
+import org.syncope.core.persistence.beans.ConnectorInstance;
 import org.syncope.core.persistence.beans.TargetResource;
 import org.syncope.core.persistence.beans.SchemaMapping;
 import org.syncope.core.persistence.beans.user.SyncopeUser;
 import org.syncope.core.persistence.beans.user.USchema;
-import org.syncope.core.persistence.dao.ConnInstanceDAO;
+import org.syncope.core.persistence.dao.ConnectorInstanceDAO;
 import org.syncope.core.persistence.dao.ResourceDAO;
 import org.syncope.core.persistence.dao.SchemaDAO;
 import org.syncope.core.persistence.dao.UserDAO;
 import org.syncope.core.rest.data.ResourceDataBinder;
 import org.syncope.core.persistence.AbstractTest;
 import org.syncope.core.persistence.beans.Task;
-import org.syncope.core.persistence.beans.user.UDerSchema;
-import org.syncope.core.persistence.dao.DerSchemaDAO;
 import org.syncope.core.persistence.dao.TaskDAO;
 import org.syncope.types.PropagationMode;
 import org.syncope.types.SourceMappingType;
@@ -54,10 +52,7 @@ public class ResourceTest extends AbstractTest {
     private SchemaDAO schemaDAO;
 
     @Autowired
-    private DerSchemaDAO derSchemaDAO;
-
-    @Autowired
-    private ConnInstanceDAO connectorInstanceDAO;
+    private ConnectorInstanceDAO connectorInstanceDAO;
 
     @Autowired
     private UserDAO userDAO;
@@ -134,7 +129,7 @@ public class ResourceTest extends AbstractTest {
         resource.setName("ws-target-resource-save");
 
         // specify the connector
-        ConnInstance connector = connectorInstanceDAO.find(100L);
+        ConnectorInstance connector = connectorInstanceDAO.find(100L);
 
         assertNotNull("connector not found", connector);
 
@@ -165,22 +160,6 @@ public class ResourceTest extends AbstractTest {
         accountId.setSourceMappingType(SourceMappingType.SyncopeUserId);
 
         resource.addMapping(accountId);
-
-        // search for the derived attribute schema
-        UDerSchema derivedSchema =
-                derSchemaDAO.find("cn", UDerSchema.class);
-
-        assertNotNull(derivedSchema);
-
-        // map a derived attribute
-        SchemaMapping derived = new SchemaMapping();
-        derived.setResource(resource);
-        derived.setAccountid(false);
-        derived.setDestAttrName("fullname");
-        derived.setSourceAttrName(derivedSchema.getName());
-        derived.setSourceMappingType(SourceMappingType.UserSchema);
-
-        resource.addMapping(derived);
 
         // specify an user schema
         SyncopeUser user = userDAO.find(1L);
@@ -221,7 +200,7 @@ public class ResourceTest extends AbstractTest {
         List<SchemaMapping> schemaMappings = resource.getMappings();
 
         assertNotNull(schemaMappings);
-        assertEquals(5, schemaMappings.size());
+        assertEquals(4, schemaMappings.size());
     }
 
     @Test
@@ -233,7 +212,7 @@ public class ResourceTest extends AbstractTest {
         // -------------------------------------
         // Get originally associated connector
         // -------------------------------------
-        ConnInstance connector = resource.getConnector();
+        ConnectorInstance connector = resource.getConnector();
 
         assertNotNull(connector);
 
@@ -279,7 +258,7 @@ public class ResourceTest extends AbstractTest {
         }
 
         // resource must be not referenced any more from the connector
-        ConnInstance actualConnector =
+        ConnectorInstance actualConnector =
                 connectorInstanceDAO.find(connectorId);
         assertNotNull(actualConnector);
         resources = actualConnector.getResources();

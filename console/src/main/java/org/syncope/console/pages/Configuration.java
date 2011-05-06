@@ -104,10 +104,10 @@ public class Configuration extends BasePage {
         List<IColumn> confColumns = new ArrayList<IColumn>();
 
         confColumns.add(new PropertyColumn(new Model(getString("key")),
-                "key", "key"));
+                "confKey", "confKey"));
 
         confColumns.add(new PropertyColumn(new Model(getString("value")),
-                "value", "value"));
+                "confValue", "confValue"));
 
         confColumns.add(new AbstractColumn<ConfigurationTO>(new Model<String>(
                 getString("edit"))) {
@@ -169,7 +169,7 @@ public class Configuration extends BasePage {
                     public void onClick(final AjaxRequestTarget target) {
                         try {
                             restClient.deleteConfiguration(configurationTO.
-                                    getKey());
+                                    getConfKey());
                         } catch (UnsupportedEncodingException e) {
                             LOG.error("While deleting a conf key", e);
                             error(e.getMessage());
@@ -336,7 +336,7 @@ public class Configuration extends BasePage {
 
         public SyncopeConfProvider() {
             //Default sorting
-            setSort("key", true);
+            setSort("confKey", true);
             comparator =
                     new SortableDataProviderComparator<ConfigurationTO>(this);
         }

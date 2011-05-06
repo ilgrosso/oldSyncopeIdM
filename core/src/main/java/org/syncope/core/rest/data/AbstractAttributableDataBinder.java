@@ -22,6 +22,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import javax.validation.ValidationException;
+import org.apache.commons.jexl2.Expression;
+import org.apache.commons.jexl2.JexlContext;
+import org.apache.commons.jexl2.JexlEngine;
+import org.apache.commons.jexl2.JexlException;
+import org.apache.commons.jexl2.MapContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,7 +48,6 @@ import org.syncope.core.persistence.beans.role.SyncopeRole;
 import org.syncope.core.persistence.beans.user.SyncopeUser;
 import org.syncope.core.persistence.dao.AttrDAO;
 import org.syncope.core.persistence.dao.AttrValueDAO;
-import org.syncope.core.persistence.dao.ConfDAO;
 import org.syncope.core.persistence.dao.DerAttrDAO;
 import org.syncope.core.persistence.dao.DerSchemaDAO;
 import org.syncope.core.persistence.dao.MembershipDAO;
@@ -52,7 +56,6 @@ import org.syncope.core.persistence.dao.SchemaDAO;
 import org.syncope.core.persistence.dao.RoleDAO;
 import org.syncope.core.persistence.dao.UserDAO;
 import org.syncope.core.persistence.propagation.ResourceOperations;
-import org.syncope.core.util.JexlUtil;
 import org.syncope.types.ResourceOperationType;
 import org.syncope.types.SyncopeClientExceptionType;
 
@@ -63,9 +66,6 @@ public abstract class AbstractAttributableDataBinder {
      */
     protected static final Logger LOG = LoggerFactory.getLogger(
             AbstractAttributableDataBinder.class);
-
-    @Autowired
-    protected ConfDAO confDAO;
 
     @Autowired
     protected RoleDAO roleDAO;
@@ -95,7 +95,7 @@ public abstract class AbstractAttributableDataBinder {
     protected MembershipDAO membershipDAO;
 
     @Autowired
-    private JexlUtil jexlUtil;
+    private JexlEngine jexlEngine;
 
     private <T extends AbstractSchema> T getSchema(
             final String schemaName, final Class<T> reference) {
@@ -171,11 +171,39 @@ public abstract class AbstractAttributableDataBinder {
 
     private boolean evaluateMandatoryCondition(
             final String mandatoryCondition,
-            final List<? extends AbstractAttr> attributes) {
+            final List<? extends AbstractAttr> attributes,
+            final AttributableUtil attributableUtil) {
 
-        return Boolean.parseBoolean(
-                jexlUtil.evaluateWithAttributes(
-                mandatoryCondition, attributes));
+        JexlContext jexlContext = new MapContext();
+
+        List<AbstractSchema> allSchemas =
+                schemaDAO.findAll(attributableUtil.schemaClass());
+        for (AbstractAttr attribute : attributes) {
+            jexlContext.set(attribute.getSchema().getName(),
+                    attribute.getValuesAsStrings().isEmpty()
+                    ? null
+                    : (attribute.getSchema().isMultivalue()
+                    ? attribute.getValuesAsStrings()
+                    : attribute.getValuesAsStrings().iterator().next()));
+
+            allSchemas.remove(attribute.getSchema());
+        }
+        for (AbstractSchema schema : allSchemas) {
+            jexlContext.set(schema.getName(), null);
+        }
+
+        boolean result = false;
+
+        try {
+            Expression jexlExpression = jexlEngine.createExpression(
+                    mandatoryCondition);
+            result = Boolean.parseBoolean(
+                    jexlExpression.evaluate(jexlContext).toString());
+        } catch (JexlException e) {
+            LOG.error("Invalid jexl expression: " + mandatoryCondition, e);
+        }
+
+        return result;
     }
 
     private boolean evaluateMandatoryCondition(
@@ -196,7 +224,8 @@ public abstract class AbstractAttributableDataBinder {
             mapping = itor.next();
             result |= evaluateMandatoryCondition(
                     mapping.getMandatoryCondition(),
-                    attributes);
+                    attributes,
+                    attributableUtil);
         }
 
         return result;
@@ -248,7 +277,8 @@ public abstract class AbstractAttributableDataBinder {
                     && !schema.isReadonly()
                     && (evaluateMandatoryCondition(
                     schema.getMandatoryCondition(),
-                    attributable.getAttributes())
+                    attributable.getAttributes(),
+                    attributableUtil)
                     || evaluateMandatoryCondition(resources,
                     attributable.getAttributes(),
                     schema.getName(),
@@ -414,40 +444,22 @@ public abstract class AbstractAttributableDataBinder {
 
             derivedSchema = getDerivedSchema(derivedAttributeToBeRemoved,
                     attributableUtil.derivedSchemaClass());
-
             if (derivedSchema != null) {
+                for (SchemaMapping mapping : derivedSchema.getMappings()) {
+                    if (mapping.getResource() != null
+                            && resources.contains(mapping.getResource())) {
+                        resourceOperations.add(ResourceOperationType.UPDATE,
+                                mapping.getResource());
+                    }
+                }
 
                 derivedAttribute = attributable.getDerivedAttribute(
                         derivedSchema.getName());
-
                 if (derivedAttribute == null) {
                     LOG.debug("No derived attribute found for schema {}",
                             derivedSchema.getName());
                 } else {
                     derivedAttributeDAO.delete(derivedAttribute);
-                }
-
-                for (SchemaMapping mapping : resourceDAO.findAllMappings()) {
-                    if (mapping.getSourceAttrName().equals(
-                            derivedSchema.getName())
-                            && mapping.getSourceMappingType()
-                            == attributableUtil.derivedSourceMappingType()
-                            && mapping.getResource() != null
-                            && resources.contains(mapping.getResource())) {
-
-                        resourceOperations.add(ResourceOperationType.UPDATE,
-                                mapping.getResource());
-
-                        if (mapping.isAccountid() && derivedAttribute != null
-                                && !derivedAttribute.getValue(
-                                attributable.getAttributes()).isEmpty()) {
-
-                            resourceOperations.addOldAccountId(
-                                    mapping.getResource().getName(),
-                                    derivedAttribute.getValue(
-                                    attributable.getAttributes()));
-                        }
-                    }
                 }
             }
         }
@@ -461,14 +473,9 @@ public abstract class AbstractAttributableDataBinder {
 
             derivedSchema = getDerivedSchema(derivedAttributeToBeAdded,
                     attributableUtil.derivedSchemaClass());
-
             if (derivedSchema != null) {
-                for (SchemaMapping mapping : resourceDAO.findAllMappings()) {
-                    if (mapping.getSourceAttrName().equals(
-                            derivedSchema.getName())
-                            && mapping.getSourceMappingType()
-                            == attributableUtil.derivedSourceMappingType()
-                            && mapping.getResource() != null
+                for (SchemaMapping mapping : derivedSchema.getMappings()) {
+                    if (mapping.getResource() != null
                             && resources.contains(mapping.getResource())) {
 
                         resourceOperations.add(ResourceOperationType.UPDATE,

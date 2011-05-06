@@ -17,7 +17,6 @@ package org.syncope.core.persistence.dao;
 import java.util.List;
 import org.syncope.core.persistence.beans.AbstractDerSchema;
 import org.syncope.core.persistence.validation.entity.InvalidEntityException;
-import org.syncope.core.util.AttributableUtil;
 
 public interface DerSchemaDAO extends DAO {
 
@@ -28,5 +27,6 @@ public interface DerSchemaDAO extends DAO {
     <T extends AbstractDerSchema> T save(T derivedSchema)
             throws InvalidEntityException;
 
-    void delete(String name, AttributableUtil attributableUtil);
+    <T extends AbstractDerSchema> void delete(
+            String name, Class<T> reference);
 }

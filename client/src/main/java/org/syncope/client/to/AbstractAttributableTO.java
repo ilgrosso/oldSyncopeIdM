@@ -67,18 +67,7 @@ public abstract class AbstractAttributableTO extends AbstractBaseBean {
     public Map<String, List<String>> getAttributeMap() {
         Map<String, List<String>> result =
                 new HashMap<String, List<String>>(attributes.size());
-        for (AttributeTO attributeTO : attributes) {
-            result.put(attributeTO.getSchema(), attributeTO.getValues());
-        }
-
-        return result;
-    }
-
-    @JsonIgnore
-    public Map<String, List<String>> getDerivedAttributeMap() {
-        Map<String, List<String>> result =
-                new HashMap<String, List<String>>(derivedAttributes.size());
-        for (AttributeTO attributeTO : derivedAttributes) {
+        for (AttributeTO attributeTO : getAttributes()) {
             result.put(attributeTO.getSchema(), attributeTO.getValues());
         }
 
