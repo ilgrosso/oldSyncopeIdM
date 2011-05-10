@@ -1,5 +1,6 @@
 #summary How to get started with Syncope.
 #labels Phase-Deploy,Featured
+<wiki:toc max_depth="5"/>
 
 = Introduction =
 
@@ -15,7 +16,7 @@ Maven archetypes are templates of projects. Maven can generate a new project fro
 mvn archetype:generate \
     -DarchetypeGroupId=org.syncope \
     -DarchetypeArtifactId=syncope-archetype \
-    -DarchetypeVersion=0.5.5
+    -DarchetypeVersion=0.5.7
 }}}
 
 You may want to change the archetype version: change the archetypeVersion to that of the newest release or tag of the archetype project:
