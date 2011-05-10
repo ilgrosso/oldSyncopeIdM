@@ -1,4 +1,6 @@
+#summary What, where and when about new features
 #labels Featured
+
 Syncope will have the following releases (see images below to know more about details and timeline):
   1. May 10th 2011 [http://code.google.com/p/syncope/issues/list?can=1&q=label%3AMilestone-Release-20110510 issue list]
   1. July 2011 [http://code.google.com/p/syncope/issues/list?can=1&q=label%3AMilestone-Release-201107 issue list]
