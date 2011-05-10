@@ -2,4 +2,4 @@
 
  1. [GettingStarted How to get started using Syncope]
  1. [Roadmap What, where and when about new features]
- 1. [DataDesign Some hints about internal persistence]
+ 1. [DataDesign Outline of the data managed by Syncope]
