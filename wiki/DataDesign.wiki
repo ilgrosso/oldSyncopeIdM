@@ -1,4 +1,4 @@
-#summary Hereby the outline of the data managed by Syncope.
+#summary Outline of the data managed by Syncope
 #labels Phase-Design,Data-Model
 
 = Introduction =
