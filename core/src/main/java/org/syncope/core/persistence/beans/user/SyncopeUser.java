@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Set;
 import javax.crypto.Cipher;
 import javax.crypto.spec.SecretKeySpec;
+import javax.persistence.Cacheable;
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -38,19 +39,16 @@ import javax.persistence.TemporalType;
 import javax.validation.Valid;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.RandomStringUtils;
-import org.hibernate.annotations.Cache;
-import org.hibernate.annotations.CacheConcurrencyStrategy;
 import org.syncope.core.persistence.beans.AbstractAttributable;
 import org.syncope.core.persistence.beans.AbstractAttr;
 import org.syncope.core.persistence.beans.AbstractDerAttr;
-import org.syncope.core.persistence.beans.AbstractVirAttr;
 import org.syncope.core.persistence.beans.TargetResource;
 import org.syncope.core.persistence.beans.membership.Membership;
 import org.syncope.core.persistence.beans.role.SyncopeRole;
 import org.syncope.types.CipherAlgorithm;
 
 @Entity
-@Cache(usage = CacheConcurrencyStrategy.TRANSACTIONAL)
+@Cacheable
 public class SyncopeUser extends AbstractAttributable {
 
     private static SecretKeySpec keySpec;
@@ -83,10 +81,6 @@ public class SyncopeUser extends AbstractAttributable {
     @Valid
     private List<UDerAttr> derivedAttributes;
 
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "owner")
-    @Valid
-    private List<UVirAttr> virtualAttributes;
-
     @Column(nullable = true)
     private Long workflowId;
 
@@ -104,7 +98,6 @@ public class SyncopeUser extends AbstractAttributable {
         memberships = new ArrayList<Membership>();
         attributes = new ArrayList<UAttr>();
         derivedAttributes = new ArrayList<UDerAttr>();
-        virtualAttributes = new ArrayList<UVirAttr>();
     }
 
     @Override
@@ -281,32 +274,6 @@ public class SyncopeUser extends AbstractAttributable {
             List<? extends AbstractDerAttr> derivedAttributes) {
 
         this.derivedAttributes = (List<UDerAttr>) derivedAttributes;
-    }
-
-    @Override
-    public <T extends AbstractVirAttr> boolean addVirtualAttribute(
-            T virtualAttribute) {
-
-        return virtualAttributes.add((UVirAttr) virtualAttribute);
-    }
-
-    @Override
-    public <T extends AbstractVirAttr> boolean removeVirtualAttribute(
-            T virtualAttribute) {
-
-        return virtualAttributes.remove((UVirAttr) virtualAttribute);
-    }
-
-    @Override
-    public List<? extends AbstractVirAttr> getVirtualAttributes() {
-        return virtualAttributes;
-    }
-
-    @Override
-    public void setVirtualAttributes(
-            List<? extends AbstractVirAttr> virtualAttributes) {
-
-        this.virtualAttributes = (List<UVirAttr>) virtualAttributes;
     }
 
     public Long getWorkflowId() {

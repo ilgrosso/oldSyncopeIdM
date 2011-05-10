@@ -14,10 +14,10 @@
  */
 package org.syncope.core.persistence.beans;
 
+import java.util.List;
 import javax.persistence.Column;
 import javax.persistence.Id;
 import javax.persistence.MappedSuperclass;
-import org.syncope.types.SchemaType;
 
 @MappedSuperclass
 public abstract class AbstractDerSchema extends AbstractBaseBean {
@@ -44,23 +44,19 @@ public abstract class AbstractDerSchema extends AbstractBaseBean {
         this.expression = expression;
     }
 
-    public SchemaType getType() {
-        return SchemaType.String;
-    }
+    public abstract <T extends AbstractDerAttr> boolean addDerivedAttribute(T derivedAttribute);
 
-    public String getMandatoryCondition() {
-        return Boolean.FALSE.toString().toLowerCase();
-    }
+    public abstract <T extends AbstractDerAttr> boolean removeDerivedAttribute(T derivedAttribute);
 
-    public boolean isMultivalue() {
-        return Boolean.TRUE;
-    }
+    public abstract List<? extends AbstractDerAttr> getDerivedAttributes();
 
-    public boolean isUniqueConstraint() {
-        return Boolean.FALSE;
-    }
+    public abstract <T extends AbstractDerAttr> void setDerivedAttributes(List<T> derivedAttributes);
 
-    public boolean isReadonly() {
-        return Boolean.FALSE;
-    }
+    public abstract boolean addMapping(SchemaMapping mapping);
+
+    public abstract boolean removeMapping(SchemaMapping mapping);
+
+    public abstract List<SchemaMapping> getMappings();
+
+    public abstract void setMappings(List<SchemaMapping> mappings);
 }

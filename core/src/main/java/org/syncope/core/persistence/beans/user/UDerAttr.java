@@ -26,7 +26,6 @@ public class UDerAttr extends AbstractDerAttr {
 
     @ManyToOne
     private SyncopeUser owner;
-
     @ManyToOne(fetch = FetchType.EAGER)
     UDerSchema derivedSchema;
 

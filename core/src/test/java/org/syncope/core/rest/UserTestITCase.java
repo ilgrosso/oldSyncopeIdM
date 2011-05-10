@@ -24,7 +24,6 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.annotation.ExpectedException;
@@ -87,17 +86,6 @@ public class UserTestITCase extends AbstractTest {
         DateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
         loginDateTO.addValue(sdf.format(new Date()));
         userTO.addAttribute(loginDateTO);
-
-        // add a derived attribute
-        AttributeTO cnTO = new AttributeTO();
-        cnTO.setSchema("cn");
-        userTO.addDerivedAttribute(cnTO);
-
-        // add a virtual attribute
-        AttributeTO virtualdata = new AttributeTO();
-        virtualdata.setSchema("virtualdata");
-        virtualdata.setValues(Collections.singletonList("virtualvalue"));
-        userTO.addVirtualAttribute(virtualdata);
 
         return userTO;
     }
@@ -174,6 +162,38 @@ public class UserTestITCase extends AbstractTest {
 
         assertNotNull(taskTO);
         assertTrue(taskTO.getExecutions().isEmpty());
+    }
+
+    @Test
+    public final void createUserWithDbPropagation() {
+        UserTO userTO = new UserTO();
+
+        AttributeTO attributeTO = new AttributeTO();
+        attributeTO.setSchema("firstname");
+        attributeTO.addValue("yyy");
+        userTO.addAttribute(attributeTO);
+
+        attributeTO = new AttributeTO();
+        attributeTO.setSchema("surname");
+        attributeTO.addValue("yyy");
+        userTO.addAttribute(attributeTO);
+
+        attributeTO = new AttributeTO();
+        attributeTO.setSchema("userId");
+        attributeTO.addValue("yyy@yyy.yyy");
+        userTO.addAttribute(attributeTO);
+
+        attributeTO = new AttributeTO();
+        attributeTO.setSchema("username");
+        attributeTO.addValue("yyy");
+        userTO.addAttribute(attributeTO);
+
+        userTO.setPassword("yyy");
+        userTO.addResource("ws-target-resource-testdb");
+
+        restTemplate.postForObject(BASE_URL + "user/create"
+                + "?mandatoryResources=ws-target-resource-testdb",
+                userTO, UserTO.class);
     }
 
     @Test
@@ -254,21 +274,6 @@ public class UserTestITCase extends AbstractTest {
         assertEquals("active",
                 restTemplate.getForObject(BASE_URL + "user/status/"
                 + newUserTO.getId(), String.class));
-
-        // 3. check for virtual attribute value
-        newUserTO = restTemplate.getForObject(
-                BASE_URL + "user/read/{userId}.json",
-                UserTO.class,
-                newUserTO.getId());
-        assertNotNull(newUserTO);
-
-        assertNotNull(newUserTO.getVirtualAttributeMap());
-        assertNotNull(newUserTO.getVirtualAttributeMap().get("virtualdata"));
-        assertFalse(newUserTO.getVirtualAttributeMap().get("virtualdata").
-                isEmpty());
-        assertEquals(
-                newUserTO.getVirtualAttributeMap().get("virtualdata").get(0),
-                "virtualvalue");
 
         // get the new task list
         tasks = Arrays.asList(
@@ -361,15 +366,15 @@ public class UserTestITCase extends AbstractTest {
         fType.addValue("F");
         userTO.addAttribute(fType);
 
-        AttributeTO surname = null;
+        AttributeTO firstname = null;
         for (AttributeTO attributeTO : userTO.getAttributes()) {
-            if ("surname".equals(attributeTO.getSchema())) {
-                surname = attributeTO;
+            if ("firstname".equals(attributeTO.getSchema())) {
+                firstname = attributeTO;
             }
         }
-        userTO.removeAttribute(surname);
+        userTO.removeAttribute(firstname);
 
-        // 2. create user without surname (mandatory when type == 'F')
+        // 2. create user without firstname (mandatory when type == 'F')
         ex = null;
         try {
             restTemplate.postForObject(
@@ -613,7 +618,7 @@ public class UserTestITCase extends AbstractTest {
         userTO = restTemplate.postForObject(BASE_URL + "user/activate",
                 userTO, UserTO.class);
 
-        assertFalse(userTO.getDerivedAttributes().isEmpty());
+        assertTrue(userTO.getDerivedAttributes().isEmpty());
         assertEquals(1, userTO.getMemberships().size());
 
         AttributeMod attributeMod = new AttributeMod();

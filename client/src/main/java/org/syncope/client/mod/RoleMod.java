@@ -25,8 +25,6 @@ public class RoleMod extends AbstractAttributableMod {
 
     private boolean changeInheritDerivedAttributes;
 
-    private boolean changeInheritVirtualAttributes;
-
     private List<String> entitlements;
 
     public RoleMod() {
@@ -49,16 +47,6 @@ public class RoleMod extends AbstractAttributableMod {
             boolean changeInheritDerivedAttributes) {
 
         this.changeInheritDerivedAttributes = changeInheritDerivedAttributes;
-    }
-
-    public boolean isChangeInheritVirtualAttributes() {
-        return changeInheritVirtualAttributes;
-    }
-
-    public void setChangeInheritVirtualAttributes(
-            boolean changeInheritVirtualAttributes) {
-
-        this.changeInheritVirtualAttributes = changeInheritVirtualAttributes;
     }
 
     public String getName() {

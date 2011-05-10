@@ -23,6 +23,8 @@ public class SchemaTO extends AbstractBaseBean {
 
     private SchemaType type;
 
+    private boolean virtual;
+
     private String mandatoryCondition;
 
     private boolean multivalue;
@@ -46,6 +48,15 @@ public class SchemaTO extends AbstractBaseBean {
     public void setConversionPattern(String conversionPattern) {
         this.conversionPattern = conversionPattern;
     }
+
+    public boolean isVirtual() {
+        return virtual;
+    }
+
+    public void setVirtual(boolean virtual) {
+        this.virtual = virtual;
+    }
+
     public String getMandatoryCondition() {
         return mandatoryCondition;
     }

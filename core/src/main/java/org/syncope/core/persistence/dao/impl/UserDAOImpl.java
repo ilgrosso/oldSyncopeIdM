@@ -14,18 +14,17 @@
  */
 package org.syncope.core.persistence.dao.impl;
 
-import java.lang.Long;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import javax.persistence.CacheRetrieveMode;
 import javax.persistence.NoResultException;
 import javax.persistence.Query;
 import javax.persistence.TemporalType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 import org.syncope.core.persistence.beans.AbstractAttrValue;
-import org.syncope.core.persistence.beans.AbstractVirAttr;
 import org.syncope.core.persistence.beans.membership.Membership;
 import org.syncope.core.persistence.beans.user.SyncopeUser;
 import org.syncope.core.persistence.beans.user.UAttrUniqueValue;
@@ -50,7 +49,8 @@ public class UserDAOImpl extends AbstractDAOImpl
         Query query = entityManager.createQuery(
                 "SELECT e FROM " + SyncopeUser.class.getSimpleName() + " e "
                 + "WHERE e.id = :id");
-        query.setHint("org.hibernate.cacheable", true);
+        query.setHint("javax.persistence.cache.retrieveMode",
+                CacheRetrieveMode.USE);
         query.setParameter("id", id);
 
         try {
@@ -65,7 +65,8 @@ public class UserDAOImpl extends AbstractDAOImpl
         Query query = entityManager.createQuery(
                 "SELECT e FROM " + SyncopeUser.class.getSimpleName() + " e "
                 + "WHERE e.workflowId = :workflowId");
-        query.setHint("org.hibernate.cacheable", true);
+        query.setHint("javax.persistence.cache.retrieveMode",
+                CacheRetrieveMode.USE);
         query.setParameter("workflowId", workflowId);
 
         return (SyncopeUser) query.getSingleResult();
@@ -227,15 +228,7 @@ public class UserDAOImpl extends AbstractDAOImpl
 
     @Override
     public SyncopeUser save(final SyncopeUser user) {
-        SyncopeUser merged = entityManager.merge(user);
-
-        for (AbstractVirAttr virtual : merged.getVirtualAttributes()) {
-            virtual.setValues(user.getVirtualAttribute(
-                    virtual.getVirtualSchema().getName()).
-                    getValues());
-        }
-        
-        return merged;
+        return entityManager.merge(user);
     }
 
     @Override

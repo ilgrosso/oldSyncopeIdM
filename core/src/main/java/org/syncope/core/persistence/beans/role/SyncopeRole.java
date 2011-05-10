@@ -19,6 +19,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import javax.persistence.Basic;
+import javax.persistence.Cacheable;
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -30,14 +31,12 @@ import javax.persistence.OneToMany;
 import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
 import javax.validation.Valid;
-import org.hibernate.annotations.Cache;
-import org.hibernate.annotations.CacheConcurrencyStrategy;
+import javax.validation.constraints.Max;
+import javax.validation.constraints.Min;
 import org.syncope.core.persistence.beans.AbstractAttributable;
 import org.syncope.core.persistence.beans.AbstractAttr;
 import org.syncope.core.persistence.beans.AbstractDerAttr;
-import org.syncope.core.persistence.beans.AbstractVirAttr;
 import org.syncope.core.persistence.beans.Entitlement;
-import org.hibernate.validator.constraints.Range;
 
 @Entity
 @Table(uniqueConstraints =
@@ -45,7 +44,7 @@ import org.hibernate.validator.constraints.Range;
     "name",
     "parent_id"
 }))
-@Cache(usage = CacheConcurrencyStrategy.TRANSACTIONAL)
+@Cacheable
 public class SyncopeRole extends AbstractAttributable {
 
     @Id
@@ -68,21 +67,15 @@ public class SyncopeRole extends AbstractAttributable {
     @Valid
     private List<RDerAttr> derivedAttributes;
 
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "owner")
-    @Valid
-    private List<RVirAttr> virtualAttributes;
-
     @Basic
-    @Range(min = 0, max = 1)
+    @Min(0)
+    @Max(1)
     private Integer inheritAttributes;
 
     @Basic
-    @Range(min = 0, max = 1)
+    @Min(0)
+    @Max(1)
     private Integer inheritDerivedAttributes;
-
-    @Basic
-    @Range(min = 0, max = 1)
-    private Integer inheritVirtualAttributes;
 
     public SyncopeRole() {
         super();
@@ -90,10 +83,8 @@ public class SyncopeRole extends AbstractAttributable {
         entitlements = new HashSet<Entitlement>();
         attributes = new ArrayList<RAttr>();
         derivedAttributes = new ArrayList<RDerAttr>();
-        virtualAttributes = new ArrayList<RVirAttr>();
         inheritAttributes = getBooleanAsInteger(false);
         inheritDerivedAttributes = getBooleanAsInteger(false);
-        inheritVirtualAttributes = getBooleanAsInteger(false);
     }
 
     @Override
@@ -180,32 +171,6 @@ public class SyncopeRole extends AbstractAttributable {
         this.derivedAttributes = (List<RDerAttr>) derivedAttributes;
     }
 
-    @Override
-    public <T extends AbstractVirAttr> boolean addVirtualAttribute(
-            T virtualAttribute) {
-
-        return virtualAttributes.add((RVirAttr) virtualAttribute);
-    }
-
-    @Override
-    public <T extends AbstractVirAttr> boolean removeVirtualAttribute(
-            T virtualAttribute) {
-
-        return virtualAttributes.remove((RVirAttr) virtualAttribute);
-    }
-
-    @Override
-    public List<? extends AbstractVirAttr> getVirtualAttributes() {
-        return virtualAttributes;
-    }
-
-    @Override
-    public void setVirtualAttributes(
-            List<? extends AbstractVirAttr> virtualAttributes) {
-
-        this.virtualAttributes = (List<RVirAttr>) virtualAttributes;
-    }
-
     public boolean isInheritAttributes() {
         return isBooleanAsInteger(inheritAttributes);
     }
@@ -227,19 +192,9 @@ public class SyncopeRole extends AbstractAttributable {
         return isBooleanAsInteger(inheritDerivedAttributes);
     }
 
-    public boolean isInheritVirtualAttributes() {
-        return isBooleanAsInteger(inheritVirtualAttributes);
-    }
-
     public void setInheritDerivedAttributes(boolean inheritDerivedAttributes) {
         this.inheritDerivedAttributes =
                 getBooleanAsInteger(inheritDerivedAttributes);
-
-    }
-
-    public void setInheritVirtualAttributes(boolean inheritVirtualAttributes) {
-        this.inheritVirtualAttributes =
-                getBooleanAsInteger(inheritVirtualAttributes);
 
     }
 
@@ -247,15 +202,6 @@ public class SyncopeRole extends AbstractAttributable {
         List<RDerAttr> result = new ArrayList<RDerAttr>(derivedAttributes);
         if (isInheritDerivedAttributes() && getParent() != null) {
             result.addAll(getParent().findInheritedDerivedAttributes());
-        }
-
-        return result;
-    }
-
-    public List<RVirAttr> findInheritedVirtualAttributes() {
-        List<RVirAttr> result = new ArrayList<RVirAttr>(virtualAttributes);
-        if (isInheritVirtualAttributes() && getParent() != null) {
-            result.addAll(getParent().findInheritedVirtualAttributes());
         }
 
         return result;
