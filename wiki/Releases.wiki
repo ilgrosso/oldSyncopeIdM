@@ -1,13 +1,31 @@
-#summary Syncope stable releases
+#summary Syncope release notes
 
-= Introduction =
+= Syncope release notes =
+<wiki:toc max_depth="5"/>
 
-Add your content here.
+
+== 0.5 (May 10th, 2011) ==
+
+Hello everybody!
+
+With great pleasure and pride we announce the availability of the new 0.5 Syncope release, on perfect schedule (check it on [Roadmap the roadmap]).
+
+In a nutshell the most important new features:
+ 
+ 1. Password encryption scheme for users can now be configured [http://code.google.com/p/syncope/issues/detail?id=88 #88]
+ 1. The original Identity Connectors framework has been forked into the brand new !ConnId project [http://code.google.com/p/syncope/issues/detail?id=89 #89]; for more information take a look at [http://code.google.com/p/connid project website]
+ 1. The overall build process has been made for standard, powerful and flexible by the adoption of maven 3 [http://code.google.com/p/syncope/issues/detail?id=90 #90]
+ 1. A technology update has been performed in order to make Syncope compatible with J2EE 6 containers by upgrading to JPA 2.0 [http://code.google.com/p/syncope/issues/detail?id=91 #91]
+
+Alongside with these new features, some bugfixes are also coming:
+ 1. [http://code.google.com/p/syncope/issues/detail?id=87 #87]
+ 1. [http://code.google.com/p/syncope/issues/detail?id=108 #108]
+ 1. [http://code.google.com/p/syncope/issues/detail?id=109 #109]
+ 1. [http://code.google.com/p/syncope/issues/detail?id=110 #110]
+
+As you can check on [GettingStarted getting started page], the maven archetype has also been updated to reflect all the changes described above.
 
 
-= Details =
+Enjoy!
 
-Add your content here.  Format your content with:
-  * Text in *bold* or _italic_
-  * Headings, paragraphs, and lists
-  * Automatic links to other wiki pages
+The Syncope Team  
