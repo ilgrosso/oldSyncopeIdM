@@ -1,5 +1,7 @@
 #summary Syncope release notes
 
+Syncope name and logo are about music, about expressing the mission of orchestrating data and resources: for this reason Syncope releases are named after some well-known musical terms.
+
 = Syncope release notes =
 <wiki:toc max_depth="5"/>
 
