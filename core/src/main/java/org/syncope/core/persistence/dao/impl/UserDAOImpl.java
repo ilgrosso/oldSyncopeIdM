@@ -25,7 +25,6 @@ import javax.persistence.TemporalType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 import org.syncope.core.persistence.beans.AbstractAttrValue;
-import org.syncope.core.persistence.beans.AbstractVirAttr;
 import org.syncope.core.persistence.beans.membership.Membership;
 import org.syncope.core.persistence.beans.user.SyncopeUser;
 import org.syncope.core.persistence.beans.user.UAttrUniqueValue;
@@ -229,15 +228,7 @@ public class UserDAOImpl extends AbstractDAOImpl
 
     @Override
     public SyncopeUser save(final SyncopeUser user) {
-        SyncopeUser merged = entityManager.merge(user);
-
-        for (AbstractVirAttr virtual : merged.getVirtualAttributes()) {
-            virtual.setValues(user.getVirtualAttribute(
-                    virtual.getVirtualSchema().getName()).
-                    getValues());
-        }
-        
-        return merged;
+        return entityManager.merge(user);
     }
 
     @Override

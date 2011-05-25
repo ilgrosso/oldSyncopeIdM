@@ -42,7 +42,6 @@ import org.apache.commons.lang.RandomStringUtils;
 import org.syncope.core.persistence.beans.AbstractAttributable;
 import org.syncope.core.persistence.beans.AbstractAttr;
 import org.syncope.core.persistence.beans.AbstractDerAttr;
-import org.syncope.core.persistence.beans.AbstractVirAttr;
 import org.syncope.core.persistence.beans.TargetResource;
 import org.syncope.core.persistence.beans.membership.Membership;
 import org.syncope.core.persistence.beans.role.SyncopeRole;
@@ -82,10 +81,6 @@ public class SyncopeUser extends AbstractAttributable {
     @Valid
     private List<UDerAttr> derivedAttributes;
 
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "owner")
-    @Valid
-    private List<UVirAttr> virtualAttributes;
-
     @Column(nullable = true)
     private Long workflowId;
 
@@ -103,7 +98,6 @@ public class SyncopeUser extends AbstractAttributable {
         memberships = new ArrayList<Membership>();
         attributes = new ArrayList<UAttr>();
         derivedAttributes = new ArrayList<UDerAttr>();
-        virtualAttributes = new ArrayList<UVirAttr>();
     }
 
     @Override
@@ -280,32 +274,6 @@ public class SyncopeUser extends AbstractAttributable {
             List<? extends AbstractDerAttr> derivedAttributes) {
 
         this.derivedAttributes = (List<UDerAttr>) derivedAttributes;
-    }
-
-    @Override
-    public <T extends AbstractVirAttr> boolean addVirtualAttribute(
-            T virtualAttribute) {
-
-        return virtualAttributes.add((UVirAttr) virtualAttribute);
-    }
-
-    @Override
-    public <T extends AbstractVirAttr> boolean removeVirtualAttribute(
-            T virtualAttribute) {
-
-        return virtualAttributes.remove((UVirAttr) virtualAttribute);
-    }
-
-    @Override
-    public List<? extends AbstractVirAttr> getVirtualAttributes() {
-        return virtualAttributes;
-    }
-
-    @Override
-    public void setVirtualAttributes(
-            List<? extends AbstractVirAttr> virtualAttributes) {
-
-        this.virtualAttributes = (List<UVirAttr>) virtualAttributes;
     }
 
     public Long getWorkflowId() {

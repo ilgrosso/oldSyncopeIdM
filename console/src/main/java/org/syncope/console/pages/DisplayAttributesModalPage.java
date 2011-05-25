@@ -53,7 +53,6 @@ public class DisplayAttributesModalPage extends BaseModalPage {
 
         userAttributesForm.add(new CheckBoxMultipleChoice("schemaNames",
                 new PropertyModel(this, "selectedSchemas"), schemaNames));
-        
         IndicatingAjaxButton submit = new IndicatingAjaxButton("submit",
                 new Model(getString("submit"))) {
 

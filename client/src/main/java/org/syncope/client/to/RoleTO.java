@@ -29,8 +29,6 @@ public class RoleTO extends AbstractAttributableTO {
 
     private boolean inheritDerivedAttributes;
 
-    private boolean inheritVirtualAttributes;
-
     private List<String> entitlements;
 
     public RoleTO() {
@@ -69,14 +67,6 @@ public class RoleTO extends AbstractAttributableTO {
             final boolean inheritDerivedAttributes) {
 
         this.inheritDerivedAttributes = inheritDerivedAttributes;
-    }
-
-    public boolean isInheritVirtualAttributes() {
-        return inheritVirtualAttributes;
-    }
-
-    public void setInheritVirtualAttributes(boolean inheritVirtualAttributes) {
-        this.inheritVirtualAttributes = inheritVirtualAttributes;
     }
 
     public boolean addEntitlement(String entitlement) {

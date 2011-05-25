@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.syncope</groupId>
         <artifactId>syncope</artifactId>
-        <version>0.6-SNAPSHOT</version>
+        <version>0.5.1</version>
     </parent>
 
     <name>Syncope console</name>
@@ -30,8 +30,8 @@
 
     <properties>
         <hsqldb.version>2.0.0</hsqldb.version>
-        <connid.soap.version>1.1-SNAPSHOT</connid.soap.version>
-        <connid.db.table.version>1.2-SNAPSHOT</connid.db.table.version>
+        <connid.soap.version>1.0</connid.soap.version>
+        <connid.db.table.version>1.1</connid.db.table.version>
 
         <logfile>/var/tmp/syncope-console.log</logfile>
         <logfile.test>/var/tmp/syncope-console-test.log</logfile.test>
@@ -140,7 +140,7 @@
                 </configuration>
             </plugin>
             
-            <!-- For cargo:start
+            <!-- For cargo:run
             <plugin>
                 <groupId>org.onebusaway.plugins</groupId>
                 <artifactId>maven-hsqldb-plugin</artifactId>
