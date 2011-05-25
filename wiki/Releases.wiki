@@ -4,6 +4,18 @@
 <wiki:toc max_depth="5"/>
 
 
+== 0.5.1 Crescendo (May 25th, 2011) ==
+
+Hello everybody!
+
+With great pleasure and pride we announce the availability of the new 0.5.1 Syncope release, *Crescendo*.
+
+This support release includes some relevant fixes and small enhancement:
+
+ 1. REST service for getting running version [http://code.google.com/p/syncope/issues/detail?id=115 #115]
+ 1. Fixes an exception when restarting an instance persisted on PostgreSQL [http://code.google.com/p/syncope/issues/detail?id=116 #116]
+ 1. Fixed some misbehaviors introduced with JPA 2.0 [http://code.google.com/p/syncope/source/detail?r=1007]
+
 == 0.5 (May 10th, 2011) ==
 
 Hello everybody!
