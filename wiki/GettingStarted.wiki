@@ -94,7 +94,7 @@ database.schema=SYNCOPE
 
 You will also need to define a JDBC Datasource - called `syncopeDataSource` - in your servlet container's configuration, and provide the needed JDBC driver.
 
-Then, you may want to setup some default content to be loaded on your database upon schema creation: for this you need to create a file called `content.xml` under `core/src/main/resources`; take [https://syncope.googlecode.com/svn/trunk/core/src/main/resources/content.xml this] as reference.
+Then, you may want to setup some default content to be loaded on your database upon schema creation: for this you need to create a file called `content.xml` under `core/src/main/resources`; take [https://syncope.googlecode.com/svn/branches/0_5_X/core/src/main/resources/content.xml this] as reference.
 
 At this point you can build your core module by issuing
 {{{
