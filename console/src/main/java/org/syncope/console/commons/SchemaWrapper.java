@@ -12,6 +12,7 @@
  *  limitations under the License.
  *  under the License.
  */
+
 package org.syncope.console.commons;
 
 import java.io.Serializable;
@@ -26,7 +27,6 @@ import org.syncope.client.to.SchemaTO;
 public class SchemaWrapper implements Serializable {
 
     SchemaTO schemaTO;
-
     List<String> values;
 
     public SchemaWrapper(SchemaTO schemaTO) {
@@ -53,6 +53,9 @@ public class SchemaWrapper implements Serializable {
     }
 
     public void setValues(Set<String> values) {
-        this.values = new ArrayList<String>(values);
+        this.values = new ArrayList<String>();
+        for (String value : values) {
+            this.values.add(value);
+        }
     }
 }

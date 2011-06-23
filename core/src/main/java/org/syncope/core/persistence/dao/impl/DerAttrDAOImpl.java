@@ -63,9 +63,11 @@ public class DerAttrDAOImpl extends AbstractDAOImpl implements DerAttrDAO {
             final T derivedAttribute) {
 
         if (derivedAttribute.getOwner() != null) {
-            derivedAttribute.getOwner().
-                    removeDerivedAttribute(derivedAttribute);
+            derivedAttribute.getOwner().removeDerivedAttribute(
+                    derivedAttribute);
         }
+        derivedAttribute.getDerivedSchema().removeDerivedAttribute(
+                derivedAttribute);
 
         entityManager.remove(derivedAttribute);
     }

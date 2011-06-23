@@ -23,9 +23,9 @@ public class SchemaTO extends AbstractBaseBean {
 
     private SchemaType type;
 
-    private String mandatoryCondition;
+    private boolean virtual;
 
-    private String enumerationValues;
+    private String mandatoryCondition;
 
     private boolean multivalue;
 
@@ -49,20 +49,20 @@ public class SchemaTO extends AbstractBaseBean {
         this.conversionPattern = conversionPattern;
     }
 
+    public boolean isVirtual() {
+        return virtual;
+    }
+
+    public void setVirtual(boolean virtual) {
+        this.virtual = virtual;
+    }
+
     public String getMandatoryCondition() {
         return mandatoryCondition;
     }
 
     public void setMandatoryCondition(String mandatoryCondition) {
         this.mandatoryCondition = mandatoryCondition;
-    }
-
-    public String getEnumerationValues() {
-        return enumerationValues;
-    }
-
-    public void setEnumerationValues(String enumerationValues) {
-        this.enumerationValues = enumerationValues;
     }
 
     public boolean isMultivalue() {

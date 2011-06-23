@@ -25,7 +25,6 @@ import javax.persistence.TemporalType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 import org.syncope.core.persistence.beans.AbstractAttrValue;
-import org.syncope.core.persistence.beans.AbstractVirAttr;
 import org.syncope.core.persistence.beans.membership.Membership;
 import org.syncope.core.persistence.beans.user.SyncopeUser;
 import org.syncope.core.persistence.beans.user.UAttrUniqueValue;
@@ -41,6 +40,7 @@ public class UserDAOImpl extends AbstractDAOImpl
 
     @Autowired
     private SchemaDAO schemaDAO;
+
     @Autowired
     private RoleDAO roleDAO;
 
@@ -55,8 +55,7 @@ public class UserDAOImpl extends AbstractDAOImpl
 
         try {
             return (SyncopeUser) query.getSingleResult();
-        }
-        catch (NoResultException e) {
+        } catch (NoResultException e) {
             return null;
         }
     }
@@ -189,7 +188,7 @@ public class UserDAOImpl extends AbstractDAOImpl
         final Query query = entityManager.createNativeQuery(
                 getFindAllQuery(adminRoles).toString());
 
-        query.setFirstResult(itemsPerPage * ( page <= 0 ? 0 : page - 1 ));
+        query.setFirstResult(itemsPerPage * (page <= 0 ? 0 : page - 1));
 
         if (itemsPerPage > 0) {
             query.setMaxResults(itemsPerPage);
@@ -202,7 +201,7 @@ public class UserDAOImpl extends AbstractDAOImpl
         if (resultList != null) {
             for (Object userId : resultList) {
                 if (userId instanceof Object[]) {
-                    userIds.add((Number) ( (Object[]) userId )[0]);
+                    userIds.add((Number) ((Object[]) userId)[0]);
                 } else {
                     userIds.add((Number) userId);
                 }
@@ -214,7 +213,7 @@ public class UserDAOImpl extends AbstractDAOImpl
 
         SyncopeUser user;
         for (Object userId : userIds) {
-            user = find(( (Number) userId ).longValue());
+            user = find(((Number) userId).longValue());
             if (user == null) {
                 LOG.error("Could not find user with id {}, "
                         + "even though returned by the native query", userId);
@@ -235,20 +234,12 @@ public class UserDAOImpl extends AbstractDAOImpl
         Query countQuery =
                 entityManager.createNativeQuery(queryString.toString());
 
-        return ( (Number) countQuery.getSingleResult() ).intValue();
+        return ((Number) countQuery.getSingleResult()).intValue();
     }
 
     @Override
     public SyncopeUser save(final SyncopeUser user) {
-        SyncopeUser merged = entityManager.merge(user);
-
-        for (AbstractVirAttr virtual : merged.getVirtualAttributes()) {
-            virtual.setValues(user.getVirtualAttribute(
-                    virtual.getVirtualSchema().getName()).
-                    getValues());
-        }
-
-        return merged;
+        return entityManager.merge(user);
     }
 
     @Override
@@ -277,5 +268,15 @@ public class UserDAOImpl extends AbstractDAOImpl
         user.getMemberships().clear();
 
         entityManager.remove(user);
+    }
+
+    @Override
+    public void setSchemaDAO(final SchemaDAO schemaDAO) {
+        this.schemaDAO = schemaDAO;
+    }
+
+    @Override
+    public void setRoleDAO(RoleDAO roleDAO) {
+        this.roleDAO = roleDAO;
     }
 }

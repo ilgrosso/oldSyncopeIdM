@@ -22,7 +22,6 @@ import java.text.Format;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -38,15 +37,12 @@ import org.apache.wicket.extensions.markup.html.form.palette.Palette;
 import org.apache.wicket.markup.html.WebMarkupContainer;
 import org.apache.wicket.markup.html.form.TextField;
 import org.apache.wicket.markup.html.basic.Label;
-import org.apache.wicket.markup.html.form.CheckBox;
 import org.apache.wicket.markup.html.form.ChoiceRenderer;
 import org.apache.wicket.markup.html.form.Form;
 import org.apache.wicket.markup.html.list.ListItem;
 import org.apache.wicket.markup.html.list.ListView;
 import org.apache.wicket.markup.html.panel.Panel;
 import org.apache.wicket.model.CompoundPropertyModel;
-import org.apache.wicket.model.IModel;
-import org.apache.wicket.model.LoadableDetachableModel;
 import org.apache.wicket.model.Model;
 import org.apache.wicket.model.util.ListModel;
 import org.apache.wicket.spring.injection.annot.SpringBean;
@@ -63,11 +59,8 @@ import org.syncope.console.rest.ResourceRestClient;
 import org.syncope.console.rest.RoleRestClient;
 import org.syncope.console.rest.SchemaRestClient;
 import org.syncope.console.wicket.markup.html.form.AjaxCheckBoxPanel;
-import org.syncope.console.wicket.markup.html.form.AjaxDropDownChoicePanel;
 import org.syncope.console.wicket.markup.html.form.AjaxTextFieldPanel;
 import org.syncope.console.wicket.markup.html.form.DateFieldPanel;
-import org.syncope.console.wicket.markup.html.form.DerivedAttributesForm;
-import org.syncope.console.wicket.markup.html.form.VirtualAttributesForm;
 import org.syncope.types.SchemaType;
 
 /**
@@ -123,31 +116,13 @@ public class RoleModalPage extends BaseModalPage {
 
         setupSchemaWrappers(createFlag, roleTO);
 
-        final IModel<List<String>> derivedSchemaNames =
-                new LoadableDetachableModel<List<String>>() {
-
-                    @Override
-                    protected List<String> load() {
-                        return schemaRestClient.getDerivedSchemaNames("role");
-                    }
-                };
-
-        final IModel<List<String>> virtualSchemaNames =
-                new LoadableDetachableModel<List<String>>() {
-
-                    @Override
-                    protected List<String> load() {
-                        return schemaRestClient.getVirtualSchemaNames("role");
-                    }
-                };
-
         final ListView roleAttributesView = new ListView("roleSchemas",
                 schemaWrappers) {
 
             @Override
             protected void populateItem(final ListItem item) {
-                final SchemaWrapper schemaWrapper =
-                        (SchemaWrapper) item.getDefaultModelObject();
+                final SchemaWrapper schemaWrapper = (SchemaWrapper) item.
+                        getDefaultModelObject();
 
                 final SchemaTO schemaTO = schemaWrapper.getSchemaTO();
 
@@ -169,96 +144,74 @@ public class RoleModalPage extends BaseModalPage {
                             required = true;
                         }
 
-                        switch (schemaTO.getType()) {
-                            case Boolean:
-                                panel = new AjaxCheckBoxPanel(
-                                        "panel", schemaTO.getName(), new Model() {
+                        if (schemaTO.getType() == SchemaType.Boolean) {
+                            panel = new AjaxCheckBoxPanel("panel", schemaTO.
+                                    getName(), new Model() {
 
-                                    @Override
-                                    public Serializable getObject() {
-                                        return (String) item.getModelObject();
-                                    }
+                                @Override
+                                public Serializable getObject() {
+                                    return (String) item.getModelObject();
+                                }
 
-                                    @Override
-                                    public void setObject(Serializable object) {
-                                        Boolean val = (Boolean) object;
-                                        item.setModelObject(val.toString());
-                                    }
-                                }, required);
-                                break;
+                                @Override
+                                public void setObject(Serializable object) {
+                                    Boolean val = (Boolean) object;
+                                    item.setModelObject(val.toString());
+                                }
+                            }, required);
 
-                            case Date:
-                                panel = new DateFieldPanel("panel",
-                                        schemaTO.getName(), new Model() {
+                        } else if (schemaTO.getType() == SchemaType.Date) {
+                            panel = new DateFieldPanel("panel",
+                                    schemaTO.getName(), new Model() {
 
-                                    @Override
-                                    public Serializable getObject() {
-                                        DateFormat formatter = new SimpleDateFormat(
-                                                schemaTO.getConversionPattern());
-                                        Date date = new Date();
-                                        try {
-                                            String dateValue = (String) item.getModelObject();
-                                            //Default value:yyyy-MM-dd
-                                            if (!dateValue.equals("")) {
-                                                date = formatter.parse(dateValue);
-                                            } else {
-                                                date = null;
-                                            }
-                                        } catch (ParseException e) {
-                                            LOG.error("While parsing a date", e);
+                                @Override
+                                public Serializable getObject() {
+                                    DateFormat formatter = new SimpleDateFormat(
+                                            schemaTO.getConversionPattern());
+                                    Date date = new Date();
+                                    try {
+                                        String dateValue = (String) item.
+                                                getModelObject();
+                                        //Default value:yyyy-MM-dd
+                                        if (!dateValue.equals("")) {
+                                            date = formatter.parse(dateValue);
+                                        } else {
+                                            date = null;
                                         }
-                                        return date;
+                                    } catch (ParseException e) {
+                                        LOG.error("While parsing a date", e);
                                     }
+                                    return date;
+                                }
 
-                                    @Override
-                                    public void setObject(Serializable object) {
-                                        Date date = (Date) object;
-                                        Format formatter = new SimpleDateFormat(
-                                                schemaTO.getConversionPattern());
-                                        String val = formatter.format(date);
-                                        item.setModelObject(val);
-                                    }
-                                }, schemaTO.getConversionPattern(),
-                                        required,
-                                        schemaTO.isReadonly(), form);
-                                break;
+                                @Override
+                                public void setObject(Serializable object) {
+                                    Date date = (Date) object;
+                                    Format formatter = new SimpleDateFormat(
+                                            schemaTO.getConversionPattern());
+                                    String val = formatter.format(date);
+                                    item.setModelObject(val);
+                                }
+                            }, schemaTO.getConversionPattern(),
+                                    required,
+                                    schemaTO.isReadonly(), form);
+                        } else {
+                            /*Common other cases :
+                            java.lang.String,java.lang.Double, java.lang.Long*/
 
-                            case Enum:
-                                panel = new AjaxDropDownChoicePanel(
-                                        "panel",
-                                        schemaTO.getName(),
-                                        new Model() {
+                            panel = new AjaxTextFieldPanel("panel", schemaTO.
+                                    getName(), new Model() {
 
-                                            @Override
-                                            public Serializable getObject() {
-                                                return (String) item.getModelObject();
-                                            }
+                                @Override
+                                public Serializable getObject() {
+                                    return (String) item.getModelObject();
+                                }
 
-                                            @Override
-                                            public void setObject(Serializable object) {
-                                                item.setModelObject((String) object);
-                                            }
-                                        },
-                                        Arrays.asList(schemaTO.getEnumerationValues().split(Schema.enumValuesSeparator)),
-                                        new ChoiceRenderer(),
-                                        required);
-                                break;
-
-                            default:
-
-                                panel = new AjaxTextFieldPanel(
-                                        "panel", schemaTO.getName(), new Model() {
-
-                                    @Override
-                                    public Serializable getObject() {
-                                        return (String) item.getModelObject();
-                                    }
-
-                                    @Override
-                                    public void setObject(Serializable object) {
-                                        item.setModelObject((String) object);
-                                    }
-                                }, required);
+                                @Override
+                                public void setObject(Serializable object) {
+                                    item.setModelObject((String) object);
+                                }
+                            }, required);
                         }
 
                         item.add(panel);
@@ -294,7 +247,8 @@ public class RoleModalPage extends BaseModalPage {
 
                     @Override
                     protected IAjaxCallDecorator getAjaxCallDecorator() {
-                        return new AjaxPreprocessingCallDecorator(super.getAjaxCallDecorator()) {
+                        return new AjaxPreprocessingCallDecorator(super.
+                                getAjaxCallDecorator()) {
 
                             @Override
                             public CharSequence preDecorateScript(
@@ -329,34 +283,6 @@ public class RoleModalPage extends BaseModalPage {
         };
 
         form.add(roleAttributesView);
-
-        final CheckBox inheritAttributes = new CheckBox("inheritAttributes");
-        inheritAttributes.setOutputMarkupId(true);
-        form.add(inheritAttributes);
-
-        //--------------------------------
-        // Derived attributes container
-        //--------------------------------
-        form.add((new DerivedAttributesForm("derAttributesForm")).build(
-                this, roleTO, derivedSchemaNames));
-
-        final CheckBox inheritDerivedAttributes =
-                new CheckBox("inheritDerivedAttributes");
-        inheritDerivedAttributes.setOutputMarkupId(true);
-        form.add(inheritDerivedAttributes);
-        //--------------------------------
-
-        //--------------------------------
-        // Virtual attributes container
-        //--------------------------------
-        form.add((new VirtualAttributesForm("virAttributesForm")).build(
-                this, roleTO, virtualSchemaNames));
-
-        final CheckBox inheritVirtualAttributes =
-                new CheckBox("inheritVirtualAttributes");
-        inheritVirtualAttributes.setOutputMarkupId(true);
-        form.add(inheritVirtualAttributes);
-        //--------------------------------
 
         ListModel<ResourceTO> selectedResources = new ListModel<ResourceTO>();
         selectedResources.setObject(getSelectedResources(roleTO));
@@ -503,7 +429,7 @@ public class RoleModalPage extends BaseModalPage {
         schemaWrappers = new ArrayList<SchemaWrapper>();
         SchemaWrapper schemaWrapper;
 
-        List<SchemaTO> schemas = schemaRestClient.getSchemas("role");
+        List<SchemaTO> schemas = schemaRestClient.getAllRoleSchemas();
 
         boolean found = false;
 
@@ -568,36 +494,23 @@ public class RoleModalPage extends BaseModalPage {
         final List<AttributeTO> attributes = new ArrayList<AttributeTO>();
 
         AttributeTO attributeTO;
-
+        List<String> values;
         for (AttributeTO attribute : roleTO.getAttributes()) {
             attributeTO = new AttributeTO();
-            attributeTO.setReadonly(attribute.isReadonly());
-            attributeTO.setSchema(attribute.getSchema());
+            attributeTO.setSchema(new String(attribute.getSchema()));
 
-            for (String value : attribute.getValues()) {
-                attributeTO.addValue(value);
+            values = new ArrayList<String>();
+            for (String val : attribute.getValues()) {
+                values.add(val);
             }
+            attributeTO.setValues(values);
 
             attributes.add(attributeTO);
         }
 
         oldRole.setAttributes(attributes);
 
-        for (AttributeTO attribute : roleTO.getDerivedAttributes()) {
-            attributeTO = new AttributeTO();
-            attributeTO.setReadonly(attribute.isReadonly());
-            attributeTO.setSchema(attribute.getSchema());
-
-            for (String value : attribute.getValues()) {
-                attributeTO.addValue(value);
-            }
-
-            oldRole.addDerivedAttribute(attributeTO);
-        }
-
-        for (String resource : roleTO.getResources()) {
-            oldRole.addResource(resource);
-        }
+        oldRole.setResources(roleTO.getResources());
 
         List<String> entList = new ArrayList<String>();
 
@@ -609,53 +522,18 @@ public class RoleModalPage extends BaseModalPage {
     }
 
     public void setupRoleMod(final RoleTO roleTO) {
-        roleMod = new RoleMod();
-
         //1.Check if the role's name has been changed
         if (!oldRole.getName().equals(roleTO.getName())) {
+            roleMod = new RoleMod();
             roleMod.setName(roleTO.getName());
         }
 
-        //2.Update user's schema derived attributes
-        final List<AttributeTO> newDerivedAttributes =
-                roleTO.getDerivedAttributes();
-
-        final List<AttributeTO> oldDerivedAttributes =
-                oldRole.getDerivedAttributes();
-
-        for (AttributeTO oldDerivedAttribute : oldDerivedAttributes) {
-            roleMod.addDerivedAttributeToBeRemoved(
-                    oldDerivedAttribute.getSchema());
-        }
-
-        for (AttributeTO newDerivedAttribute : newDerivedAttributes) {
-            roleMod.addDerivedAttributeToBeAdded(
-                    newDerivedAttribute.getSchema());
-        }
-
-        //4.Update user's schema virtual attributes
-        final List<AttributeTO> newVirtualAttributes =
-                roleTO.getVirtualAttributes();
-
-        final List<AttributeTO> oldVirtualAttributes =
-                oldRole.getVirtualAttributes();
-
-        for (AttributeTO oldVirtualAttribute : oldVirtualAttributes) {
-            roleMod.addVirtualAttributeToBeRemoved(
-                    oldVirtualAttribute.getSchema());
-        }
-
-        for (AttributeTO newVirtualAttribute : newVirtualAttributes) {
-            roleMod.addVirtualAttributeToBeAdded(
-                    newVirtualAttribute.getSchema());
-        }
-
-        //4.Search and update role's attributes
+        //2.Search and update role's attributes
         for (AttributeTO attributeTO : roleTO.getAttributes()) {
             searchAndUpdateAttribute(attributeTO);
         }
 
-        //5.Search and update role's resources
+        //3.Search and update role's resources
         for (String resource : roleTO.getResources()) {
             searchAndAddResource(resource);
         }
@@ -664,7 +542,7 @@ public class RoleModalPage extends BaseModalPage {
             searchAndDropResource(resource, roleTO);
         }
 
-        //6.Check if entitlements' list has been changed
+        //4.Check if entitlements' list has been changed
         if (!oldRole.getEntitlements().equals(roleTO.getEntitlements())) {
             roleMod.setEntitlements(roleTO.getEntitlements());
         }
@@ -751,7 +629,8 @@ public class RoleModalPage extends BaseModalPage {
             if (attributeTO.getSchema().equals(oldAttribute.getSchema())) {
 
                 if (attributeTO.getSchema().equals(oldAttribute.getSchema())
-                        && !attributeTO.equals(oldAttribute) && !oldAttribute.isReadonly()) {
+                        && !attributeTO.equals(oldAttribute) && !oldAttribute.
+                        isReadonly()) {
 
                     if (attributeTO.getValues().size() > 1) {
                         attributeMod.setValuesToBeAdded(

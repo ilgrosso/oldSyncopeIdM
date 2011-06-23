@@ -14,12 +14,85 @@
  */
 package org.syncope.core.persistence.beans.membership;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import javax.persistence.Entity;
-import org.hibernate.annotations.Cache;
-import org.hibernate.annotations.CacheConcurrencyStrategy;
+import javax.persistence.OneToMany;
+import org.syncope.core.persistence.beans.AbstractDerAttr;
 import org.syncope.core.persistence.beans.AbstractDerSchema;
+import org.syncope.core.persistence.beans.SchemaMapping;
 
 @Entity
-@Cache(usage = CacheConcurrencyStrategy.TRANSACTIONAL)
 public class MDerSchema extends AbstractDerSchema {
+
+    @OneToMany(mappedBy = "derivedSchema")
+    private List<MDerAttr> derivedAttributes;
+
+    public MDerSchema() {
+        derivedAttributes = new ArrayList<MDerAttr>();
+    }
+
+    @Override
+    public <T extends AbstractDerAttr> boolean addDerivedAttribute(
+            T derivedAttribute) {
+
+        return derivedAttributes.add((MDerAttr) derivedAttribute);
+    }
+
+    @Override
+    public <T extends AbstractDerAttr> boolean removeDerivedAttribute(
+            T derivedAttribute) {
+
+        return derivedAttributes.remove((MDerAttr) derivedAttribute);
+    }
+
+    @Override
+    public List<? extends AbstractDerAttr> getDerivedAttributes() {
+        return derivedAttributes;
+    }
+
+    @Override
+    public <T extends AbstractDerAttr> void setDerivedAttributes(
+            List<T> derivedAttributes) {
+
+        this.derivedAttributes = (List<MDerAttr>) derivedAttributes;
+    }
+
+    /**
+     * TODO: https://code.google.com/p/syncope/issues/detail?id=27
+     * @param mapping
+     * @return
+     */
+    @Override
+    public boolean addMapping(SchemaMapping mapping) {
+        return true;
+    }
+
+    /**
+     * TODO: https://code.google.com/p/syncope/issues/detail?id=27
+     * @param mapping
+     * @return
+     */
+    @Override
+    public boolean removeMapping(SchemaMapping mapping) {
+        return true;
+    }
+
+    /**
+     * TODO: https://code.google.com/p/syncope/issues/detail?id=27
+     * @return
+     */
+    @Override
+    public List<SchemaMapping> getMappings() {
+        return Collections.EMPTY_LIST;
+    }
+
+    /**
+     * TODO: https://code.google.com/p/syncope/issues/detail?id=27
+     * @param mappings
+     */
+    @Override
+    public void setMappings(List<SchemaMapping> mappings) {
+    }
 }

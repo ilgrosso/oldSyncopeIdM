@@ -78,8 +78,7 @@ public class DerivedSchemaController extends AbstractController {
 
             throw new NotFoundException(derivedSchemaName);
         } else {
-            derivedSchemaDAO.delete(
-                    derivedSchemaName, getAttributableUtil(kind));
+            derivedSchemaDAO.delete(derivedSchemaName, reference);
         }
     }
 

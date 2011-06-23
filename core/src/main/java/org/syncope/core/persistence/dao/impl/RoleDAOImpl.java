@@ -44,8 +44,7 @@ public class RoleDAOImpl extends AbstractDAOImpl implements RoleDAO {
 
         try {
             return (SyncopeRole) query.getSingleResult();
-        }
-        catch (NoResultException e) {
+        } catch (NoResultException e) {
             return null;
         }
     }
@@ -158,5 +157,10 @@ public class RoleDAOImpl extends AbstractDAOImpl implements RoleDAO {
         entityManager.remove(role);
 
         entitlementDAO.delete(EntitlementUtil.getEntitlementName(id));
+    }
+
+    @Override
+    public void setEntitlementDAO(EntitlementDAO entitlementDAO) {
+        this.entitlementDAO = entitlementDAO;
     }
 }

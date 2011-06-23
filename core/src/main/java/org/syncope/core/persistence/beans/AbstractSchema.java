@@ -55,14 +55,20 @@ public abstract class AbstractSchema extends AbstractBaseBean {
                 }
             };
 
-    public static String enumValuesSeparator = ";";
-
     @Id
     private String name;
 
     @Column(nullable = false)
     @Enumerated(STRING)
     private SchemaType type;
+
+    /**
+     * Specify if the attribute should be stored on the local repository.
+     */
+    @Basic
+    @Min(0)
+    @Max(1)
+    private Integer virtual;
 
     @Column(nullable = false)
     private String mandatoryCondition;
@@ -88,9 +94,6 @@ public abstract class AbstractSchema extends AbstractBaseBean {
     @Column(nullable = true)
     private String validatorClass;
 
-    @Column(nullable = true)
-    private String enumerationValues;
-
     @Transient
     private AbstractValidator validator;
 
@@ -98,6 +101,7 @@ public abstract class AbstractSchema extends AbstractBaseBean {
         super();
 
         type = SchemaType.String;
+        virtual = getBooleanAsInteger(false);
         mandatoryCondition = Boolean.FALSE.toString();
         multivalue = getBooleanAsInteger(false);
         uniqueConstraint = getBooleanAsInteger(false);
@@ -118,6 +122,14 @@ public abstract class AbstractSchema extends AbstractBaseBean {
 
     public void setType(SchemaType type) {
         this.type = type;
+    }
+
+    public boolean isVirtual() {
+        return isBooleanAsInteger(virtual);
+    }
+
+    public void setVirtual(boolean virtual) {
+        this.virtual = getBooleanAsInteger(virtual);
     }
 
     public String getMandatoryCondition() {
@@ -185,14 +197,6 @@ public abstract class AbstractSchema extends AbstractBaseBean {
 
     public void setValidatorClass(String validatorClass) {
         this.validatorClass = validatorClass;
-    }
-
-    public String getEnumerationValues() {
-        return enumerationValues;
-    }
-
-    public void setEnumerationValues(String enumerationValues) {
-        this.enumerationValues = enumerationValues;
     }
 
     public String getConversionPattern() {

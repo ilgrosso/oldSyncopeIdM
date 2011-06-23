@@ -20,8 +20,7 @@ public enum SchemaType {
     Long("java.lang.Long"),
     Double("java.lang.Double"),
     Boolean("java.lang.Boolean"),
-    Date("java.util.Date"),
-    Enum("java.lang.Enum");
+    Date("java.util.Date");
 
     final private String className;
 

@@ -16,8 +16,6 @@ package org.syncope.core.persistence.propagation;
 
 import java.io.File;
 import java.net.URI;
-import java.util.Collection;
-import java.util.HashSet;
 import java.util.Set;
 import javassist.NotFoundException;
 import org.identityconnectors.common.security.GuardedByteArray;
@@ -55,10 +53,12 @@ public class ConnectorFacadeProxy {
      */
     private static final Logger LOG = LoggerFactory.getLogger(
             ConnectorFacadeProxy.class);
+
     /**
      * Connector facade wrapped instance.
      */
     private final ConnectorFacade connector;
+
     /**
      * Set of configure connecto instance capabilities.
      * @see org.syncope.core.persistence.beans.ConnInstance
@@ -183,8 +183,7 @@ public class ConnectorFacadeProxy {
 
                     properties.setPropertyValue(
                             property.getSchema().getName(), propertyValue);
-                }
-                catch (Throwable t) {
+                } catch (Throwable t) {
                     LOG.error("Invalid ConnConfProperty specified: {}",
                             property, t);
                 }
@@ -292,7 +291,6 @@ public class ConnectorFacadeProxy {
             final ObjectClass objectClass,
             final Uid uid,
             final OperationOptions options) {
-
         return getObject(null, null, objectClass, uid, options);
     }
 
@@ -316,11 +314,11 @@ public class ConnectorFacadeProxy {
                 switch (operationType) {
                     case CREATE:
                         if (propagationMode == null
-                                || ( propagationMode == PropagationMode.SYNC
+                                || (propagationMode == PropagationMode.SYNC
                                 ? capabitilies.contains(
                                 ConnectorCapability.SYNC_CREATE)
                                 : capabitilies.contains(
-                                ConnectorCapability.ASYNC_CREATE) )) {
+                                ConnectorCapability.ASYNC_CREATE))) {
 
                             result = connector.getObject(
                                     objectClass, uid, options);
@@ -328,11 +326,11 @@ public class ConnectorFacadeProxy {
                         break;
                     case UPDATE:
                         if (propagationMode == null
-                                || ( propagationMode == PropagationMode.SYNC
+                                || (propagationMode == PropagationMode.SYNC
                                 ? capabitilies.contains(
                                 ConnectorCapability.SYNC_UPDATE)
                                 : capabitilies.contains(
-                                ConnectorCapability.ASYNC_UPDATE) )) {
+                                ConnectorCapability.ASYNC_UPDATE))) {
 
                             result = connector.getObject(
                                     objectClass, uid, options);
@@ -349,54 +347,6 @@ public class ConnectorFacadeProxy {
 
     public void validate() {
         connector.validate();
-    }
-
-    public Attribute getObjectAttribute(
-            final ObjectClass objClass,
-            final Uid uid,
-            final OperationOptions options,
-            final String attributeName) {
-
-        Attribute attribute = null;
-
-        try {
-            final ConnectorObject object =
-                    connector.getObject(objClass, uid, options);
-
-            attribute = object.getAttributeByName(attributeName);
-
-        }
-        catch (NullPointerException e) {
-            // ignore exception
-            LOG.debug("Object for '{}' not found", uid.getUidValue());
-        }
-
-        return attribute;
-    }
-
-    public Set<Attribute> getObjectAttributes(
-            final ObjectClass objClass,
-            final Uid uid,
-            final OperationOptions options,
-            final Collection<String> attributeNames) {
-
-        final Set<Attribute> attributes = new HashSet<Attribute>();
-
-        try {
-
-            final ConnectorObject object = connector.getObject(objClass, uid, options);
-
-            for (String attribute : attributeNames) {
-                attributes.add(object.getAttributeByName(attribute));
-            }
-
-        }
-        catch (NullPointerException e) {
-            // ignore exception
-            LOG.debug("Object for '{}' not found", uid.getUidValue());
-        }
-
-        return attributes;
     }
 
     @Override

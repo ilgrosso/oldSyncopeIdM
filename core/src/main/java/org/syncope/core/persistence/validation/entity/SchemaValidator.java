@@ -18,7 +18,6 @@ import javax.validation.ConstraintValidator;
 import javax.validation.ConstraintValidatorContext;
 import org.syncope.core.persistence.beans.AbstractSchema;
 import org.syncope.types.EntityViolationType;
-import org.syncope.types.SchemaType;
 
 public class SchemaValidator extends AbstractValidator
         implements ConstraintValidator<SchemaCheck, AbstractSchema> {
@@ -32,45 +31,26 @@ public class SchemaValidator extends AbstractValidator
             final ConstraintValidatorContext context) {
 
         boolean isValid = false;
-        EntityViolationType violation = null;
 
-        try {
-            if (object == null) {
-                isValid = true;
-            } else {
-                isValid = !object.getType().equals(SchemaType.Enum)
-                        || object.getEnumerationValues() != null;
+        if (object == null) {
+            isValid = true;
+        } else {
+            isValid = object.isMultivalue()
+                    ? !object.isUniqueConstraint() : true;
 
-                if (!isValid) {
-                    violation =
-                            EntityViolationType.InvalidSchemaTypeSpecification;
+            if (!isValid) {
+                LOG.error(object + " cannot be multivalue and have "
+                        + "unique constraint at the same time");
 
-                    throw new Exception(object
-                            + " miss enumeration values");
-                }
-
-                isValid = object.isMultivalue()
-                        ? !object.isUniqueConstraint() : true;
-
-                if (!isValid) {
-                    violation =
-                            EntityViolationType.MultivalueAndUniqueConstraint;
-
-                    throw new Exception(object
-                            + " cannot be multivalue and have "
-                            + "unique constraint at the same time");
-                }
+                context.disableDefaultConstraintViolation();
+                context.buildConstraintViolationWithTemplate(
+                        EntityViolationType.MultivalueAndUniqueConstraint.
+                        toString()).
+                        addNode(object.toString()).
+                        addConstraintViolation();
             }
-        } catch (Exception e) {
-            LOG.error(e.getMessage());
-
-            context.disableDefaultConstraintViolation();
-            context.buildConstraintViolationWithTemplate(
-                    violation.toString()).
-                    addNode(object.toString()).
-                    addConstraintViolation();
-        } finally {
-            return isValid;
         }
+
+        return isValid;
     }
 }
