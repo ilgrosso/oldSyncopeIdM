@@ -13,13 +13,13 @@ A new maintenance release of Syncope *Crescendo*, 0.5.2, is available.
 
 In this release:
 
- 1. Propagation fails if AccountId used to build AccountLink is considered as attribute to propagate [http://code.google.com/p/syncope/issues/detail?id=122 #122]
+ 1. Propagation fails if !AccountId used to build !AccountLink is considered as attribute to propagate [http://code.google.com/p/syncope/issues/detail?id=122 #122]
  1. Update propagation fails if __NAME__ to be updated has the same value as remote object's [http://code.google.com/p/syncope/issues/detail?id=123 #123]
  1. Exception when paginating user list with Oracle [http://code.google.com/p/syncope/issues/detail?id=110 #110]
  1. Deleting a connector instance from the console does not work [http://code.google.com/p/syncope/issues/detail?id=119 #119]
  1. Use JNDI Datasource (when available) in ContentLoader [http://code.google.com/p/syncope/issues/detail?id=124 #124]
  1. Search user by associated resource [http://code.google.com/p/syncope/issues/detail?id=112 #112]
- 1. SchemaMapping for user propagation allows RSchema and MSchema to be selected [http://code.google.com/p/syncope/issues/detail?id=114 #114]
+ 1. !SchemaMapping for user propagation allows RSchema and MSchema to be selected [http://code.google.com/p/syncope/issues/detail?id=114 #114]
 
 == 0.5.1 Crescendo (May 25th, 2011) ==
 
