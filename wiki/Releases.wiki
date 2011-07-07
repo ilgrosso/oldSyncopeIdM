@@ -5,6 +5,37 @@ Syncope name and logo are about music, about expressing the mission of orchestra
 = Syncope release notes =
 <wiki:toc max_depth="5"/>
 
+== 0.6 Sostenuto (July 7th, 2011) ==
+
+With great pleasure and pride we announce the availability of the new 0.6 Syncope rolling release *Sostenuto*, (check it on [Roadmap the roadmap]).
+
+In a nutshell the most important new features:
+ 
+ 1. Virtual Schema management [http://code.google.com/p/syncope/issues/detail?id=20 #20]
+ 1. Schema mapping for derived attributes [http://code.google.com/p/syncope/issues/detail?id=27 #27]
+ 1. Support for Enum schema [http://code.google.com/p/syncope/issues/detail?id=66 #66]
+ 1. Search user by associated resource [http://code.google.com/p/syncope/issues/detail?id=112 #112]
+ 1. REST service for getting running version [http://code.google.com/p/syncope/issues/detail?id=115 #115]
+ 1. Use JNDI Datasource (when available) in ContentLoader [http://code.google.com/p/syncope/issues/detail?id=124 #124]
+ 1. Use HSQLDB 2.2.4 [http://code.google.com/p/syncope/issues/detail?id=126 #126]
+
+
+Alongside with these new features, some bugfixes are also coming:
+ 1. [http://code.google.com/p/syncope/issues/detail?id=80 #80]
+ 1. [http://code.google.com/p/syncope/issues/detail?id=110 #110]
+ 1. [http://code.google.com/p/syncope/issues/detail?id=111 #111]
+ 1. [http://code.google.com/p/syncope/issues/detail?id=114 #114]
+ 1. [http://code.google.com/p/syncope/issues/detail?id=116 #116]
+ 1. [http://code.google.com/p/syncope/issues/detail?id=118 #118]
+ 1. [http://code.google.com/p/syncope/issues/detail?id=119 #119]
+ 1. [http://code.google.com/p/syncope/issues/detail?id=122 #123]
+
+As you can check on [GettingStarted getting started page], the maven archetype has also been updated to reflect all the changes described above.
+
+Enjoy!
+
+The Syncope Team
+
 == 0.5.2 Crescendo (June 23rd, 2011) ==
 
 Hello everybody!
@@ -53,7 +84,6 @@ Alongside with these new features, some bugfixes are also coming:
  1. [http://code.google.com/p/syncope/issues/detail?id=110 #110]
 
 As you can check on [GettingStarted getting started page], the maven archetype has also been updated to reflect all the changes described above.
-
 
 Enjoy!
 
