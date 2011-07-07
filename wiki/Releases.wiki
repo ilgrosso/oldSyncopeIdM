@@ -16,7 +16,7 @@ In a nutshell the most important new features:
  1. Support for Enum schema [http://code.google.com/p/syncope/issues/detail?id=66 #66]
  1. Search user by associated resource [http://code.google.com/p/syncope/issues/detail?id=112 #112]
  1. REST service for getting running version [http://code.google.com/p/syncope/issues/detail?id=115 #115]
- 1. Use JNDI Datasource (when available) in ContentLoader [http://code.google.com/p/syncope/issues/detail?id=124 #124]
+ 1. Use JNDI Datasource (when available) in !ContentLoader [http://code.google.com/p/syncope/issues/detail?id=124 #124]
  1. Use HSQLDB 2.2.4 [http://code.google.com/p/syncope/issues/detail?id=126 #126]
 
 
