@@ -21,6 +21,7 @@ In a nutshell the most important new features:
 
 
 Alongside with these new features, some bugfixes are also coming:
+ 1. [http://code.google.com/p/syncope/issues/detail?id=79 #79]
  1. [http://code.google.com/p/syncope/issues/detail?id=80 #80]
  1. [http://code.google.com/p/syncope/issues/detail?id=110 #110]
  1. [http://code.google.com/p/syncope/issues/detail?id=111 #111]
@@ -28,6 +29,7 @@ Alongside with these new features, some bugfixes are also coming:
  1. [http://code.google.com/p/syncope/issues/detail?id=116 #116]
  1. [http://code.google.com/p/syncope/issues/detail?id=118 #118]
  1. [http://code.google.com/p/syncope/issues/detail?id=119 #119]
+ 1. [http://code.google.com/p/syncope/issues/detail?id=122 #122]
  1. [http://code.google.com/p/syncope/issues/detail?id=122 #123]
 
 As you can check on [GettingStarted getting started page], the maven archetype has also been updated to reflect all the changes described above.
