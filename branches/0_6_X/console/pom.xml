@@ -1,0 +1,360 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.syncope</groupId>
+        <artifactId>syncope</artifactId>
+        <version>0.7-SNAPSHOT</version>
+    </parent>
+
+    <name>Syncope console</name>
+    <description>Syncope console</description>
+    <groupId>org.syncope</groupId>
+    <artifactId>syncope-console</artifactId>
+    <packaging>war</packaging>
+
+    <properties>
+        <logfile>/var/tmp/syncope-console.log</logfile>
+        <logfile.test>/var/tmp/syncope-console-test.log</logfile.test>
+
+        <cargo.servlet.port>9080</cargo.servlet.port>
+        <cargo.log>/var/tmp/syncope-console-cargo.log</cargo.log>
+        <cargo.output>/var/tmp/syncope-console-cargo-output.log</cargo.output>
+
+        <bundles.directory>/var/tmp/bundles</bundles.directory>
+    </properties>
+
+    <dependencies>
+
+        <dependency>
+            <groupId>org.syncope</groupId>
+            <artifactId>syncope-client</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>commons-logging</groupId>
+            <artifactId>commons-logging</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>jcl-over-slf4j</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.wicket</groupId>
+            <artifactId>wicket</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.wicket</groupId>
+            <artifactId>wicket-extensions</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.wicket</groupId>
+            <artifactId>wicket-datetime</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.wicket</groupId>
+            <artifactId>wicket-spring</artifactId>
+            <!-- exclude spring framework that wicket pulls in -->
+            <exclusions>
+                <exclusion>
+                    <groupId>org.springframework</groupId>
+                    <artifactId>spring</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.wicket</groupId>
+            <artifactId>wicket-auth-roles</artifactId>
+        </dependency>
+        
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-webmvc</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.codehaus.jackson</groupId>
+            <artifactId>jackson-mapper-lgpl</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>javax.servlet</groupId>
+            <artifactId>servlet-api</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>commons-httpclient</groupId>
+            <artifactId>commons-httpclient</artifactId>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <finalName>${project.artifactId}</finalName>
+
+        <plugins>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-war-plugin</artifactId>
+                <inherited>true</inherited>
+                <configuration>
+                    <attachClasses>true</attachClasses>
+                </configuration>
+            </plugin>
+            
+        </plugins>
+            
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+            </resource>
+        </resources>
+
+        <testResources>
+            <testResource>
+                <directory>src/test/resources</directory>
+                <filtering>true</filtering>
+            </testResource>
+            <testResource>
+                <directory>../core/src/test/resources</directory>
+                <filtering>true</filtering>
+            </testResource>
+        </testResources>
+    </build>
+
+    <reporting>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-checkstyle-plugin</artifactId>
+                <configuration>
+                    <configLocation>${project.parent.basedir}/syncope_checks.xml</configLocation>
+                </configuration>
+            </plugin>
+        </plugins>
+    </reporting>
+    
+    <profiles>
+        <profile>
+            <id>dev</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.onebusaway.plugins</groupId>
+                        <artifactId>maven-hsqldb-plugin</artifactId>
+                        <inherited>true</inherited>
+                        <configuration>
+                            <dbName>testdb</dbName>
+                            <mode>server</mode>
+                            <isTransient>true</isTransient>
+                        </configuration>
+                        <dependencies>
+                            <dependency>
+                                <groupId>org.hsqldb</groupId>
+                                <artifactId>hsqldb</artifactId>
+                                <version>${hsqldb.version}</version>
+                            </dependency>
+                        </dependencies>
+                        <executions>
+                            <execution>
+                                <id>startTestDb</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>run</goal>    
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+            
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>sql-maven-plugin</artifactId>
+                        <inherited>true</inherited>
+                        <dependencies>
+                            <dependency>
+                                <groupId>org.hsqldb</groupId>
+                                <artifactId>hsqldb</artifactId>
+                                <version>${hsqldb.version}</version>
+                            </dependency>
+                        </dependencies>
+                        <configuration>
+                            <driver>org.hsqldb.jdbcDriver</driver>
+                            <url>jdbc:hsqldb:hsql://localhost:9001/testdb</url>
+                            <username>sa</username>
+                            <password />
+                            <srcFiles>
+                                <srcFile>${project.build.directory}/test-classes/testdb.sql</srcFile>
+                            </srcFiles>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>loadTestDb</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>execute</goal>    
+                                </goals>
+                            </execution>    
+                        </executions>
+                    </plugin>
+
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-antrun-plugin</artifactId>
+                        <inherited>true</inherited>
+                        <executions>
+                            <execution>
+                                <id>explodeSyncopeWAR</id>
+                                <phase>package</phase>
+                                <configuration>
+                                    <target>
+                                        <unzip src="${basedir}/../core/target/syncope.war" dest="${project.build.directory}/syncope-core-test">
+                                            <patternset>
+                                                <exclude name="**/content.xml" />
+                                                <exclude name="**/ehcache.xml" />
+                                                <exclude name="**/persistence.properties" />
+                                            </patternset>
+                                        </unzip>
+                                    </target>
+                                </configuration>
+                                <goals>
+                                    <goal>run</goal>
+                                </goals>
+                            </execution>
+                            <execution>
+                                <id>setupTomcat</id>
+                                <phase>package</phase>
+                                <configuration>
+                                    <target>
+                                        <get src="http://www.apache.org/dist/tomcat/tomcat-7/v7.0.16/bin/apache-tomcat-7.0.16.zip" dest="${java.io.tmpdir}" skipexisting="true" />
+                                        <unzip src="${java.io.tmpdir}/apache-tomcat-7.0.16.zip" dest="${java.io.tmpdir}" overwrite="false" />
+                                    </target>
+                                </configuration>
+                                <goals>
+                                    <goal>run</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-dependency-plugin</artifactId>
+                        <inherited>true</inherited>
+                        <executions>
+                            <execution>
+                                <id>set-bundles</id>
+                                <phase>process-test-resources</phase>
+                                <goals>
+                                    <goal>copy</goal>
+                                </goals>
+                                <configuration>
+                                    <artifactItems>
+                                        <artifactItem>
+                                            <groupId>org.connid.bundles.soap</groupId>
+                                            <artifactId>org.connid.bundles.soap</artifactId>
+                                            <version>${connid.soap.version}</version>
+                                            <outputDirectory>${bundles.directory}</outputDirectory>                                
+                                        </artifactItem>
+                                        <artifactItem>
+                                            <groupId>org.connid.bundles.db</groupId>
+                                            <artifactId>org.connid.bundles.db.table</artifactId>
+                                            <version>${connid.db.table.version}</version>
+                                            <outputDirectory>${bundles.directory}</outputDirectory>                                
+                                        </artifactItem>
+                                    </artifactItems>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <plugin>
+                        <groupId>org.codehaus.cargo</groupId>
+                        <artifactId>cargo-maven2-plugin</artifactId>
+                        <inherited>true</inherited>
+                        <configuration>
+                            <container>
+                                <containerId>tomcat7x</containerId>
+                                <home>${java.io.tmpdir}/apache-tomcat-7.0.16</home>
+                                <log>${cargo.log}</log>
+                                <output>${cargo.output}</output>
+                                <dependencies>
+                                    <dependency>
+                                        <location>${settings.localRepository}/org/hsqldb/hsqldb/${hsqldb.version}/hsqldb-${hsqldb.version}.jar</location>
+                                    </dependency>
+                                </dependencies>
+                            </container>
+                            <configuration>
+                                <type>standalone</type>
+                                <configfiles>
+                                    <configfile>
+                                        <file>${project.build.directory}/test-classes/catalina.properties</file>
+                                        <todir>conf</todir>
+                                    </configfile>
+                                </configfiles>
+                                <properties>
+                                    <cargo.servlet.port>${cargo.servlet.port}</cargo.servlet.port>
+                                </properties>
+                                <deployables>
+                                    <deployable>
+                                        <location>${project.build.directory}/syncope-core-test</location>
+                                        <properties>
+                                            <context>syncope</context>
+                                        </properties>
+                                    </deployable>
+                                    <deployable>
+                                        <location>${project.build.directory}/${project.build.finalName}.war</location>
+                                        <properties>
+                                            <context>syncope-console</context>
+                                        </properties>
+                                    </deployable>
+                                    <deployable>
+                                        <location>${settings.localRepository}/org/connid/bundles/soap/wssample/${connid.soap.version}/wssample-${connid.soap.version}.war</location>
+                                        <properties>
+                                            <context>wssample</context>
+                                        </properties>
+                                    </deployable>
+                                </deployables>
+                            </configuration>
+                        </configuration>
+                    </plugin>    
+                </plugins>    
+            </build>
+        </profile>    
+    </profiles>
+
+</project>
