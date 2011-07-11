@@ -70,9 +70,11 @@ To test out your fresh installation, go to http://localhost:9080/syncope-console
 
 === Real-world ===
 
+==== Persistence ====
+
 For a real-world deployment, you need first to define which DBMS you are using: in order to configure that, you need to create a file called `persistence.properties` under `core/src/main/resources`. You can take the following as reference.
 
-==== PostgreSQL ====
+===== PostgreSQL =====
 {{{
 hibernate.connection.driver_class=org.postgresql.Driver
 hibernate.connection.url=jdbc:postgresql://localhost:5432/syncope
@@ -81,7 +83,7 @@ hibernate.connection.password=syncope
 hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
 dbUnitDataTypeFactory=org.dbunit.ext.postgresql.PostgresqlDataTypeFactory
 }}}
-==== Oracle 10g ====
+===== Oracle 10g =====
 {{{
 hibernate.connection.driver_class=oracle.jdbc.driver.OracleDriver
 hibernate.connection.url=jdbc:oracle:thin:@localhost:1521:orcl
@@ -101,6 +103,8 @@ At this point you can build your core module by issuing
 mvn clean package
 }}}
 under `core` subdirectory; this will generate a WAR file that you can deploy on your servlet container.
+
+==== Administration Console ====
 
 Now create a file called `configuration.properties` under `console/src/main/resources` like as the following:
 {{{
