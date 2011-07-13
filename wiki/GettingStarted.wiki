@@ -17,7 +17,7 @@ mvn archetype:generate \
     -DarchetypeGroupId=org.syncope \
     -DarchetypeArtifactId=syncope-archetype \
     -DarchetypeRepository=http://repo1.maven.org/maven2 \
-    -DarchetypeVersion=0.6.1
+    -DarchetypeVersion=0.6.2
 }}}
 
 You may want to change the archetype version: change the archetypeVersion to that of the newest release or tag of the archetype project:
@@ -64,7 +64,7 @@ To run the core and the console, run the following command from the console dire
 mvn cargo:start
 }}}
 
-The console is now available at http://localhost:9080/syncope-console/; the base URL for RESTful services is at http://localhost:9080/syncope/rest.
+The console is now available at http://localhost:9080/syncope-console/ : the base URL for RESTful services is at http://localhost:9080/syncope/rest.
 
 To test out your fresh installation, go to http://localhost:9080/syncope-console/ and log in with credentials 'admin' / 'password'.
 
