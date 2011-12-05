@@ -15,10 +15,20 @@
     <packaging>war</packaging>
 
     <properties>
+
         <cargo.servlet.port>9080</cargo.servlet.port>
         <cargo.run.dir>${project.build.directory}/syncope-core-test</cargo.run.dir>
-        <cargo.log>${log.directory}/core-cargo.log</cargo.log>
-        <cargo.output>${log.directory}/core-cargo-output.log</cargo.output>
+        <cargo.log>/var/tmp/syncope-core-cargo.log</cargo.log>
+        <cargo.output>/var/tmp/syncope-core-cargo-output.log</cargo.output>
+
+        <logfile>/var/tmp/syncope-core.log</logfile>
+        <logfile.persistence>/var/tmp/syncope-core-persistence.log</logfile.persistence>
+        <logfile.rest>/var/tmp/syncope-core-rest.log</logfile.rest>
+        <logfile.connid>/var/tmp/syncope-core-connid.log</logfile.connid>
+        <logfile.test>/var/tmp/syncope-core-test.log</logfile.test>
+        <logfile.monitor>/var/tmp/syncope-core-monitor.log</logfile.monitor>
+
+        <bundles.directory>/var/tmp/bundles</bundles.directory>
     </properties>
 
     <dependencies>
@@ -52,6 +62,19 @@
         </dependency>
 
         <dependency>
+            <groupId>opensymphony</groupId>
+            <artifactId>osworkflow</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>opensymphony</groupId>
+            <artifactId>propertyset</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>opensymphony</groupId>
+            <artifactId>oscore</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>org.springframework.security</groupId>
             <artifactId>spring-security-web</artifactId>
         </dependency>
@@ -63,6 +86,15 @@
         <dependency>
             <groupId>commons-httpclient</groupId>
             <artifactId>commons-httpclient</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.aspectj</groupId>
+            <artifactId>aspectjweaver</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.aspectj</groupId>
+            <artifactId>aspectjrt</artifactId>
         </dependency>
 
         <!-- TEST -->
@@ -77,13 +109,8 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>com.h2database</groupId>
-            <artifactId>h2</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.connid.bundles.soap</groupId>
-            <artifactId>org.connid.bundles.soap</artifactId>
+            <groupId>org.hsqldb</groupId>
+            <artifactId>hsqldb</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -97,33 +124,14 @@
             <artifactId>org.connid.bundles.db.table</artifactId>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>org.connid.bundles</groupId>
-            <artifactId>org.connid.bundles.csvdir</artifactId>
-            <scope>test</scope>
-        </dependency>
         <!-- /TEST -->
 
     </dependencies>
 
     <build>
-        <finalName>syncope-${project.parent.version}</finalName>
+        <finalName>${project.parent.artifactId}-${project.parent.version}</finalName>
 
         <plugins>
-            
-            <plugin>
-                <groupId>org.syncope</groupId>
-                <artifactId>syncope-build-tools</artifactId>
-                <executions>
-                    <execution>
-                        <id>set-dynamic-properties</id>
-                        <phase>validate</phase>
-                        <goals>
-                            <goal>set-dynamic-properties</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
 
             <!-- Integration tests -->
             <plugin>
@@ -151,7 +159,7 @@
                 <executions>
                     <execution>
                         <id>explodeSyncopeWAR</id>
-                        <phase>pre-integration-test</phase>
+                        <phase>package</phase>
                         <configuration>
                             <target>
                                 <unzip src="${project.build.directory}/${project.build.finalName}.war"
@@ -171,25 +179,12 @@
                     </execution>
                     <execution>
                         <id>setupTomcat</id>
-                        <phase>pre-integration-test</phase>
+                        <phase>package</phase>
                         <configuration>
                             <target>
                                 <get src="http://archive.apache.org/dist/tomcat/tomcat-7/v${tomcat.version}/bin/apache-tomcat-${tomcat.version}.zip" dest="${java.io.tmpdir}" skipexisting="true" />
-                                <unzip src="${java.io.tmpdir}/apache-tomcat-${tomcat.version}.zip"
-                                       dest="${java.io.tmpdir}" overwrite="false"/>
+                                <unzip src="${java.io.tmpdir}/apache-tomcat-${tomcat.version}.zip" dest="${java.io.tmpdir}" overwrite="false" />
                             </target>
-                        </configuration>
-                        <goals>
-                            <goal>run</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <id>setupCSV</id>
-                        <phase>pre-integration-test</phase>
-                        <configuration>
-                            <target>
-                                <copy file="${project.build.directory}/test-classes/test.csv" todir="${java.io.tmpdir}" overwrite="true"/>
-                            </target>    
                         </configuration>
                         <goals>
                             <goal>run</goal>
@@ -223,12 +218,6 @@
                                     <version>${connid.db.table.version}</version>
                                     <outputDirectory>${bundles.directory}</outputDirectory>
                                 </artifactItem>
-                                <artifactItem>
-                                    <groupId>org.connid.bundles</groupId>
-                                    <artifactId>org.connid.bundles.csvdir</artifactId>
-                                    <version>${connid.csvdir.version}</version>
-                                    <outputDirectory>${bundles.directory}</outputDirectory>
-                                </artifactItem>
                             </artifactItems>
                         </configuration>
                     </execution>
@@ -248,8 +237,7 @@
                         <output>${cargo.output}</output>
                         <dependencies>
                             <dependency>
-                                <groupId>com.h2database</groupId>
-                                <artifactId>h2</artifactId>
+                                <location>${settings.localRepository}/org/hsqldb/hsqldb/${hsqldb.version}/hsqldb-${hsqldb.version}.jar</location>
                             </dependency>
                             <dependency>
                                 <location>${project.build.directory}/test-classes/</location>
@@ -302,13 +290,14 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
+                <version>1.2</version>
                 <configuration>
                     <executable>java</executable>
                     <arguments>
                         <argument>-classpath</argument>
                         <classpath/>
-                        <argument>org.syncope.core.util.SchemaExporter</argument>
-                        <argument>H2</argument>
+                        <argument>org.syncope.core.persistence.util.SchemaExporter</argument>
+                        <argument>HSQL</argument>
                     </arguments>
                 </configuration>
             </plugin>

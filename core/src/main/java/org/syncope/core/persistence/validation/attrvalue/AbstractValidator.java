@@ -14,7 +14,6 @@
  */
 package org.syncope.core.persistence.validation.attrvalue;
 
-import java.io.Serializable;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -23,9 +22,7 @@ import org.slf4j.LoggerFactory;
 import org.syncope.core.persistence.beans.AbstractSchema;
 import org.syncope.core.persistence.beans.AbstractAttrValue;
 
-public abstract class AbstractValidator implements Validator, Serializable {
-
-    private static final long serialVersionUID = -5439345166669502493L;
+public abstract class AbstractValidator implements Validator {
 
     /*
      * Logger

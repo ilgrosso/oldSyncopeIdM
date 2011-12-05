@@ -14,58 +14,37 @@
  */
 package org.syncope.core.rest.controller;
 
-import java.lang.reflect.Modifier;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import javassist.NotFoundException;
-import javax.servlet.http.HttpServletResponse;
-import org.quartz.Job;
-import org.quartz.JobDataMap;
-import org.quartz.Scheduler;
-import org.reflections.Reflections;
-import org.reflections.util.ClasspathHelper;
-import org.reflections.util.ConfigurationBuilder;
+import com.opensymphony.workflow.Workflow;
+import com.opensymphony.workflow.WorkflowException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.scheduling.quartz.SchedulerFactoryBean;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import java.util.ArrayList;
+import java.util.List;
+import javassist.NotFoundException;
+import javax.annotation.Resource;
+import jpasymphony.dao.JPAWorkflowEntryDAO;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.ModelAndView;
-import org.syncope.client.to.SchedTaskTO;
-import org.syncope.client.to.SyncTaskTO;
-import org.syncope.client.to.TaskExecTO;
+import org.syncope.client.to.TaskExecutionTO;
 import org.syncope.client.to.TaskTO;
 import org.syncope.client.validation.SyncopeClientCompositeErrorException;
 import org.syncope.client.validation.SyncopeClientException;
-import org.syncope.core.init.JobInstanceLoader;
-import org.syncope.core.notification.NotificationManager;
-import org.syncope.core.persistence.beans.NotificationTask;
-import org.syncope.core.persistence.beans.PropagationTask;
-import org.syncope.core.persistence.beans.SchedTask;
 import org.syncope.core.persistence.beans.Task;
-import org.syncope.core.persistence.beans.TaskExec;
+import org.syncope.core.persistence.beans.TaskExecution;
 import org.syncope.core.persistence.dao.TaskDAO;
-import org.syncope.core.persistence.dao.TaskExecDAO;
-import org.syncope.core.propagation.PropagationManager;
+import org.syncope.core.persistence.dao.TaskExecutionDAO;
+import org.syncope.core.persistence.propagation.PropagationManager;
 import org.syncope.core.rest.data.TaskDataBinder;
-import org.syncope.core.scheduling.NotificationJob;
-import org.syncope.core.scheduling.SyncJob;
-import org.syncope.core.util.TaskUtil;
+import org.syncope.core.workflow.Constants;
+import org.syncope.core.workflow.WFUtils;
 import org.syncope.types.PropagationMode;
-import org.syncope.types.PropagationTaskExecStatus;
-import org.syncope.core.scheduling.AbstractJob;
-import org.syncope.core.scheduling.SyncJobActions;
 import org.syncope.types.SyncopeClientExceptionType;
+import org.syncope.types.TaskExecutionStatus;
 
 @Controller
 @RequestMapping("/task")
@@ -75,136 +54,35 @@ public class TaskController extends AbstractController {
     private TaskDAO taskDAO;
 
     @Autowired
-    private TaskExecDAO taskExecDAO;
+    private TaskExecutionDAO taskExecutionDAO;
 
     @Autowired
-    private TaskDataBinder binder;
+    private TaskDataBinder taskDataBinder;
 
     @Autowired
     private PropagationManager propagationManager;
 
-    @Autowired
-    private NotificationManager notificationManager;
+    @Resource(name = "taskExecutionWorkflow")
+    private Workflow workflow;
 
     @Autowired
-    private JobInstanceLoader jobInstanceLoader;
+    private JPAWorkflowEntryDAO workflowEntryDAO;
 
-    @Autowired
-    private SchedulerFactoryBean scheduler;
-
-    @PreAuthorize("hasRole('TASK_CREATE')")
-    @RequestMapping(method = RequestMethod.POST,
-    value = "/create/sync")
-    public TaskTO createSyncTask(final HttpServletResponse response,
-            final @RequestBody SyncTaskTO taskTO)
-            throws NotFoundException {
-
-        return createSchedTask(response, taskTO);
-    }
-
-    @PreAuthorize("hasRole('TASK_CREATE')")
-    @RequestMapping(method = RequestMethod.POST,
-    value = "/create/sched")
-    public TaskTO createSchedTask(final HttpServletResponse response,
-            final @RequestBody SchedTaskTO taskTO)
-            throws NotFoundException {
-
-        LOG.debug("Creating task " + taskTO);
-
-        SyncopeClientCompositeErrorException scce =
-                new SyncopeClientCompositeErrorException(
-                HttpStatus.BAD_REQUEST);
-
-        TaskUtil taskUtil = getTaskUtil(taskTO);
-
-        SchedTask task = binder.createSchedTask(taskTO, taskUtil);
-        task = taskDAO.save(task);
-
-        try {
-            jobInstanceLoader.registerJob(task.getId(), task.getJobClassName(),
-                    task.getCronExpression());
-        } catch (Exception e) {
-            LOG.error("While registering quartz job for task "
-                    + task.getId(), e);
-
-            SyncopeClientException sce = new SyncopeClientException(
-                    SyncopeClientExceptionType.Scheduling);
-            sce.addElement(e.getMessage());
-            scce.addException(sce);
-            throw scce;
-        }
-
-        response.setStatus(HttpServletResponse.SC_CREATED);
-        return binder.getTaskTO(task, taskUtil);
-    }
-
-    @PreAuthorize("hasRole('TASK_UPDATE')")
-    @RequestMapping(method = RequestMethod.POST,
-    value = "/update/sync")
-    public TaskTO updateSync(@RequestBody final SyncTaskTO taskTO)
-            throws NotFoundException {
-
-        return updateSched(taskTO);
-    }
-
-    @PreAuthorize("hasRole('TASK_UPDATE')")
-    @RequestMapping(method = RequestMethod.POST,
-    value = "/update/sched")
-    public TaskTO updateSched(@RequestBody final SchedTaskTO taskTO)
-            throws NotFoundException {
-
-        LOG.debug("Task update called with parameter {}", taskTO);
-
-        SchedTask task = taskDAO.find(taskTO.getId());
-        if (task == null) {
-            throw new NotFoundException(
-                    "Task " + String.valueOf(taskTO.getId()));
-        }
-
-        TaskUtil taskUtil = getTaskUtil(task);
-
-        SyncopeClientCompositeErrorException scce =
-                new SyncopeClientCompositeErrorException(
-                HttpStatus.BAD_REQUEST);
-
-        binder.updateSchedTask(task, taskTO, taskUtil);
-        task = taskDAO.save(task);
-
-        try {
-            jobInstanceLoader.registerJob(task.getId(), task.getJobClassName(),
-                    task.getCronExpression());
-        } catch (Exception e) {
-            LOG.error("While registering quartz job for task "
-                    + task.getId(), e);
-
-            SyncopeClientException sce = new SyncopeClientException(
-                    SyncopeClientExceptionType.Scheduling);
-            sce.addElement(e.getMessage());
-            scce.addException(sce);
-            throw scce;
-        }
-
-        return binder.getTaskTO(task, taskUtil);
+    @PreAuthorize("hasRole('TASK_LIST')")
+    @RequestMapping(method = RequestMethod.GET,
+    value = "/count")
+    public ModelAndView count() {
+        return new ModelAndView().addObject(taskDAO.count());
     }
 
     @PreAuthorize("hasRole('TASK_LIST')")
     @RequestMapping(method = RequestMethod.GET,
-    value = "/{kind}/count")
-    public ModelAndView count(@PathVariable("kind") final String kind) {
-        return new ModelAndView().addObject(
-                taskDAO.count(getTaskUtil(kind).taskClass()));
-    }
-
-    @PreAuthorize("hasRole('TASK_LIST')")
-    @RequestMapping(method = RequestMethod.GET,
-    value = "/{kind}/list")
-    public List<TaskTO> list(@PathVariable("kind") final String kind) {
-        TaskUtil taskUtil = getTaskUtil(kind);
-
-        List<Task> tasks = taskDAO.findAll(taskUtil.taskClass());
+    value = "/list")
+    public List<TaskTO> list() {
+        List<Task> tasks = taskDAO.findAll();
         List<TaskTO> taskTOs = new ArrayList<TaskTO>(tasks.size());
         for (Task task : tasks) {
-            taskTOs.add(binder.getTaskTO(task, taskUtil));
+            taskTOs.add(taskDataBinder.getTaskTO(workflow, task));
         }
 
         return taskTOs;
@@ -212,18 +90,15 @@ public class TaskController extends AbstractController {
 
     @PreAuthorize("hasRole('TASK_LIST')")
     @RequestMapping(method = RequestMethod.GET,
-    value = "/{kind}/list/{page}/{size}")
+    value = "/list/{page}/{size}")
     public List<TaskTO> list(
-            @PathVariable("kind") final String kind,
             @PathVariable("page") final int page,
             @PathVariable("size") final int size) {
 
-        TaskUtil taskUtil = getTaskUtil(kind);
-
-        List<Task> tasks = taskDAO.findAll(page, size, taskUtil.taskClass());
+        List<Task> tasks = taskDAO.findAll(page, size);
         List<TaskTO> taskTOs = new ArrayList<TaskTO>(tasks.size());
         for (Task task : tasks) {
-            taskTOs.add(binder.getTaskTO(task, taskUtil));
+            taskTOs.add(taskDataBinder.getTaskTO(workflow, task));
         }
 
         return taskTOs;
@@ -231,77 +106,17 @@ public class TaskController extends AbstractController {
 
     @PreAuthorize("hasRole('TASK_READ')")
     @RequestMapping(method = RequestMethod.GET,
-    value = "/{kind}/execution/list")
-    public List<TaskExecTO> listExecutions(
-            @PathVariable("kind") final String kind) {
-
-        List<TaskExec> executions = taskExecDAO.findAll(
-                getTaskUtil(kind).taskClass());
-        List<TaskExecTO> executionTOs =
-                new ArrayList<TaskExecTO>(executions.size());
-        for (TaskExec execution : executions) {
-            executionTOs.add(binder.getTaskExecutionTO(execution));
+    value = "/execution/list")
+    public List<TaskExecutionTO> listExecutions() {
+        List<TaskExecution> executions = taskExecutionDAO.findAll();
+        List<TaskExecutionTO> executionTOs =
+                new ArrayList<TaskExecutionTO>(executions.size());
+        for (TaskExecution execution : executions) {
+            executionTOs.add(
+                    taskDataBinder.getTaskExecutionTO(workflow, execution));
         }
 
         return executionTOs;
-    }
-
-    @PreAuthorize("hasRole('TASK_LIST')")
-    @RequestMapping(method = RequestMethod.GET,
-    value = "/jobClasses")
-    public ModelAndView getJobClasses()
-            throws MalformedURLException {
-
-        // this is needed because Job interface is not in the same classloader
-        // as the current class
-        List<URL> urls = new ArrayList<URL>();
-        for (URL url : ClasspathHelper.forClassLoader()) {
-            if (!url.toExternalForm().endsWith(".jar")
-                    || url.toExternalForm().contains("quartz")) {
-
-                urls.add(url);
-            }
-        }
-        Reflections reflections = new Reflections(
-                new ConfigurationBuilder().setUrls(urls));
-
-        Set<Class<? extends Job>> subTypes =
-                reflections.getSubTypesOf(Job.class);
-
-        Set<String> jobClasses = new HashSet<String>();
-        for (Class jobClass : subTypes) {
-            if (!Modifier.isAbstract(jobClass.getModifiers())
-                    && !jobClass.equals(SyncJob.class)
-                    && !jobClass.equals(NotificationJob.class)) {
-
-                jobClasses.add(jobClass.getName());
-            }
-        }
-
-        ModelAndView result = new ModelAndView();
-        result.addObject(jobClasses);
-        return result;
-    }
-
-    @PreAuthorize("hasRole('TASK_LIST')")
-    @RequestMapping(method = RequestMethod.GET,
-    value = "/jobActionsClasses")
-    public ModelAndView getJobActionClasses() {
-        Reflections reflections = new Reflections("");
-
-        Set<Class<? extends SyncJobActions>> subTypes =
-                reflections.getSubTypesOf(SyncJobActions.class);
-
-        Set<String> jobActionsClasses = new HashSet<String>();
-        for (Class jobClass : subTypes) {
-            if (!Modifier.isAbstract(jobClass.getModifiers())) {
-                jobActionsClasses.add(jobClass.getName());
-            }
-        }
-
-        ModelAndView result = new ModelAndView();
-        result.addObject(jobActionsClasses);
-        return result;
     }
 
     @PreAuthorize("hasRole('TASK_READ')")
@@ -315,29 +130,28 @@ public class TaskController extends AbstractController {
             throw new NotFoundException("Task " + taskId);
         }
 
-        return binder.getTaskTO(task, getTaskUtil(task));
+        return taskDataBinder.getTaskTO(workflow, task);
     }
 
     @PreAuthorize("hasRole('TASK_READ')")
     @RequestMapping(method = RequestMethod.GET,
     value = "/execution/read/{executionId}")
-    public TaskExecTO readExecution(
+    public TaskExecutionTO readExecution(
             @PathVariable("executionId") final Long executionId)
             throws NotFoundException {
 
-        TaskExec execution = taskExecDAO.find(executionId);
+        TaskExecution execution = taskExecutionDAO.find(executionId);
         if (execution == null) {
             throw new NotFoundException("Task execution " + executionId);
         }
 
-        return binder.getTaskExecutionTO(execution);
+        return taskDataBinder.getTaskExecutionTO(workflow, execution);
     }
 
     @PreAuthorize("hasRole('TASK_EXECUTE')")
-    @RequestMapping(method = RequestMethod.POST,
+    @RequestMapping(method = RequestMethod.GET,
     value = "/execute/{taskId}")
-    public TaskExecTO execute(@PathVariable("taskId") final Long taskId,
-            @RequestParam(value = "dryRun", defaultValue = "false") final boolean dryRun)
+    public TaskExecutionTO execute(@PathVariable("taskId") final Long taskId)
             throws NotFoundException {
 
         Task task = taskDAO.find(taskId);
@@ -345,88 +159,51 @@ public class TaskController extends AbstractController {
             throw new NotFoundException("Task " + taskId);
         }
 
-        TaskExecTO result = null;
-        LOG.debug("Execution started for {}", task);
-        switch (getTaskUtil(task)) {
-            case PROPAGATION:
-                final TaskExec propExec = propagationManager.execute(
-                        (PropagationTask) task);
-                result = binder.getTaskExecutionTO(propExec);
-                break;
+        TaskExecution execution = new TaskExecution();
+        execution.setTask(task);
 
-            case NOTIFICATION:
-                final TaskExec notExec = notificationManager.execute(
-                        (NotificationTask) task);
-                result = binder.getTaskExecutionTO(notExec);
-                break;
-
-            case SCHED:
-            case SYNC:
-                try {
-                    jobInstanceLoader.registerJob(task.getId(),
-                            ((SchedTask) task).getJobClassName(),
-                            ((SchedTask) task).getCronExpression());
-
-                    JobDataMap map = new JobDataMap();
-                    map.put(AbstractJob.DRY_RUN_JOBDETAIL_KEY, dryRun);
-                    scheduler.getScheduler().triggerJob(
-                            JobInstanceLoader.getJobName(task.getId()),
-                            Scheduler.DEFAULT_GROUP, map);
-                } catch (Exception e) {
-                    LOG.error("While executing task {}", task, e);
-
-                    SyncopeClientCompositeErrorException scce =
-                            new SyncopeClientCompositeErrorException(
-                            HttpStatus.BAD_REQUEST);
-                    SyncopeClientException sce = new SyncopeClientException(
-                            SyncopeClientExceptionType.Scheduling);
-                    sce.addElement(e.getMessage());
-                    scce.addException(sce);
-                    throw scce;
-                }
-
-                result = new TaskExecTO();
-                result.setTask(taskId);
-                result.setStartDate(new Date());
-                result.setStatus("JOB_FIRED");
-                result.setMessage("Job fired; waiting for results...");
-                break;
-
-            default:
+        try {
+            Long workflowId = workflow.initialize(
+                    Constants.TASKEXECUTION_WORKFLOW, 0, null);
+            execution.setWorkflowId(workflowId);
+        } catch (WorkflowException e) {
+            LOG.error("While initializing workflow for {}",
+                    execution, e);
         }
-        LOG.debug("Execution finished for {}, {}", task, result);
 
-        return result;
+        execution = taskExecutionDAO.save(execution);
+
+        LOG.debug("Execution started for {}", task);
+
+        propagationManager.propagate(execution);
+
+        LOG.debug("Execution finished for {}, {}", task, execution);
+
+        return taskDataBinder.getTaskExecutionTO(workflow, execution);
     }
 
     @PreAuthorize("hasRole('TASK_READ')")
     @RequestMapping(method = RequestMethod.GET,
     value = "/execution/report/{executionId}")
-    public TaskExecTO report(
+    public TaskExecutionTO report(
             @PathVariable("executionId") final Long executionId,
-            @RequestParam("executionStatus")
-            final PropagationTaskExecStatus status,
+            @RequestParam("executionStatus") final TaskExecutionStatus status,
             @RequestParam("message") final String message)
-            throws NotFoundException, SyncopeClientCompositeErrorException {
+            throws NotFoundException, SyncopeClientCompositeErrorException,
+            WorkflowException {
 
-        TaskExec exec = taskExecDAO.find(executionId);
-        if (exec == null) {
+        TaskExecution execution = taskExecutionDAO.find(executionId);
+        if (execution == null) {
             throw new NotFoundException("Task execution " + executionId);
         }
 
         SyncopeClientException invalidReportException =
                 new SyncopeClientException(
-                SyncopeClientExceptionType.InvalidPropagationTaskExecReport);
+                SyncopeClientExceptionType.InvalidTaskExecutionReport);
 
-        TaskUtil taskUtil = getTaskUtil(exec.getTask());
-        if (taskUtil != TaskUtil.PROPAGATION) {
-            invalidReportException.addElement("Task type: " + taskUtil);
-        } else {
-            PropagationTask task = (PropagationTask) exec.getTask();
-            if (task.getPropagationMode() != PropagationMode.ASYNC) {
-                invalidReportException.addElement(
-                        "Propagation mode: " + task.getPropagationMode());
-            }
+        if (execution.getTask().getPropagationMode() != PropagationMode.ASYNC) {
+            invalidReportException.addElement("Propagation mode: "
+                    + execution.getTask().getPropagationMode());
         }
 
         switch (status) {
@@ -444,7 +221,7 @@ public class TaskController extends AbstractController {
             default:
         }
 
-        if (!invalidReportException.isEmpty()) {
+        if (!invalidReportException.getElements().isEmpty()) {
             SyncopeClientCompositeErrorException scce =
                     new SyncopeClientCompositeErrorException(
                     HttpStatus.BAD_REQUEST);
@@ -452,11 +229,19 @@ public class TaskController extends AbstractController {
             throw scce;
         }
 
-        exec.setStatus(status.toString());
-        exec.setMessage(message);
-        exec = taskExecDAO.save(exec);
+        final String wfAction = status == TaskExecutionStatus.SUCCESS
+                ? Constants.ACTION_OK : Constants.ACTION_KO;
 
-        return binder.getTaskExecutionTO(exec);
+        WFUtils.doExecuteAction(workflow,
+                Constants.TASKEXECUTION_WORKFLOW,
+                wfAction,
+                execution.getWorkflowId(),
+                null);
+
+        execution.setMessage(message);
+        execution = taskExecutionDAO.save(execution);
+
+        return taskDataBinder.getTaskExecutionTO(workflow, execution);
     }
 
     @PreAuthorize("hasRole('TASK_DELETE')")
@@ -470,10 +255,31 @@ public class TaskController extends AbstractController {
             throw new NotFoundException("Task " + taskId);
         }
 
-        if (TaskUtil.SCHED == getTaskUtil(task)
-                || TaskUtil.SYNC == getTaskUtil(task)) {
+        SyncopeClientException incompleteTaskExecution =
+                new SyncopeClientException(
+                SyncopeClientExceptionType.IncompleteTaskExecution);
 
-            jobInstanceLoader.unregisterJob(taskId);
+        int[] wfActions;
+        for (TaskExecution execution : task.getExecutions()) {
+            wfActions = workflow.getAvailableActions(
+                    execution.getWorkflowId(), null);
+            if (wfActions != null && wfActions.length > 1) {
+                incompleteTaskExecution.addElement(
+                        execution.getId().toString());
+            }
+        }
+        if (!incompleteTaskExecution.getElements().isEmpty()) {
+            SyncopeClientCompositeErrorException scce =
+                    new SyncopeClientCompositeErrorException(
+                    HttpStatus.BAD_REQUEST);
+            scce.addException(incompleteTaskExecution);
+            throw scce;
+        }
+
+        for (TaskExecution execution : task.getExecutions()) {
+            if (execution.getWorkflowId() != null) {
+                workflowEntryDAO.delete(execution.getWorkflowId());
+            }
         }
 
         taskDAO.delete(task);
@@ -485,11 +291,31 @@ public class TaskController extends AbstractController {
     public void deleteExecution(@PathVariable("executionId") Long executionId)
             throws NotFoundException, SyncopeClientCompositeErrorException {
 
-        TaskExec execution = taskExecDAO.find(executionId);
+        TaskExecution execution = taskExecutionDAO.find(executionId);
         if (execution == null) {
             throw new NotFoundException("Task execution " + executionId);
         }
 
-        taskExecDAO.delete(execution);
+        int[] wfActions = workflow.getAvailableActions(
+                execution.getWorkflowId(), null);
+        if (wfActions != null && wfActions.length > 1) {
+            SyncopeClientException incompleteTaskExecution =
+                    new SyncopeClientException(
+                    SyncopeClientExceptionType.IncompleteTaskExecution);
+            incompleteTaskExecution.addElement(
+                    execution.getId().toString());
+
+            SyncopeClientCompositeErrorException scce =
+                    new SyncopeClientCompositeErrorException(
+                    HttpStatus.BAD_REQUEST);
+            scce.addException(incompleteTaskExecution);
+            throw scce;
+        }
+
+        if (execution.getWorkflowId() != null) {
+            workflowEntryDAO.delete(execution.getWorkflowId());
+        }
+
+        taskExecutionDAO.delete(execution);
     }
 }

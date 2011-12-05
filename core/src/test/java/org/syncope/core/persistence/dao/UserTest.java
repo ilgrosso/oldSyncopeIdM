@@ -14,20 +14,16 @@
  */
 package org.syncope.core.persistence.dao;
 
-import java.util.Date;
 import static org.junit.Assert.*;
 
 import java.util.List;
 import java.util.Set;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.annotation.ExpectedException;
 import org.springframework.transaction.annotation.Transactional;
 import org.syncope.core.persistence.beans.user.SyncopeUser;
-import org.syncope.core.AbstractTest;
+import org.syncope.core.persistence.AbstractTest;
 import org.syncope.core.persistence.beans.user.UAttrValue;
-import org.syncope.core.persistence.validation.entity.InvalidEntityException;
-import org.syncope.core.rest.controller.InvalidSearchConditionException;
 import org.syncope.core.util.EntitlementUtil;
 import org.syncope.types.CipherAlgorithm;
 
@@ -41,14 +37,14 @@ public class UserTest extends AbstractTest {
     private EntitlementDAO entitlementDAO;
 
     @Test
-    public void findAll() {
+    public final void findAll() {
         List<SyncopeUser> list = userDAO.findAll(
                 EntitlementUtil.getRoleIds(entitlementDAO.findAll()));
         assertEquals("did not get expected number of users ", 4, list.size());
     }
 
     @Test
-    public void count() {
+    public final void count() {
         Integer count = userDAO.count(
                 EntitlementUtil.getRoleIds(entitlementDAO.findAll()));
         assertNotNull(count);
@@ -56,7 +52,7 @@ public class UserTest extends AbstractTest {
     }
 
     @Test
-    public void findAllByPageAndSize() {
+    public final void findAllByPageAndSize() {
         Set<Long> allRoleIds =
                 EntitlementUtil.getRoleIds(entitlementDAO.findAll());
 
@@ -78,39 +74,17 @@ public class UserTest extends AbstractTest {
     }
 
     @Test
-    public void findByDerAttributeValue()
-            throws InvalidSearchConditionException {
-        final List<SyncopeUser> list = userDAO.findByDerAttrValue(
-                "cn", "Doe, John");
-        assertEquals("did not get expected number of users ", 1, list.size());
-    }
-
-    @Test
-    @ExpectedException(value = InvalidSearchConditionException.class)
-    public void findByInvalidDerAttrValue()
-            throws InvalidSearchConditionException {
-        userDAO.findByDerAttrValue("cn", "Antonio, Maria, Rossi");
-    }
-
-    @Test
-    @ExpectedException(value = InvalidSearchConditionException.class)
-    public void findByInvalidDerAttrExpression()
-            throws InvalidSearchConditionException {
-        userDAO.findByDerAttrValue("noschema", "Antonio, Maria");
-    }
-
-    @Test
-    public void findByAttributeValue() {
-        final UAttrValue fullnameValue = new UAttrValue();
-        fullnameValue.setStringValue("chicchiricco");
+    public final void findByAttributeValue() {
+        final UAttrValue usernameValue = new UAttrValue();
+        usernameValue.setStringValue("chicchiricco");
 
         final List<SyncopeUser> list = userDAO.findByAttrValue(
-                "fullname", fullnameValue);
+                "username", usernameValue);
         assertEquals("did not get expected number of users ", 1, list.size());
     }
 
     @Test
-    public void findByAttributeBooleanValue() {
+    public final void findByAttributeBooleanValue() {
         final UAttrValue coolValue = new UAttrValue();
         coolValue.setBooleanValue(true);
 
@@ -120,7 +94,7 @@ public class UserTest extends AbstractTest {
     }
 
     @Test
-    public void findById() {
+    public final void findById() {
         SyncopeUser user = userDAO.find(1L);
         assertNotNull("did not find expected user", user);
         user = userDAO.find(3L);
@@ -130,57 +104,29 @@ public class UserTest extends AbstractTest {
     }
 
     @Test
-    public void findByUsername() {
-        SyncopeUser user = userDAO.find("user1");
-        assertNotNull("did not find expected user", user);
-        user = userDAO.find("user3");
-        assertNotNull("did not find expected user", user);
-        user = userDAO.find("user5");
-        assertNull("found user but did not expect it", user);
-    }
-
-    @Test
-    public void save() {
+    public final void save() {
         SyncopeUser user = new SyncopeUser();
-        user.setUsername("username");
-        user.setCreationDate(new Date());
+        user.setPassword("password", CipherAlgorithm.SHA256);
 
-        user.setPassword("pass", CipherAlgorithm.SHA256, 0);
+        user = userDAO.save(user);
 
-        Throwable t = null;
-        try {
-            userDAO.save(user);
-        } catch (InvalidEntityException e) {
-            t = e;
-        }
-        assertNotNull(t);
-
-        user.setPassword("password", CipherAlgorithm.SHA256, 1);
-
-        user.setUsername("username!");
-
-        t = null;
-        try {
-            userDAO.save(user);
-        } catch (InvalidEntityException e) {
-            t = e;
-        }
-        assertNotNull(t);
-
-        user.setUsername("username");
-
-        SyncopeUser actual = userDAO.save(user);
+        SyncopeUser actual = userDAO.find(user.getId());
         assertNotNull("expected save to work", actual);
-        assertEquals(1, actual.getPasswordHistory().size());
     }
 
     @Test
-    public void delete() {
+    public final void delete() {
         SyncopeUser user = userDAO.find(3L);
 
         userDAO.delete(user.getId());
 
         SyncopeUser actual = userDAO.find(3L);
         assertNull("delete did not work", actual);
+    }
+
+    @Test
+    public final void getRoleResources() {
+        SyncopeUser user = userDAO.find(1L);
+        assertFalse(user.getInheritedTargetResources().isEmpty());
     }
 }

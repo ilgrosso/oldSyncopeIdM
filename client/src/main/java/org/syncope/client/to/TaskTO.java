@@ -17,19 +17,53 @@ package org.syncope.client.to;
 import java.util.ArrayList;
 import java.util.List;
 import org.syncope.client.AbstractBaseBean;
+import org.syncope.types.PropagationMode;
+import org.syncope.types.ResourceOperationType;
 
 public class TaskTO extends AbstractBaseBean {
 
-    private static final long serialVersionUID = 386450127003321197L;
-
     private long id;
 
-    private List<TaskExecTO> executions;
+    private PropagationMode propagationMode;
+
+    private ResourceOperationType resourceOperationType;
+
+    private String accountId;
+
+    private String oldAccountId;
+
+    private String xmlAttributes;
+
+    private String resource;
+
+    private List<TaskExecutionTO> executions;
 
     public TaskTO() {
-        super();
+        executions = new ArrayList<TaskExecutionTO>();
+    }
 
-        executions = new ArrayList<TaskExecTO>();
+    public String getAccountId() {
+        return accountId;
+    }
+
+    public void setAccountId(String accountId) {
+        this.accountId = accountId;
+    }
+
+    public boolean addExecution(TaskExecutionTO execution) {
+        return executions.add(execution);
+    }
+
+    public boolean removeExecution(TaskExecutionTO execution) {
+        return executions.add(execution);
+    }
+
+    public List<TaskExecutionTO> getExecutions() {
+        return executions;
+    }
+
+    public void setExecutions(List<TaskExecutionTO> executions) {
+        this.executions = executions;
     }
 
     public long getId() {
@@ -40,19 +74,45 @@ public class TaskTO extends AbstractBaseBean {
         this.id = id;
     }
 
-    public boolean addExecution(TaskExecTO execution) {
-        return executions.add(execution);
+    public String getOldAccountId() {
+        return oldAccountId;
     }
 
-    public boolean removeExecution(TaskExecTO execution) {
-        return executions.remove(execution);
+    public void setOldAccountId(String oldAccountId) {
+        this.oldAccountId = oldAccountId;
     }
 
-    public List<TaskExecTO> getExecutions() {
-        return executions;
+    public PropagationMode getPropagationMode() {
+        return propagationMode;
     }
 
-    public void setExecutions(List<TaskExecTO> executions) {
-        this.executions = executions;
+    public void setPropagationMode(PropagationMode propagationMode) {
+        this.propagationMode = propagationMode;
+    }
+
+    public String getResource() {
+        return resource;
+    }
+
+    public void setResource(String resource) {
+        this.resource = resource;
+    }
+
+    public ResourceOperationType getResourceOperationType() {
+        return resourceOperationType;
+    }
+
+    public void setResourceOperationType(
+            ResourceOperationType resourceOperationType) {
+
+        this.resourceOperationType = resourceOperationType;
+    }
+
+    public String getXmlAttributes() {
+        return xmlAttributes;
+    }
+
+    public void setXmlAttributes(String xmlAttributes) {
+        this.xmlAttributes = xmlAttributes;
     }
 }

@@ -1,4 +1,4 @@
-/*
+/* 
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
  *  You may obtain a copy of the License at
@@ -15,15 +15,9 @@
 package org.syncope.console.rest;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 import org.springframework.stereotype.Component;
-import org.syncope.client.to.NotificationTaskTO;
-import org.syncope.client.to.TaskExecTO;
-import org.syncope.client.to.PropagationTaskTO;
-import org.syncope.client.to.SchedTaskTO;
-import org.syncope.client.to.SyncTaskTO;
+import org.syncope.client.to.TaskExecutionTO;
 import org.syncope.client.to.TaskTO;
 import org.syncope.client.validation.SyncopeClientCompositeErrorException;
 
@@ -33,111 +27,50 @@ import org.syncope.client.validation.SyncopeClientCompositeErrorException;
 @Component
 public class TaskRestClient extends AbstractBaseRestClient {
 
-    /**
-     * Return a list of job classes.
-     * @return list of classes.
-     */
-    public Set<String> getJobClasses() {
-        Set<String> validators = null;
+    public Integer count() {
+        return restTemplate.getForObject(baseURL + "task/count.json",
+                Integer.class);
+    }
 
+    /**
+     * Get all stored tasks.
+     * @param page pagination element to fetch
+     * @param size maximum number to fetch
+     * @return list of TaskTO objects
+     */
+    public List<TaskTO> list(final int page, final int size) {
+        return Arrays.asList(restTemplate.getForObject(
+                baseURL + "task/list/{page}/{size}.json",
+                TaskTO[].class, page, size));
+    }
+
+    /**
+     * Load an existing task.
+     * @param taskId task to read
+     * @return TaskTO object if the configuration exists, null otherwise
+     */
+    public TaskTO read(final String taskId) {
+        TaskTO taskTO = null;
         try {
-            validators = restTemplate.getForObject(
-                    baseURL + "task/jobClasses.json", Set.class);
-        } catch (SyncopeClientCompositeErrorException e) {
-            LOG.error("While getting all job classes", e);
-        }
-        return validators;
-    }
-
-    public Set<String> getJobActionsClasses() {
-        Set<String> actions = null;
-
-        try {
-            actions = restTemplate.getForObject(
-                    baseURL + "task/jobActionsClasses.json", Set.class);
-        } catch (SyncopeClientCompositeErrorException e) {
-            LOG.error("While getting all job actions classes", e);
-        }
-        return actions;
-    }
-
-    /**
-     * Return the number of tasks.
-     * @param kind of task (propagation, sched, sync).
-     * @return number of stored tasks.
-     */
-    public Integer count(final String kind) {
-        return restTemplate.getForObject(baseURL + "task/{kind}/count.json",
-                Integer.class, kind);
-    }
-
-    /**
-     * Return a paginated list of tasks.
-     * @param page number.
-     * @param size per page.
-     * @return paginated list.
-     */
-    public <T extends TaskTO> List<T> listTasks(
-            final Class<T> reference, final int page, final int size) {
-
-        List<T> result = Collections.EMPTY_LIST;
-
-        if (PropagationTaskTO.class == reference) {
-            result = (List<T>) Arrays.asList(restTemplate.getForObject(
-                    baseURL + "task/propagation/list/{page}/{size}.json",
-                    PropagationTaskTO[].class, page, size));
-        } else if (NotificationTaskTO.class == reference) {
-            result = (List<T>) Arrays.asList(restTemplate.getForObject(
-                    baseURL + "task/notification/list/{page}/{size}.json",
-                    NotificationTaskTO[].class, page, size));
-        } else if (SchedTaskTO.class == reference) {
-            result = (List<T>) Arrays.asList(restTemplate.getForObject(
-                    baseURL + "task/sched/list/{page}/{size}.json",
-                    SchedTaskTO[].class, page, size));
-        } else if (SyncTaskTO.class == reference) {
-            result = (List<T>) Arrays.asList(restTemplate.getForObject(
-                    baseURL + "task/sync/list/{page}/{size}.json",
-                    SyncTaskTO[].class, page, size));
-        }
-
-        return result;
-    }
-
-    public PropagationTaskTO readPropagationTask(final Long taskId) {
-        return restTemplate.getForObject(
-                baseURL + "task/read/{taskId}",
-                PropagationTaskTO.class, taskId);
-    }
-
-    public NotificationTaskTO readNotificationTask(final Long taskId) {
-        return restTemplate.getForObject(
-                baseURL + "task/read/{taskId}",
-                NotificationTaskTO.class, taskId);
-    }
-
-    public <T extends SchedTaskTO> T readSchedTask(
-            final Class<T> reference, final Long taskId) {
-
-        if (SyncTaskTO.class.getName().equals(reference.getName())) {
-            return (T) restTemplate.getForObject(
+            taskTO = restTemplate.getForObject(
                     baseURL + "task/read/{taskId}",
-                    SyncTaskTO.class, taskId);
-        } else {
-            return (T) restTemplate.getForObject(
-                    baseURL + "task/read/{taskId}",
-                    SchedTaskTO.class, taskId);
+                    TaskTO.class, taskId);
+        } catch (SyncopeClientCompositeErrorException e) {
+            LOG.error("While reading a task", e);
         }
+
+        return taskTO;
     }
 
     /**
      * Get all executions.
      * @return list of all executions
      */
-    public List<TaskExecTO> listExecutions() {
+    public List<TaskExecutionTO> listExecutions() {
         return Arrays.asList(
                 restTemplate.getForObject(
                 baseURL + "task/execution/list",
-                TaskExecTO[].class));
+                TaskExecutionTO[].class));
     }
 
     /**
@@ -153,10 +86,10 @@ public class TaskRestClient extends AbstractBaseRestClient {
      * Start execution for the specified TaskTO.
      * @param taskId task id
      */
-    public void startExecution(final Long taskId, boolean dryRun) {
-        restTemplate.postForObject(
-                baseURL + "task/execute/{taskId}?dryRun={dryRun}",
-                null, TaskExecTO.class, taskId, dryRun);
+    public void startExecution(final Long taskId) {
+        restTemplate.getForObject(
+                baseURL + "task/execute/{taskId}",
+                TaskExecutionTO.class, taskId);
     }
 
     /**
@@ -166,25 +99,5 @@ public class TaskRestClient extends AbstractBaseRestClient {
     public void deleteExecution(final Long taskExecId) {
         restTemplate.delete(baseURL
                 + "task/execution/delete/{execId}", taskExecId);
-    }
-
-    public SyncTaskTO createSyncTask(final SyncTaskTO taskTO) {
-        return restTemplate.postForObject(baseURL
-                + "task/create/sync", taskTO, SyncTaskTO.class);
-    }
-
-    public SchedTaskTO createSchedTask(final SchedTaskTO taskTO) {
-        return restTemplate.postForObject(baseURL
-                + "task/create/sched", taskTO, SchedTaskTO.class);
-    }
-
-    public SchedTaskTO updateSchedTask(final SchedTaskTO taskTO) {
-        return restTemplate.postForObject(baseURL
-                + "task/update/sched", taskTO, SchedTaskTO.class);
-    }
-
-    public SyncTaskTO updateSyncTask(final SyncTaskTO taskTO) {
-        return restTemplate.postForObject(baseURL
-                + "task/update/sync", taskTO, SyncTaskTO.class);
     }
 }

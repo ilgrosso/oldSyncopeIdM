@@ -22,8 +22,6 @@ import org.apache.commons.lang.builder.ToStringStyle;
 
 public abstract class AbstractBaseBean implements Serializable {
 
-    private static final long serialVersionUID = 3119542005279892164L;
-
     @Override
     public boolean equals(Object obj) {
         return EqualsBuilder.reflectionEquals(this, obj);

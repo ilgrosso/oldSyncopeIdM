@@ -16,26 +16,21 @@
  */
 package org.syncope.console.pages;
 
-import org.apache.wicket.PageReference;
 import org.apache.wicket.ajax.AjaxRequestTarget;
 import org.apache.wicket.extensions.ajax.markup.html.modal.ModalWindow;
 import org.apache.wicket.markup.html.form.Form;
+import org.apache.wicket.markup.html.form.TextField;
 import org.apache.wicket.model.CompoundPropertyModel;
-import org.apache.wicket.authroles.authorization.strategies.role.metadata.MetaDataRoleAuthorizationStrategy;
+import org.apache.wicket.model.Model;
+import org.apache.wicket.authorization.strategies.role.metadata.MetaDataRoleAuthorizationStrategy;
 import org.apache.wicket.extensions.ajax.markup.html.IndicatingAjaxButton;
-import org.apache.wicket.model.PropertyModel;
-import org.apache.wicket.model.ResourceModel;
 import org.syncope.client.AbstractBaseBean;
 import org.syncope.client.to.VirtualSchemaTO;
-import org.syncope.client.validation.SyncopeClientCompositeErrorException;
-import org.syncope.console.wicket.markup.html.form.AjaxTextFieldPanel;
 
 /**
  * Modal window with Schema form.
  */
 public class VirtualSchemaModalPage extends AbstractSchemaModalPage {
-
-    private static final long serialVersionUID = 5979623248182851337L;
 
     public VirtualSchemaModalPage(String kind) {
         super(kind);
@@ -43,7 +38,7 @@ public class VirtualSchemaModalPage extends AbstractSchemaModalPage {
 
     @Override
     public void setSchemaModalPage(
-            final PageReference callerPageRef,
+            final BasePage basePage,
             final ModalWindow window,
             AbstractBaseBean schema,
             final boolean createFlag) {
@@ -52,52 +47,40 @@ public class VirtualSchemaModalPage extends AbstractSchemaModalPage {
             schema = new VirtualSchemaTO();
         }
 
-        final Form schemaForm = new Form("form");
+        final Form schemaForm = new Form("SchemaForm");
 
         schemaForm.setModel(new CompoundPropertyModel(schema));
 
-        final AjaxTextFieldPanel name = new AjaxTextFieldPanel(
-                "name", getString("name"),
-                new PropertyModel<String>(schema, "name"), false);
-        name.addRequiredLabel();
+        final TextField name = new TextField("name");
+        name.setRequired(true);
 
         name.setEnabled(createFlag);
 
         final IndicatingAjaxButton submit = new IndicatingAjaxButton(
-                "apply", new ResourceModel("submit")) {
-
-            private static final long serialVersionUID = -958724007591692537L;
+                "submit", new Model(getString("submit"))) {
 
             @Override
-            protected void onSubmit(final AjaxRequestTarget target,
-                    final Form form) {
+            protected void onSubmit(AjaxRequestTarget target, Form form) {
 
-                VirtualSchemaTO schemaTO =
-                        (VirtualSchemaTO) form.getDefaultModelObject();
-
-                try {
-                    if (createFlag) {
-                        restClient.createVirtualSchema(kind, schemaTO);
-                    } else {
-                        restClient.updateVirtualSchema(kind, schemaTO);
-                    }
-                    if (callerPageRef.getPage() instanceof BasePage) {
-                        ((BasePage) callerPageRef.getPage()).setModalResult(
-                                true);
-                    }
-
-                    window.close(target);
-                } catch (SyncopeClientCompositeErrorException e) {
-                    error(getString("error") + ":" + e.getMessage());
-                    target.add(feedbackPanel);
+                if (createFlag) {
+                    restClient.createVirtualSchema(kind,
+                            (VirtualSchemaTO) form.getDefaultModelObject());
+                } else {
+                    restClient.updateVirtualSchema(kind,
+                            (VirtualSchemaTO) form.getDefaultModelObject());
                 }
+
+                Schema callerPage = (Schema) basePage;
+                callerPage.setOperationResult(true);
+
+                window.close(target);
             }
 
             @Override
             protected void onError(final AjaxRequestTarget target,
                     final Form form) {
 
-                target.add(feedbackPanel);
+                target.addComponent(feedbackPanel);
             }
         };
 

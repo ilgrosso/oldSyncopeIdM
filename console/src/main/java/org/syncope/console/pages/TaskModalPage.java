@@ -16,17 +16,21 @@
  */
 package org.syncope.console.pages;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
+import org.syncope.console.commons.Constants;
 import org.apache.wicket.ajax.AjaxRequestTarget;
 import org.apache.wicket.ajax.markup.html.AjaxLink;
-import org.apache.wicket.authroles.authorization.strategies.role.metadata.MetaDataRoleAuthorizationStrategy;
+import org.apache.wicket.authorization.strategies.role.metadata.MetaDataRoleAuthorizationStrategy;
+import org.apache.wicket.datetime.DateConverter;
 import org.apache.wicket.extensions.ajax.markup.html.IndicatingAjaxLink;
+import org.apache.wicket.extensions.ajax.markup.html.modal.ModalWindow;
 import org.apache.wicket.extensions.ajax.markup.html.repeater.data.table.AjaxFallbackDefaultDataTable;
 import org.apache.wicket.extensions.markup.html.repeater.data.grid.ICellPopulator;
-import org.apache.wicket.extensions.markup.html.repeater.data.sort.SortOrder;
 import org.apache.wicket.extensions.markup.html.repeater.data.table.AbstractColumn;
 import org.apache.wicket.extensions.markup.html.repeater.data.table.IColumn;
 import org.apache.wicket.extensions.markup.html.repeater.data.table.PropertyColumn;
@@ -34,126 +38,105 @@ import org.apache.wicket.extensions.markup.html.repeater.util.SortableDataProvid
 import org.apache.wicket.markup.html.WebMarkupContainer;
 import org.apache.wicket.markup.html.basic.Label;
 import org.apache.wicket.markup.html.form.Form;
-import org.apache.wicket.markup.html.form.FormComponent;
+import org.apache.wicket.markup.html.form.TextField;
 import org.apache.wicket.markup.repeater.Item;
 import org.apache.wicket.model.AbstractReadOnlyModel;
 import org.apache.wicket.model.CompoundPropertyModel;
 import org.apache.wicket.model.IModel;
 import org.apache.wicket.model.Model;
-import org.apache.wicket.model.PropertyModel;
-import org.apache.wicket.model.ResourceModel;
 import org.apache.wicket.spring.injection.annot.SpringBean;
-import org.springframework.util.StringUtils;
-import org.syncope.client.to.NotificationTaskTO;
-import org.syncope.client.to.PropagationTaskTO;
-import org.syncope.client.to.SchedTaskTO;
-import org.syncope.client.to.SyncTaskTO;
-import org.syncope.client.to.TaskExecTO;
+import org.syncope.client.to.TaskExecutionTO;
 import org.syncope.client.to.TaskTO;
 import org.syncope.client.validation.SyncopeClientCompositeErrorException;
 import org.syncope.console.commons.SortableDataProviderComparator;
 import org.syncope.console.rest.TaskRestClient;
 import org.syncope.console.wicket.ajax.markup.html.IndicatingDeleteOnConfirmAjaxLink;
-import org.syncope.console.wicket.extensions.markup.html.repeater.data.table.DatePropertyColumn;
-import org.syncope.console.wicket.markup.html.form.AjaxTextFieldPanel;
 import org.syncope.console.wicket.markup.html.form.DeleteLinkPanel;
 import org.syncope.console.wicket.markup.html.form.LinkPanel;
 
 /**
  * Modal window with Task form (to stop and start execution).
  */
-public abstract class TaskModalPage extends BaseModalPage {
+public class TaskModalPage extends BaseModalPage {
 
-    private static final long serialVersionUID = -4110576026663173545L;
+    private TextField id;
+
+    private TextField accountId;
+
+    private TextField resource;
+
+    private Label dialogContent;
 
     @SpringBean
-    protected TaskRestClient taskRestClient;
+    private TaskRestClient taskRestClient;
 
-    protected WebMarkupContainer profile;
+    private WebMarkupContainer container;
 
-    protected WebMarkupContainer executions;
+    /**
+     *
+     * @param basePage base
+     * @param modalWindow modal window
+     * @param connectorTO
+     * @param create : set to true only if a CREATE operation is required
+     */
+    public TaskModalPage(final BasePage basePage, final ModalWindow window,
+            final TaskTO taskTO) {
 
-    protected Form form;
-
-    public TaskModalPage(final TaskTO taskTO) {
-        final TaskTO actual = taskTO.getId() == 0
-                ? taskTO
-                : taskTO instanceof PropagationTaskTO
-                ? taskRestClient.readPropagationTask(taskTO.getId())
-                : taskTO instanceof NotificationTaskTO
-                ? taskRestClient.readNotificationTask(taskTO.getId())
-                : taskTO instanceof SyncTaskTO
-                ? taskRestClient.readSchedTask(
-                SyncTaskTO.class, taskTO.getId())
-                : taskRestClient.readSchedTask(
-                SchedTaskTO.class, taskTO.getId());
-
-        taskTO.setExecutions(actual.getExecutions());
-
-        final Label dialogContent =
-                new Label("dialogContent", new Model<String>(""));
+        dialogContent = new Label("dialogContent", new Model<String>(""));
 
         add(dialogContent.setOutputMarkupId(true));
 
-        form = new Form("form");
-        add(form);
+        final Form form = new Form("TaskForm");
 
         form.setModel(new CompoundPropertyModel(taskTO));
 
-        profile = new WebMarkupContainer("profile");
-        profile.setOutputMarkupId(true);
-        form.add(profile);
-
-        executions = new WebMarkupContainer("executions");
-        executions.setOutputMarkupId(true);
-        form.add(executions);
-
-        final Label idLabel = new Label("idLabel", new ResourceModel("id"));
-        profile.add(idLabel);
-
-        final AjaxTextFieldPanel id = new AjaxTextFieldPanel(
-                "id", getString("id"),
-                new PropertyModel<String>(taskTO, "id"), false);
-
+        id = new TextField("id");
         id.setEnabled(false);
-        profile.add(id);
 
-        final List<IColumn> columns = new ArrayList<IColumn>();
-        columns.add(new PropertyColumn(new ResourceModel("id"), "id", "id"));
+        form.add(id);
 
-        columns.add(new DatePropertyColumn(
-                new ResourceModel("startDate"), "startDate", "startDate"));
+        accountId = new TextField("accountId");
+        accountId.setEnabled(false);
 
-        columns.add(new DatePropertyColumn(
-                new ResourceModel("endDate"), "endDate", "endDate"));
+        form.add(accountId);
 
-        columns.add(new PropertyColumn(
-                new ResourceModel("status"), "status", "status"));
+        resource = new TextField("resource");
+        resource.setEnabled(false);
 
-        columns.add(new AbstractColumn<TaskExecTO>(
-                new ResourceModel("message")) {
+        form.add(resource);
 
-            private static final long serialVersionUID = 2054811145491901166L;
+        List<IColumn> columns = new ArrayList<IColumn>();
+        columns.add(new PropertyColumn(new Model(getString("id")), "id", "id"));
+
+        columns.add(new DatePropertyColumn(new Model(getString("startDate")),
+                "startDate", "startDate", null));
+
+        columns.add(new DatePropertyColumn(new Model(getString("endDate")),
+                "endDate", "endDate", null));
+
+        columns.add(new PropertyColumn(new Model(getString("status")),
+                "status", "status"));
+
+        columns.add(new AbstractColumn<TaskExecutionTO>(
+                new Model<String>(getString("message"))) {
 
             @Override
             public void populateItem(
-                    final Item<ICellPopulator<TaskExecTO>> cellItem,
+                    final Item<ICellPopulator<TaskExecutionTO>> cellItem,
                     final String componentId,
-                    final IModel<TaskExecTO> model) {
+                    final IModel<TaskExecutionTO> model) {
 
                 AjaxLink messageLink = new IndicatingAjaxLink("link") {
-
-                    private static final long serialVersionUID =
-                            -7978723352517770644L;
 
                     @Override
                     public void onClick(final AjaxRequestTarget target) {
                         dialogContent.setDefaultModelObject(
                                 model.getObject().getMessage());
 
-                        target.add(dialogContent);
-                        target.appendJavaScript(
-                                "jQuery('#dialog').dialog('open')");
+                        target.addComponent(dialogContent);
+
+                        target.appendJavascript("jQuery('#dialog')"
+                                + ".dialog('open')");
                     }
                 };
 
@@ -164,47 +147,35 @@ public abstract class TaskModalPage extends BaseModalPage {
                 panel.add(messageLink);
 
                 cellItem.add(panel);
-
-                if (!StringUtils.hasText(model.getObject().getMessage())) {
-                    messageLink.setEnabled(false);
-                }
             }
         });
 
-        columns.add(new AbstractColumn<TaskExecTO>(
-                new ResourceModel("delete")) {
-
-            private static final long serialVersionUID = 2054811145491901166L;
+        columns.add(new AbstractColumn<TaskExecutionTO>(
+                new Model<String>(getString("delete"))) {
 
             @Override
             public void populateItem(
-                    final Item<ICellPopulator<TaskExecTO>> cellItem,
+                    final Item<ICellPopulator<TaskExecutionTO>> cellItem,
                     final String componentId,
-                    final IModel<TaskExecTO> model) {
+                    final IModel<TaskExecutionTO> model) {
 
-                final TaskExecTO taskExecutionTO = model.getObject();
+                final TaskExecutionTO taskExecutionTO = model.getObject();
 
                 AjaxLink deleteLink = new IndicatingDeleteOnConfirmAjaxLink(
                         "deleteLink") {
-
-                    private static final long serialVersionUID =
-                            -7978723352517770644L;
 
                     @Override
                     public void onClick(final AjaxRequestTarget target) {
                         try {
                             taskRestClient.deleteExecution(
                                     taskExecutionTO.getId());
-
-                            taskTO.removeExecution(taskExecutionTO);
-
                             info(getString("operation_succeded"));
                         } catch (SyncopeClientCompositeErrorException scce) {
                             error(scce.getMessage());
                         }
 
-                        target.add(feedbackPanel);
-                        target.add(executions);
+                        target.addComponent(feedbackPanel);
+                        target.addComponent(container);
                     }
                 };
 
@@ -222,31 +193,34 @@ public abstract class TaskModalPage extends BaseModalPage {
                 new AjaxFallbackDefaultDataTable("executionsTable", columns,
                 new TaskExecutionsProvider(taskTO), 10);
 
-        executions.add(table);
+        container = new WebMarkupContainer("container");
+        container.add(table);
+        container.setOutputMarkupId(true);
+
+        form.add(container);
+
+        add(form);
     }
 
-    protected class TaskExecutionsProvider
-            extends SortableDataProvider<TaskExecTO> {
+    class TaskExecutionsProvider extends SortableDataProvider<TaskExecutionTO> {
 
-        private static final long serialVersionUID = 8943636537120648961L;
-
-        private SortableDataProviderComparator<TaskExecTO> comparator;
+        private SortableDataProviderComparator<TaskExecutionTO> comparator;
 
         private TaskTO taskTO;
 
         public TaskExecutionsProvider(TaskTO taskTO) {
             //Default sorting
             this.taskTO = taskTO;
-            setSort("startDate", SortOrder.ASCENDING);
+            setSort("startDate", true);
             comparator =
-                    new SortableDataProviderComparator<TaskExecTO>(this);
+                    new SortableDataProviderComparator<TaskExecutionTO>(this);
         }
 
         @Override
-        public Iterator<TaskExecTO> iterator(final int first,
+        public Iterator<TaskExecutionTO> iterator(final int first,
                 final int count) {
 
-            List<TaskExecTO> list = getTaskDB();
+            List<TaskExecutionTO> list = getTaskDB();
 
             Collections.sort(list, comparator);
 
@@ -259,78 +233,61 @@ public abstract class TaskModalPage extends BaseModalPage {
         }
 
         @Override
-        public IModel<TaskExecTO> model(
-                final TaskExecTO taskExecution) {
+        public IModel<TaskExecutionTO> model(
+                final TaskExecutionTO taskExecution) {
 
-            return new AbstractReadOnlyModel<TaskExecTO>() {
-
-                private static final long serialVersionUID =
-                        7485475149862342421L;
+            return new AbstractReadOnlyModel<TaskExecutionTO>() {
 
                 @Override
-                public TaskExecTO getObject() {
+                public TaskExecutionTO getObject() {
                     return taskExecution;
                 }
             };
         }
 
-        public List<TaskExecTO> getTaskDB() {
+        public List<TaskExecutionTO> getTaskDB() {
             return taskTO.getExecutions();
         }
     }
 
-    protected String getCronField(
-            final FormComponent formComponent, final int field) {
-        String cronField = null;
+    /**
+     * Format column's value as date string.
+     */
+    public class DatePropertyColumn<T> extends PropertyColumn<T> {
 
-        if (formComponent != null) {
-            cronField = getCronField(formComponent.getInput(), field);
+        private SimpleDateFormat formatter;
+
+        public DatePropertyColumn(
+                IModel<String> displayModel, String sortProperty,
+                String propertyExpression, DateConverter converter) {
+            super(displayModel, sortProperty, propertyExpression);
+
+            String language = "en";
+            if (getSession().getLocale() != null) {
+                language = getSession().getLocale().getLanguage();
+            }
+
+            if ("it".equals(language)) {
+                formatter = new SimpleDateFormat(Constants.ITALIAN_DATE_FORMAT);
+            } else {
+                formatter = new SimpleDateFormat(Constants.ENGLISH_DATE_FORMAT);
+            }
         }
 
-        return cronField;
-    }
+        @Override
+        public void populateItem(
+                Item<ICellPopulator<T>> item, String componentId,
+                IModel<T> rowModel) {
+            IModel date = (IModel<Date>) createLabelModel(rowModel);
 
-    protected String getCronField(
-            final String cron, final int field) {
-        String cronField = null;
+            String convertedDate = "";
 
-        if (cron != null && !cron.isEmpty() && !"UNSCHEDULE".equals(cron)) {
-            cronField = cron.split(" ")[field].trim();
+            if (date.getObject() != null) {
+                convertedDate = formatter.format(date.getObject());
+                item.add(new Label(componentId, convertedDate));
+            } else {
+                item.add(new Label(componentId, convertedDate));
+            }
         }
-
-        return cronField;
-    }
-
-    protected String getCron(
-            final FormComponent seconds,
-            final FormComponent minutes,
-            final FormComponent hours,
-            final FormComponent daysOfMonth,
-            final FormComponent months,
-            final FormComponent daysOfWeek) {
-
-        final StringBuilder cron = new StringBuilder();
-
-        if (seconds != null && seconds.getInput() != null
-                && minutes != null && minutes.getInput() != null
-                && hours != null && hours.getInput() != null
-                && daysOfMonth != null && daysOfMonth.getInput() != null
-                && months != null && months.getInput() != null
-                && daysOfWeek != null && daysOfWeek.getInput() != null) {
-
-            cron.append(seconds.getInput().trim()).
-                    append(" ").
-                    append(minutes.getInput().trim()).
-                    append(" ").
-                    append(hours.getInput().trim()).
-                    append(" ").
-                    append(daysOfMonth.getInput().trim()).
-                    append(" ").
-                    append(months.getInput().trim()).
-                    append(" ").
-                    append(daysOfWeek.getInput().trim());
-        }
-
-        return cron.toString();
     }
 }

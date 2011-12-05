@@ -33,10 +33,11 @@ import org.syncope.client.to.SchemaMappingTO;
 import org.syncope.client.validation.SyncopeClientCompositeErrorException;
 import org.syncope.client.validation.SyncopeClientException;
 import org.syncope.core.persistence.beans.SchemaMapping;
-import org.syncope.core.persistence.beans.ExternalResource;
+import org.syncope.core.persistence.beans.TargetResource;
 import org.syncope.core.persistence.beans.role.SyncopeRole;
 import org.syncope.core.persistence.dao.ResourceDAO;
 import org.syncope.core.persistence.dao.RoleDAO;
+import org.syncope.core.persistence.validation.entity.InvalidEntityException;
 import org.syncope.core.rest.data.ResourceDataBinder;
 import org.syncope.types.SyncopeClientExceptionType;
 
@@ -62,19 +63,18 @@ public class ResourceController extends AbstractController {
 
         LOG.debug("Resource creation: {}", resourceTO);
 
+        SyncopeClientCompositeErrorException scce =
+                new SyncopeClientCompositeErrorException(
+                HttpStatus.BAD_REQUEST);
+
         if (resourceTO == null) {
             LOG.error("Missing resource");
 
             throw new NotFoundException("Missing resource");
         }
 
-        SyncopeClientCompositeErrorException scce =
-                new SyncopeClientCompositeErrorException(
-                HttpStatus.BAD_REQUEST);
-
         LOG.debug("Verify that resource doesn't exist yet");
-        if (resourceTO.getName() != null
-                && resourceDAO.find(resourceTO.getName()) != null) {
+        if (resourceDAO.find(resourceTO.getName()) != null) {
             SyncopeClientException ex = new SyncopeClientException(
                     SyncopeClientExceptionType.DuplicateUniqueValue);
 
@@ -84,7 +84,7 @@ public class ResourceController extends AbstractController {
             throw scce;
         }
 
-        ExternalResource resource = binder.getResource(resourceTO);
+        TargetResource resource = binder.getResource(resourceTO);
         if (resource == null) {
             LOG.error("Resource creation failed");
 
@@ -96,7 +96,14 @@ public class ResourceController extends AbstractController {
             throw scce;
         }
 
-        resource = resourceDAO.save(resource);
+        try {
+            resource = resourceDAO.save(resource);
+        } catch (InvalidEntityException e) {
+            SyncopeClientException ex = new SyncopeClientException(
+                    SyncopeClientExceptionType.InvalidSchemaMapping);
+            scce.addException(ex);
+            throw scce;
+        }
 
         response.setStatus(HttpServletResponse.SC_CREATED);
         return binder.getResourceTO(resource);
@@ -111,12 +118,12 @@ public class ResourceController extends AbstractController {
 
         LOG.debug("Role update request: {}", resourceTO);
 
-        ExternalResource resource = null;
+        TargetResource resource = null;
         if (resourceTO != null && resourceTO.getName() != null) {
             resource = resourceDAO.find(resourceTO.getName());
         }
         if (resource == null) {
-            LOG.error("Missing resource: {}", resourceTO.getName());
+            LOG.error("Missing resource: " + resourceTO.getName());
             throw new NotFoundException(
                     "Resource '" + resourceTO.getName() + "'");
         }
@@ -127,7 +134,7 @@ public class ResourceController extends AbstractController {
 
         LOG.debug("Removing old mappings ..");
         // remove old mappings
-        resource.getMappings().clear();
+        resourceDAO.deleteAllMappings(resource);
 
         resource = binder.getResource(resource, resourceTO);
         if (resource == null) {
@@ -139,7 +146,14 @@ public class ResourceController extends AbstractController {
             throw scce;
         }
 
-        resource = resourceDAO.save(resource);
+        try {
+            resource = resourceDAO.save(resource);
+        } catch (InvalidEntityException e) {
+            SyncopeClientException ex = new SyncopeClientException(
+                    SyncopeClientExceptionType.InvalidSchemaMapping);
+            scce.addException(ex);
+            throw scce;
+        }
 
         return binder.getResourceTO(resource);
     }
@@ -151,7 +165,7 @@ public class ResourceController extends AbstractController {
             final @PathVariable("resourceName") String resourceName)
             throws NotFoundException {
 
-        ExternalResource resource = resourceDAO.find(resourceName);
+        TargetResource resource = resourceDAO.find(resourceName);
 
         if (resource == null) {
             LOG.error("Could not find resource '" + resourceName + "'");
@@ -169,7 +183,7 @@ public class ResourceController extends AbstractController {
             final @PathVariable("resourceName") String resourceName)
             throws NotFoundException {
 
-        ExternalResource resource = resourceDAO.find(resourceName);
+        TargetResource resource = resourceDAO.find(resourceName);
         if (resource == null) {
             LOG.error("Could not find resource '" + resourceName + "'");
             throw new NotFoundException("Resource '" + resourceName + "'");
@@ -178,13 +192,14 @@ public class ResourceController extends AbstractController {
         return binder.getResourceTO(resource);
     }
 
+    @PreAuthorize("hasRole('RESOURCE_LIST')")
     @Transactional(readOnly = true)
     @RequestMapping(method = RequestMethod.GET,
     value = "/list")
     public List<ResourceTO> list(HttpServletResponse response)
             throws NotFoundException {
 
-        List<ExternalResource> resources = resourceDAO.findAll();
+        List<TargetResource> resources = resourceDAO.findAll();
         if (resources == null) {
             LOG.error("No resources found");
             throw new NotFoundException("No resources found");
@@ -225,10 +240,10 @@ public class ResourceController extends AbstractController {
 
         List<SchemaMappingTO> roleMappings = new ArrayList<SchemaMappingTO>();
 
-        Set<ExternalResource> resources = role.getExternalResources();
+        Set<TargetResource> resources = role.getTargetResources();
 
         List<SchemaMappingTO> resourceMappings;
-        for (ExternalResource resource : resources) {
+        for (TargetResource resource : resources) {
             LOG.debug("Ask for the mappings of {}", resource);
 
             List<SchemaMapping> schemaMappings = resource.getMappings();

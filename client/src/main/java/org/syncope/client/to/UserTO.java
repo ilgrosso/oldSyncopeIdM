@@ -17,17 +17,11 @@ package org.syncope.client.to;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import org.apache.commons.lang.builder.ReflectionToStringBuilder;
 import org.apache.commons.lang.builder.ToStringStyle;
-import org.codehaus.jackson.annotate.JsonIgnore;
-import org.syncope.types.PropagationTaskExecStatus;
 
 public class UserTO extends AbstractAttributableTO {
-
-    private static final long serialVersionUID = 7791304495192615740L;
 
     private String password;
 
@@ -39,23 +33,10 @@ public class UserTO extends AbstractAttributableTO {
 
     private Date tokenExpireTime;
 
-    private String username;
-
-    private Date lastLoginDate;
-
-    private Date creationDate;
-
-    private Date changePwdDate;
-
-    private Integer failedLogins;
-
-    private Map<String, PropagationTaskExecStatus> propagationStatusMap;
-
     public UserTO() {
         super();
 
         memberships = new ArrayList<MembershipTO>();
-        propagationStatusMap = new HashMap<String, PropagationTaskExecStatus>();
     }
 
     public String getPassword() {
@@ -82,18 +63,6 @@ public class UserTO extends AbstractAttributableTO {
         this.memberships = memberships;
     }
 
-    @JsonIgnore
-    public Map<Long, MembershipTO> getMembershipMap() {
-        Map<Long, MembershipTO> result = new HashMap<Long, MembershipTO>(
-                getMemberships().size());
-
-        for (MembershipTO membership : getMemberships()) {
-            result.put(membership.getRoleId(), membership);
-        }
-
-        return result;
-    }
-
     public String getStatus() {
         return status;
     }
@@ -111,89 +80,21 @@ public class UserTO extends AbstractAttributableTO {
     }
 
     public Date getTokenExpireTime() {
-        return tokenExpireTime == null
-                ? null : new Date(tokenExpireTime.getTime());
+        return tokenExpireTime;
     }
 
     public void setTokenExpireTime(Date tokenExpireTime) {
-        if (tokenExpireTime != null) {
-            this.tokenExpireTime = new Date(tokenExpireTime.getTime());
-        }
-    }
-
-    public String getUsername() {
-        return username;
-    }
-
-    public void setUsername(String username) {
-        this.username = username;
-    }
-
-    public Date getChangePwdDate() {
-        return changePwdDate;
-    }
-
-    public Date getCreationDate() {
-        return creationDate;
-    }
-
-    public Integer getFailedLogins() {
-        return failedLogins;
-    }
-
-    public Date getLastLoginDate() {
-        return lastLoginDate;
-    }
-
-    public void setChangePwdDate(Date changePwdDate) {
-        this.changePwdDate = changePwdDate;
-    }
-
-    public void setCreationDate(Date creationDate) {
-        this.creationDate = creationDate;
-    }
-
-    public void setFailedLogins(Integer failedLogins) {
-        this.failedLogins = failedLogins;
-    }
-
-    public void setLastLoginDate(Date lastLoginDate) {
-        this.lastLoginDate = lastLoginDate;
-    }
-
-    public void addPropagationStatus(String resource,
-            PropagationTaskExecStatus status) {
-
-        propagationStatusMap.put(resource, status);
-    }
-
-    public void removePropagationStatus(String resource) {
-
-        propagationStatusMap.remove(resource);
-    }
-
-    public Map<String, PropagationTaskExecStatus> getPropagationStatusMap() {
-        return propagationStatusMap;
-    }
-
-    public void setPropagationStatusMap(
-            Map<String, PropagationTaskExecStatus> propagationStatusMap) {
-
-        this.propagationStatusMap.clear();
-        if (propagationStatusMap != null && !propagationStatusMap.isEmpty()) {
-            this.propagationStatusMap.putAll(propagationStatusMap);
-        }
+        this.tokenExpireTime = tokenExpireTime;
     }
 
     @Override
     public String toString() {
-        return new ReflectionToStringBuilder(this,
+        return (new ReflectionToStringBuilder(this,
                 ToStringStyle.MULTI_LINE_STYLE) {
 
-            @Override
             protected boolean accept(Field f) {
                 return super.accept(f) && !f.getName().equals("password");
             }
-        }.toString();
+        }).toString();
     }
 }

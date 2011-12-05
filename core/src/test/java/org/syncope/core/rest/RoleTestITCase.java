@@ -50,53 +50,15 @@ public class RoleTestITCase extends AbstractTest {
         roleTO.setName("lastRole");
         roleTO.setParent(8L);
 
-        // verify inheritance password and account policies
-        roleTO.setInheritAccountPolicy(false);
-        // not inherited so setter execution shouldn't be ignored
-        roleTO.setAccountPolicy(6L);
-
-        roleTO.setInheritPasswordPolicy(true);
-        // inherited so setter execution should be ignored
-        roleTO.setPasswordPolicy(2L);
-
         AttributeTO icon = new AttributeTO();
         icon.setSchema("icon");
         icon.addValue("anIcon");
 
-        RoleTO actual = restTemplate.postForObject(BASE_URL + "role/create",
+        RoleTO newRoleTO = restTemplate.postForObject(BASE_URL + "role/create",
                 roleTO, RoleTO.class);
 
-        roleTO.setId(actual.getId());
-
-        roleTO.setPasswordPolicy(4L);
-
-        assertEquals(roleTO, actual);
-
-        assertNotNull(actual.getAccountPolicy());
-        assertEquals(6L, (long) actual.getAccountPolicy());
-
-        assertNotNull(actual.getPasswordPolicy());
-        assertEquals(4L, (long) actual.getPasswordPolicy());
-    }
-
-    @Test
-    public void createWithPasswordPolicy() {
-        RoleTO roleTO = new RoleTO();
-        roleTO.setName("roleWithPassword");
-        roleTO.setParent(8L);
-        roleTO.setPasswordPolicy(4L);
-
-        RoleTO actual = restTemplate.postForObject(BASE_URL + "role/create",
-                roleTO, RoleTO.class);
-
-        assertNotNull(actual);
-
-        actual = restTemplate.getForObject(BASE_URL
-                + "role/read/{roleId}.json", RoleTO.class, actual.getId());
-
-        assertNotNull(actual);
-        assertNotNull(actual.getPasswordPolicy());
-        assertEquals(4L, (long) actual.getPasswordPolicy());
+        roleTO.setId(newRoleTO.getId());
+        assertEquals(roleTO, newRoleTO);
     }
 
     @Test
@@ -122,7 +84,7 @@ public class RoleTestITCase extends AbstractTest {
                 restTemplate.getForObject(BASE_URL
                 + "role/list.json", RoleTO[].class));
         assertNotNull(roleTOs);
-        assertTrue(roleTOs.size() >= 8);
+        assertEquals(8, roleTOs.size());
         for (RoleTO roleTO : roleTOs) {
             assertNotNull(roleTO);
         }
@@ -153,15 +115,6 @@ public class RoleTestITCase extends AbstractTest {
         roleTO.setName("latestRole");
         roleTO.setParent(8L);
 
-        // verify inheritance password and account policies
-        roleTO.setInheritAccountPolicy(false);
-        // not inherited so setter execution shouldn't be ignored
-        roleTO.setAccountPolicy(6L);
-
-        roleTO.setInheritPasswordPolicy(true);
-        // inherited so setter execution should be ignored
-        roleTO.setPasswordPolicy(2L);
-
         AttributeTO icon = new AttributeTO();
         icon.setSchema("icon");
         icon.addValue("anIcon");
@@ -172,12 +125,6 @@ public class RoleTestITCase extends AbstractTest {
 
         assertEquals(1, roleTO.getAttributes().size());
 
-        assertNotNull(roleTO.getAccountPolicy());
-        assertEquals(6L, (long) roleTO.getAccountPolicy());
-
-        assertNotNull(roleTO.getPasswordPolicy());
-        assertEquals(4L, (long) roleTO.getPasswordPolicy());
-
         AttributeMod attributeMod = new AttributeMod();
         attributeMod.setSchema("show");
         attributeMod.addValueToBeAdded("FALSE");
@@ -187,103 +134,10 @@ public class RoleTestITCase extends AbstractTest {
         roleMod.setName("finalRole");
         roleMod.addAttributeToBeUpdated(attributeMod);
 
-        // change password policy inheritance
-        roleMod.setInheritPasswordPolicy(Boolean.FALSE);
-
         roleTO = restTemplate.postForObject(BASE_URL + "role/update",
                 roleMod, RoleTO.class);
 
         assertEquals("finalRole", roleTO.getName());
         assertEquals(2, roleTO.getAttributes().size());
-
-        // changes ignored because not requested (null ReferenceMod)
-        assertNotNull(roleTO.getAccountPolicy());
-        assertEquals(6L, (long) roleTO.getAccountPolicy());
-
-        // password policy null because not inherited
-        assertNull(roleTO.getPasswordPolicy());
-    }
-
-    @Test
-    public void updateRemovingVirAttribute() {
-        RoleTO roleTO = new RoleTO();
-        roleTO.setName("withvirtual");
-        roleTO.setParent(8L);
-
-        final AttributeTO rvirtualdata = new AttributeTO();
-        rvirtualdata.setSchema("rvirtualdata");
-        roleTO.addVirtualAttribute(rvirtualdata);
-
-        roleTO = restTemplate.postForObject(
-                BASE_URL + "role/create", roleTO, RoleTO.class);
-
-        assertNotNull(roleTO);
-        assertEquals(1, roleTO.getVirtualAttributes().size());
-
-        final RoleMod roleMod = new RoleMod();
-        roleMod.setId(roleTO.getId());
-        roleMod.addVirtualAttributeToBeRemoved("rvirtualdata");
-
-        roleTO = restTemplate.postForObject(
-                BASE_URL + "role/update", roleMod, RoleTO.class);
-
-        assertNotNull(roleTO);
-        assertTrue(roleTO.getVirtualAttributes().isEmpty());
-    }
-
-    @Test
-    public void updateRemovingDerAttribute() {
-        RoleTO roleTO = new RoleTO();
-        roleTO.setName("withderived");
-        roleTO.setParent(8L);
-
-        final AttributeTO deriveddata = new AttributeTO();
-        deriveddata.setSchema("rderivedschema");
-        roleTO.addDerivedAttribute(deriveddata);
-
-        roleTO = restTemplate.postForObject(
-                BASE_URL + "role/create", roleTO, RoleTO.class);
-
-        assertNotNull(roleTO);
-        assertEquals(1, roleTO.getDerivedAttributes().size());
-
-        final RoleMod roleMod = new RoleMod();
-        roleMod.setId(roleTO.getId());
-        roleMod.addDerivedAttributeToBeRemoved("rderivedschema");
-
-        roleTO = restTemplate.postForObject(
-                BASE_URL + "role/update", roleMod, RoleTO.class);
-
-        assertNotNull(roleTO);
-        assertTrue(roleTO.getDerivedAttributes().isEmpty());
-    }
-
-    /**
-     * Role rename used to fail in case of parent null.
-     *
-     * http://code.google.com/p/syncope/issues/detail?id=178
-     */
-    @Test
-    public void issue178() {
-        RoleTO roleTO = new RoleTO();
-        roleTO.setName("torename");
-
-        RoleTO actual = restTemplate.postForObject(
-                BASE_URL + "role/create", roleTO, RoleTO.class);
-
-        assertNotNull(actual);
-        assertEquals("torename", actual.getName());
-        assertEquals(0L, actual.getParent());
-
-        RoleMod roleMod = new RoleMod();
-        roleMod.setId(actual.getId());
-        roleMod.setName("renamed");
-
-        actual = restTemplate.postForObject(
-                BASE_URL + "role/update", roleMod, RoleTO.class);
-
-        assertNotNull(actual);
-        assertEquals("renamed", actual.getName());
-        assertEquals(0L, actual.getParent());
     }
 }

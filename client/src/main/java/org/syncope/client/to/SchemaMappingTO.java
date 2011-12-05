@@ -15,7 +15,7 @@
 package org.syncope.client.to;
 
 import org.syncope.client.AbstractBaseBean;
-import org.syncope.types.IntMappingType;
+import org.syncope.types.SourceMappingType;
 
 public class SchemaMappingTO extends AbstractBaseBean {
 
@@ -26,17 +26,17 @@ public class SchemaMappingTO extends AbstractBaseBean {
      * Consider that we can associate tha same attribute schema more
      * than once, with different aliases, to different resource attributes.
      */
-    private String intAttrName;
+    private String sourceAttrName;
 
     /**
      * Schema type to be mapped.
      */
-    private IntMappingType intMappingType;
+    private SourceMappingType sourceMappingType;
 
     /**
-     * External resource's field to be mapped.
+     * Target resource's field to be mapped.
      */
-    private String extAttrName;
+    private String destAttrName;
 
     /**
      * Specify if the mapped target resource's field is the key.
@@ -61,12 +61,12 @@ public class SchemaMappingTO extends AbstractBaseBean {
         this.accountid = accountid;
     }
 
-    public String getExtAttrName() {
-        return extAttrName;
+    public String getDestAttrName() {
+        return destAttrName;
     }
 
-    public void setExtAttrName(String extAttrName) {
-        this.extAttrName = extAttrName;
+    public void setDestAttrName(String destAttrName) {
+        this.destAttrName = destAttrName;
     }
 
     public Long getId() {
@@ -93,19 +93,19 @@ public class SchemaMappingTO extends AbstractBaseBean {
         this.password = password;
     }
 
-    public String getIntAttrName() {
-        return intAttrName;
+    public String getSourceAttrName() {
+        return sourceAttrName;
     }
 
-    public void setIntAttrName(String intAttrName) {
-        this.intAttrName = intAttrName;
+    public void setSourceAttrName(String sourceAttrName) {
+        this.sourceAttrName = sourceAttrName;
     }
 
-    public IntMappingType getIntMappingType() {
-        return intMappingType;
+    public SourceMappingType getSourceMappingType() {
+        return sourceMappingType;
     }
 
-    public void setIntMappingType(IntMappingType intMappingType) {
-        this.intMappingType = intMappingType;
+    public void setSourceMappingType(SourceMappingType sourceMappingType) {
+        this.sourceMappingType = sourceMappingType;
     }
 }

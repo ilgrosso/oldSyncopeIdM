@@ -16,22 +16,15 @@ package org.syncope.client.mod;
 
 import java.util.ArrayList;
 import java.util.List;
-import org.codehaus.jackson.annotate.JsonIgnore;
 import org.syncope.client.AbstractBaseBean;
 
 public class AttributeMod extends AbstractBaseBean {
 
-    private static final long serialVersionUID = -913573979137431406L;
-
     private String schema;
-
     private List<String> valuesToBeAdded;
-
     private List<String> valuesToBeRemoved;
 
     public AttributeMod() {
-        super();
-
         valuesToBeAdded = new ArrayList<String>();
         valuesToBeRemoved = new ArrayList<String>();
     }
@@ -74,11 +67,5 @@ public class AttributeMod extends AbstractBaseBean {
 
     public void setValuesToBeRemoved(List<String> valuesToBeRemoved) {
         this.valuesToBeRemoved = valuesToBeRemoved;
-    }
-
-    @JsonIgnore
-    public boolean isEmpty() {
-        return valuesToBeAdded.isEmpty()
-                && valuesToBeRemoved.isEmpty();
     }
 }

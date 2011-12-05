@@ -14,8 +14,6 @@
  */
 package org.syncope.core.persistence.beans.role;
 
-import java.util.Collections;
-import java.util.List;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
 import javax.persistence.ManyToOne;
@@ -26,13 +24,11 @@ import org.syncope.core.persistence.beans.AbstractVirSchema;
 @Entity
 public class RVirAttr extends AbstractVirAttr {
 
-    private static final long serialVersionUID = -1747430556914428649L;
-
     @ManyToOne
     private SyncopeRole owner;
 
     @ManyToOne(fetch = FetchType.EAGER)
-    private RVirSchema virtualSchema;
+    RVirSchema virtualSchema;
 
     @Override
     public <T extends AbstractAttributable> T getOwner() {
@@ -54,10 +50,5 @@ public class RVirAttr extends AbstractVirAttr {
             T virtualSchema) {
 
         this.virtualSchema = (RVirSchema) virtualSchema;
-    }
-
-    @Override
-    public List<String> getValues() {
-        return Collections.EMPTY_LIST;
     }
 }

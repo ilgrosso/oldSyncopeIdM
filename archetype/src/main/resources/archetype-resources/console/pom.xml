@@ -15,9 +15,14 @@
     <packaging>war</packaging>
 
     <properties>
+        <logfile>/var/tmp/syncope-console.log</logfile>
+        <logfile.test>/var/tmp/syncope-console-test.log</logfile.test>
+
         <cargo.servlet.port>9080</cargo.servlet.port>
-        <cargo.log>${log.directory}/console-cargo.log</cargo.log>
-        <cargo.output>${log.directory}/console-cargo-output.log</cargo.output>
+        <cargo.log>/var/tmp/syncope-core-cargo.log</cargo.log>
+        <cargo.output>/var/tmp/syncope-core-cargo-output.log</cargo.output>
+
+        <bundles.directory>/var/tmp/bundles</bundles.directory>
     </properties>
 
     <dependencies>
@@ -25,7 +30,6 @@
         <dependency>
             <groupId>org.apache.wicket</groupId>
             <artifactId>wicket</artifactId>
-            <type>pom</type>
         </dependency>
 
         <dependency>
@@ -64,97 +68,36 @@
             <type>jar</type>
         </dependency>
 
-        <!-- TEST -->
-        <dependency>
-            <groupId>com.h2database</groupId>
-            <artifactId>h2</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.connid.bundles.soap</groupId>
-            <artifactId>org.connid.bundles.soap</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.connid.bundles.soap</groupId>
-            <artifactId>wssample</artifactId>
-            <type>war</type>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.connid.bundles.db</groupId>
-            <artifactId>org.connid.bundles.db.table</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.connid.bundles</groupId>
-            <artifactId>org.connid.bundles.csvdir</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <!-- /TEST -->
-        
     </dependencies>
 
     <build>
-        <finalName>syncope-console-${project.parent.version}</finalName>
+        <finalName>${artifactId}-${project.parent.version}</finalName>
 
         <plugins>
-            
-            <plugin>
-                <groupId>org.syncope</groupId>
-                <artifactId>syncope-build-tools</artifactId>
-                <executions>
-                    <execution>
-                        <id>set-dynamic-properties</id>
-                        <phase>validate</phase>
-                        <goals>
-                            <goal>set-dynamic-properties</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
 
              <!-- For cargo:run -->
             <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>exec-maven-plugin</artifactId>
+                <groupId>org.onebusaway.plugins</groupId>
+                <artifactId>maven-hsqldb-plugin</artifactId>
                 <inherited>true</inherited>
+                <configuration>
+                    <dbName>testdb</dbName>
+                    <mode>server</mode>
+                    <isTransient>true</isTransient>
+                </configuration>
                 <dependencies>
                     <dependency>
-                        <groupId>com.h2database</groupId>
-                        <artifactId>h2</artifactId>
-                        <version>${h2.version}</version>
+                        <groupId>org.hsqldb</groupId>
+                        <artifactId>hsqldb</artifactId>
+                        <version>${hsqldb.version}</version>
                     </dependency>
                 </dependencies>
-                <configuration>
-                    <includeProjectDependencies>false</includeProjectDependencies>
-                    <includePluginDependencies>true</includePluginDependencies>
-                    <executableDependency>
-                        <groupId>com.h2database</groupId>
-                        <artifactId>h2</artifactId>
-                    </executableDependency>
-                    <mainClass>org.h2.tools.Server</mainClass>
-                    <arguments>
-                        <argument>-tcp</argument>    
-                        <argument>-tcpDaemon</argument>
-                        <argument>-web</argument>
-                        <argument>-webDaemon</argument>
-                        <argument>-webPort</argument>
-                        <argument>9082</argument>
-                    </arguments>
-                    <systemProperties>
-                        <systemProperty>
-                            <key>h2.baseDir</key>
-                            <value>${project.build.directory}/test-classes</value>
-                        </systemProperty>
-                    </systemProperties>
-                </configuration>
                 <executions>
                     <execution>
                         <id>startTestDb</id>
-                        <phase>pre-integration-test</phase>
+                        <phase>package</phase>
                         <goals>
-                            <goal>java</goal>    
+                            <goal>run</goal>
                         </goals>
                     </execution>
                 </executions>
@@ -166,24 +109,31 @@
                 <inherited>true</inherited>
                 <dependencies>
                     <dependency>
-                        <groupId>com.h2database</groupId>
-                        <artifactId>h2</artifactId>
-                        <version>${h2.version}</version>
+                        <groupId>org.hsqldb</groupId>
+                        <artifactId>hsqldb</artifactId>
+                        <version>${hsqldb.version}</version>
                     </dependency>
                 </dependencies>
                 <configuration>
-                    <driver>org.h2.Driver</driver>
-                    <url>jdbc:h2:tcp://localhost:9092/testdb</url>
+                    <driver>org.hsqldb.jdbcDriver</driver>
+                    <url>jdbc:hsqldb:hsql://localhost:9001/testdb</url>
                     <username>sa</username>
                     <password></password>
-                    <srcFiles>
-                        <srcFile>${project.build.directory}/test-classes/testdb.sql</srcFile>
-                    </srcFiles>
+                    <sqlCommand>
+			ALTER USER sa SET PASSWORD "sa";
+
+                        DROP TABLE test IF EXISTS;
+                        CREATE TABLE test (
+                        id INTEGER PRIMARY KEY,
+                        password VARCHAR(255) NOT NULL);
+
+                        INSERT INTO test VALUES (1, 'password');
+                    </sqlCommand>
                 </configuration>
                 <executions>
                     <execution>
                         <id>loadTestDb</id>
-                        <phase>pre-integration-test</phase>
+                        <phase>package</phase>
                         <goals>
                             <goal>execute</goal>
                         </goals>
@@ -198,10 +148,10 @@
                 <executions>
                     <execution>
                         <id>explodeSyncopeWAR</id>
-                        <phase>pre-integration-test</phase>
+                        <phase>package</phase>
                         <configuration>
                             <target>
-                                <unzip src="${basedir}/../core/target/syncope-${project.parent.version}.war"
+                                <unzip src="${basedir}/../core/target/${project.parent.artifactId}-${project.parent.version}.war"
                                        dest="${project.build.directory}/syncope-core-test">
                                     <patternset>
                                         <exclude name="**/content.xml" />
@@ -217,25 +167,12 @@
                     </execution>
                     <execution>
                         <id>setupTomcat</id>
-                        <phase>pre-integration-test</phase>
+                        <phase>package</phase>
                         <configuration>
                             <target>
                                 <get src="http://archive.apache.org/dist/tomcat/tomcat-7/v${tomcat.version}/bin/apache-tomcat-${tomcat.version}.zip" dest="${java.io.tmpdir}" skipexisting="true" />
-                                <unzip src="${java.io.tmpdir}/apache-tomcat-${tomcat.version}.zip"
-                                       dest="${java.io.tmpdir}" overwrite="false"/>
+                                <unzip src="${java.io.tmpdir}/apache-tomcat-${tomcat.version}.zip" dest="${java.io.tmpdir}" overwrite="false" />
                             </target>
-                        </configuration>
-                        <goals>
-                            <goal>run</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <id>setupCSV</id>
-                        <phase>pre-integration-test</phase>
-                        <configuration>
-                            <target>
-                                <copy file="${project.build.directory}/test-classes/test.csv" todir="${java.io.tmpdir}" overwrite="true"/>
-                            </target>    
                         </configuration>
                         <goals>
                             <goal>run</goal>
@@ -269,12 +206,6 @@
                                     <version>${connid.db.table.version}</version>
                                     <outputDirectory>${bundles.directory}</outputDirectory>
                                 </artifactItem>
-                                <artifactItem>
-                                    <groupId>org.connid.bundles</groupId>
-                                    <artifactId>org.connid.bundles.csvdir</artifactId>
-                                    <version>${connid.csvdir.version}</version>
-                                    <outputDirectory>${bundles.directory}</outputDirectory>
-                                </artifactItem>
                             </artifactItems>
                         </configuration>
                     </execution>
@@ -294,8 +225,7 @@
                         <output>${cargo.output}</output>
                         <dependencies>
                             <dependency>
-                                <groupId>com.h2database</groupId>
-                                <artifactId>h2</artifactId>
+                                <location>${settings.localRepository}/org/hsqldb/hsqldb/${hsqldb.version}/hsqldb-${hsqldb.version}.jar</location>
                             </dependency>
                         </dependencies>
                     </container>
@@ -354,16 +284,4 @@
             </testResource>
         </testResources>
     </build>
-    
-    <profiles>
-        <profile>
-            <id>embedded</id>
-            <properties>
-                <maven.test.skip>true</maven.test.skip>
-            </properties>
-            <build>
-                <defaultGoal>clean verify cargo:run</defaultGoal>    
-            </build>
-        </profile>    
-    </profiles>
 </project>

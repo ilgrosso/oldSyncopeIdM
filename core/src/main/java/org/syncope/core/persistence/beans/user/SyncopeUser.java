@@ -14,12 +14,8 @@
  */
 package org.syncope.core.persistence.beans.user;
 
-import java.io.UnsupportedEncodingException;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
-import javax.crypto.BadPaddingException;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
+import static javax.persistence.EnumType.STRING;
+
 import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -30,50 +26,40 @@ import java.util.List;
 import java.util.Set;
 import javax.crypto.Cipher;
 import javax.crypto.spec.SecretKeySpec;
-import javax.persistence.Basic;
 import javax.persistence.Cacheable;
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
-import javax.persistence.ElementCollection;
 import javax.persistence.Entity;
-import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
 import javax.persistence.Id;
 import javax.persistence.Lob;
 import javax.persistence.OneToMany;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
-import javax.persistence.Transient;
 import javax.validation.Valid;
-import javax.validation.constraints.Max;
-import javax.validation.constraints.Min;
-import javax.validation.constraints.NotNull;
+import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.RandomStringUtils;
-import org.hibernate.annotations.Type;
-import org.springframework.security.core.codec.Base64;
 import org.syncope.core.persistence.beans.AbstractAttributable;
 import org.syncope.core.persistence.beans.AbstractAttr;
 import org.syncope.core.persistence.beans.AbstractDerAttr;
 import org.syncope.core.persistence.beans.AbstractVirAttr;
-import org.syncope.core.persistence.beans.ExternalResource;
+import org.syncope.core.persistence.beans.TargetResource;
 import org.syncope.core.persistence.beans.membership.Membership;
 import org.syncope.core.persistence.beans.role.SyncopeRole;
-import org.syncope.core.persistence.validation.entity.SyncopeUserCheck;
 import org.syncope.types.CipherAlgorithm;
 
 @Entity
 @Cacheable
-@SyncopeUserCheck
 public class SyncopeUser extends AbstractAttributable {
-
-    private static final long serialVersionUID = -3905046855521446823L;
 
     private static SecretKeySpec keySpec;
 
     static {
         try {
+
             keySpec = new SecretKeySpec(
                     "1abcdefghilmnopqrstuvz2!".getBytes("UTF8"), "AES");
+
         } catch (Exception e) {
             LOG.error("Error during key specification", e);
         }
@@ -82,11 +68,7 @@ public class SyncopeUser extends AbstractAttributable {
     @Id
     private Long id;
 
-    @NotNull
     private String password;
-
-    @Transient
-    private String clearPassword;
 
     @OneToMany(cascade = CascadeType.MERGE, mappedBy = "syncopeUser")
     @Valid
@@ -104,74 +86,24 @@ public class SyncopeUser extends AbstractAttributable {
     @Valid
     private List<UVirAttr> virtualAttributes;
 
-    private String workflowId;
-
     @Column(nullable = true)
-    private String status;
+    private Long workflowId;
 
     @Lob
-    @Type(type = "org.hibernate.type.StringClobType")
     private String token;
 
     @Temporal(TemporalType.TIMESTAMP)
     private Date tokenExpireTime;
 
     @Column(nullable = true)
-    @Enumerated(EnumType.STRING)
-    private CipherAlgorithm cipherAlgorithm;
-
-    @ElementCollection
-    private List<String> passwordHistory;
-
-    /**
-     * Subsequent failed logins.
-     */
-    @Column(nullable = true)
-    private Integer failedLogins;
-
-    /**
-     * Username/Login.
-     */
-    @Column(unique = true)
-    @NotNull
-    private String username;
-
-    /**
-     * Last successful login date.
-     */
-    @Column(nullable = true)
-    @Temporal(TemporalType.TIMESTAMP)
-    private Date lastLoginDate;
-
-    /**
-     * Creation date.
-     */
-    @NotNull
-    @Temporal(TemporalType.TIMESTAMP)
-    private Date creationDate;
-
-    /**
-     * Change password date.
-     */
-    @Column(nullable = true)
-    @Temporal(TemporalType.TIMESTAMP)
-    private Date changePwdDate;
-
-    @Basic
-    @Min(0)
-    @Max(1)
-    private Integer suspended;
+    @Enumerated(STRING)
+    CipherAlgorithm cipherAlgorithm;
 
     public SyncopeUser() {
-        super();
-
         memberships = new ArrayList<Membership>();
         attributes = new ArrayList<UAttr>();
         derivedAttributes = new ArrayList<UDerAttr>();
         virtualAttributes = new ArrayList<UVirAttr>();
-        passwordHistory = new ArrayList<String>();
-        failedLogins = 0;
-        suspended = 0;
     }
 
     @Override
@@ -189,8 +121,9 @@ public class SyncopeUser extends AbstractAttributable {
 
     public Membership getMembership(Long syncopeRoleId) {
         Membership result = null;
-        Membership membership;
-        for (Iterator<Membership> itor = getMemberships().iterator();
+        Membership membership = null;
+        for (Iterator<Membership> itor =
+                getMemberships().iterator();
                 result == null && itor.hasNext();) {
 
             membership = itor.next();
@@ -219,74 +152,84 @@ public class SyncopeUser extends AbstractAttributable {
         Set<SyncopeRole> result = new HashSet<SyncopeRole>();
 
         for (Membership membership : memberships) {
-            if (membership.getSyncopeRole() != null) {
-                result.add(membership.getSyncopeRole());
+            result.add(membership.getSyncopeRole());
+        }
+
+        return result;
+    }
+
+    @Override
+    public Set<TargetResource> getInheritedTargetResources() {
+        Set<TargetResource> inheritedTargetResources =
+                new HashSet<TargetResource>();
+
+        SyncopeRole role = null;
+
+        for (Membership membership : memberships) {
+            role = membership.getSyncopeRole();
+
+            try {
+
+                inheritedTargetResources.addAll(role.getTargetResources());
+
+            } catch (Throwable t) {
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("Invalid role " + role, t);
+                }
             }
         }
 
-        return result;
-    }
-
-    public Set<Long> getRoleIds() {
-        Set<SyncopeRole> roles = getRoles();
-
-        Set<Long> result = new HashSet<Long>(roles.size());
-        for (SyncopeRole role : roles) {
-            result.add(role.getId());
-        }
-
-        return result;
-    }
-
-    @Override
-    public Set<ExternalResource> getExternalResources() {
-        Set<ExternalResource> result = new HashSet<ExternalResource>();
-        result.addAll(super.getExternalResources());
-        for (SyncopeRole role : getRoles()) {
-            result.addAll(role.getExternalResources());
-        }
-
-        return result;
-    }
-
-    @Override
-    public Set<String> getExternalResourceNames() {
-        Set<ExternalResource> resources = getExternalResources();
-
-        Set<String> result = new HashSet<String>(resources.size());
-        for (ExternalResource resource : resources) {
-            result.add(resource.getName());
-        }
-
-        return result;
+        return inheritedTargetResources;
     }
 
     public String getPassword() {
         return password;
     }
 
-    public String getClearPassword() {
-        return clearPassword;
-    }
-
-    public void removeClearPassword() {
-        clearPassword = null;
-    }
-
     /**
+     * TODO: password policies.
      * @param password the password to be set
      */
     public void setPassword(
-            final String password,
-            final CipherAlgorithm cipherAlgoritm,
-            final int historySize) {
-
-        // clear password
-        clearPassword = password;
+            final String password, final CipherAlgorithm cipherAlgoritm) {
 
         try {
-            this.password = encodePassword(password, cipherAlgoritm);
+            if (cipherAlgoritm == null
+                    || cipherAlgoritm == CipherAlgorithm.AES) {
+
+                final byte[] cleartext = password.getBytes("UTF8");
+
+                final Cipher cipher = Cipher.getInstance(
+                        CipherAlgorithm.AES.getAlgorithm());
+
+                cipher.init(Cipher.ENCRYPT_MODE, keySpec);
+
+                byte[] encoded = cipher.doFinal(cleartext);
+
+                this.password = new String(
+                        Base64.encodeBase64(encoded));
+
+            } else {
+
+                MessageDigest algorithm = MessageDigest.getInstance(
+                        cipherAlgoritm.getAlgorithm());
+
+                algorithm.reset();
+                algorithm.update(password.getBytes());
+
+                byte messageDigest[] = algorithm.digest();
+
+                StringBuilder hexString = new StringBuilder();
+                for (int i = 0; i < messageDigest.length; i++) {
+                    hexString.append(
+                            Integer.toHexString(0xFF & messageDigest[i]));
+                }
+
+                this.password = hexString.toString();
+            }
+
             this.cipherAlgorithm = cipherAlgoritm;
+
         } catch (Throwable t) {
             LOG.error("Could not encode password", t);
             this.password = null;
@@ -365,24 +308,27 @@ public class SyncopeUser extends AbstractAttributable {
         this.virtualAttributes = (List<UVirAttr>) virtualAttributes;
     }
 
-    public String getWorkflowId() {
+    public Long getWorkflowId() {
         return workflowId;
     }
 
-    public void setWorkflowId(String workflowId) {
-        this.workflowId = workflowId;
+    public void setWorkflowId(Long workflowEntryId) {
+        this.workflowId = workflowEntryId;
     }
 
-    public String getStatus() {
-        return status;
+    public void generateToken(
+            int tokenLength, int tokenExpireTime) {
+        generateToken(tokenLength, tokenExpireTime, null);
     }
 
-    public void setStatus(String status) {
-        this.status = status;
-    }
+    public void generateToken(
+            int tokenLength, int tokenExpireTime, String token) {
 
-    public void generateToken(int tokenLength, int tokenExpireTime) {
-        this.token = RandomStringUtils.randomAlphanumeric(tokenLength);
+        if (token == null) {
+            token = RandomStringUtils.randomAlphanumeric(tokenLength);
+        }
+
+        this.token = token;
 
         Calendar calendar = Calendar.getInstance();
         calendar.add(Calendar.MINUTE, tokenExpireTime);
@@ -390,8 +336,8 @@ public class SyncopeUser extends AbstractAttributable {
     }
 
     public void removeToken() {
-        this.token = null;
-        this.tokenExpireTime = null;
+        token = null;
+        tokenExpireTime = null;
     }
 
     public String getToken() {
@@ -403,138 +349,15 @@ public class SyncopeUser extends AbstractAttributable {
     }
 
     public boolean checkToken(final String token) {
-        return this.token == null || (this.token.equals(token)
-                && tokenExpireTime.after(new Date()));
+        return this.token != null && this.token.equals(token)
+                && tokenExpireTime.after(new Date());
     }
 
     public CipherAlgorithm getCipherAlgoritm() {
         return cipherAlgorithm;
     }
 
-    public void setCipherAlgoritm(final CipherAlgorithm cipherAlgoritm) {
+    public void setCipherAlgoritm(CipherAlgorithm cipherAlgoritm) {
         this.cipherAlgorithm = cipherAlgoritm;
-    }
-
-    public List<String> getPasswordHistory() {
-        return passwordHistory;
-    }
-
-    public Date getChangePwdDate() {
-        return changePwdDate;
-    }
-
-    public void setChangePwdDate(final Date changePwdDate) {
-        this.changePwdDate = changePwdDate;
-    }
-
-    public Date getCreationDate() {
-        return creationDate;
-    }
-
-    public void setCreationDate(final Date creationDate) {
-        this.creationDate = creationDate;
-    }
-
-    public Integer getFailedLogins() {
-        return failedLogins != null ? failedLogins : 0;
-    }
-
-    public void setFailedLogins(final Integer failedLogins) {
-        this.failedLogins = failedLogins;
-    }
-
-    public Date getLastLoginDate() {
-        return lastLoginDate;
-    }
-
-    public void setLastLoginDate(final Date lastLoginDate) {
-        this.lastLoginDate = lastLoginDate;
-    }
-
-    public String getUsername() {
-        return username;
-    }
-
-    public void setUsername(final String username) {
-        this.username = username;
-    }
-
-    public void setSuspended(final Boolean suspended) {
-        this.suspended = getBooleanAsInteger(suspended);
-    }
-
-    public Boolean getSuspended() {
-        return isBooleanAsInteger(suspended);
-    }
-
-    private String encodePassword(
-            final String password, final CipherAlgorithm cipherAlgoritm)
-            throws NoSuchAlgorithmException,
-            IllegalBlockSizeException,
-            InvalidKeyException,
-            BadPaddingException,
-            NoSuchPaddingException,
-            UnsupportedEncodingException {
-
-        String encodedPassword = null;
-
-        if (password != null) {
-            if (cipherAlgoritm == null
-                    || cipherAlgoritm == CipherAlgorithm.AES) {
-
-                final byte[] cleartext = password.getBytes("UTF8");
-
-                final Cipher cipher = Cipher.getInstance(
-                        CipherAlgorithm.AES.getAlgorithm());
-
-                cipher.init(Cipher.ENCRYPT_MODE, keySpec);
-
-                byte[] encoded = cipher.doFinal(cleartext);
-
-                encodedPassword = new String(Base64.encode(encoded));
-
-            } else {
-                MessageDigest algorithm = MessageDigest.getInstance(
-                        cipherAlgoritm.getAlgorithm());
-
-                algorithm.reset();
-                algorithm.update(password.getBytes());
-
-                byte[] messageDigest = algorithm.digest();
-
-                StringBuilder hexString = new StringBuilder();
-                for (int i = 0; i < messageDigest.length; i++) {
-                    String hex = Integer.toHexString(0xff & messageDigest[i]);
-                    if (hex.length() == 1) {
-                        hexString.append('0');
-                    }
-                    hexString.append(hex);
-                }
-
-                encodedPassword = hexString.toString();
-            }
-        }
-
-        return encodedPassword;
-    }
-
-    public boolean verifyPasswordHistory(final String password, final int size) {
-        try {
-
-            boolean res = false;
-
-            if (size != 0) {
-                res = passwordHistory.subList(size >= passwordHistory.size() ? 0
-                        : passwordHistory.size() - size, passwordHistory.size()).
-                        contains(cipherAlgorithm != null
-                        ? encodePassword(password, cipherAlgorithm) : password);
-            }
-
-            return res;
-
-        } catch (Throwable t) {
-            LOG.error("Error evaluating password history", t);
-            return false;
-        }
     }
 }

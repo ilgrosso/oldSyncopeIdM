@@ -14,10 +14,10 @@
 -->
 <configuration scan="true">
     <appender name="main" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${log.directory}/console.log</file>
+        <file>${logfile}</file>
         <append>true</append>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>${log.directory}/console.log.%d{yyyy-MM-dd}</fileNamePattern>
+            <fileNamePattern>${logfile}.%d{yyyy-MM-dd}</fileNamePattern>
             <maxHistory>30</maxHistory>
         </rollingPolicy>
         <encoder>
@@ -26,10 +26,10 @@
     </appender>
 
     <appender name="test" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${log.directory}/console-test.log</file>
+        <file>${logfile.test}</file>
         <append>true</append>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>${log.directory}/console-test.log.%d{yyyy-MM-dd}</fileNamePattern>
+            <fileNamePattern>${logfile.test}.%d{yyyy-MM-dd}</fileNamePattern>
             <maxHistory>30</maxHistory>
         </rollingPolicy>
         <encoder>

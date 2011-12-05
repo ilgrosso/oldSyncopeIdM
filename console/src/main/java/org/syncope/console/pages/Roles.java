@@ -14,22 +14,29 @@
  */
 package org.syncope.console.pages;
 
+import org.syncope.console.wicket.markup.html.tree.PropertyEditableColumn;
+import org.apache.wicket.PageParameters;
 import org.apache.wicket.ajax.AjaxRequestTarget;
-import org.apache.wicket.event.Broadcast;
 import org.apache.wicket.extensions.ajax.markup.html.modal.ModalWindow;
+import org.apache.wicket.extensions.markup.html.tree.table.ColumnLocation;
+import org.apache.wicket.extensions.markup.html.tree.table.IColumn;
+import org.apache.wicket.extensions.markup.html.tree.table.PropertyTreeColumn;
 import org.apache.wicket.extensions.markup.html.tree.table.TreeTable;
+import org.apache.wicket.extensions.markup.html.tree.table.ColumnLocation.Alignment;
+import org.apache.wicket.extensions.markup.html.tree.table.ColumnLocation.Unit;
 import org.apache.wicket.markup.html.WebMarkupContainer;
-import org.apache.wicket.request.mapper.parameter.PageParameters;
-import org.syncope.console.pages.panels.RoleSummaryPanel;
-import org.syncope.console.pages.panels.RoleSummaryPanel.TreeNodeClickUpdate;
-import org.syncope.console.wicket.markup.html.tree.TreeRolePanel;
+import org.apache.wicket.markup.html.form.Form;
+import org.apache.wicket.markup.html.tree.AbstractTree;
+import org.apache.wicket.spring.injection.annot.SpringBean;
+import org.syncope.console.commons.RoleTreeBuilder;
 
 /**
  * Roles WebPage.
  */
 public class Roles extends BasePage {
 
-    private static final long serialVersionUID = -2147758241610831969L;
+    @SpringBean
+    private RoleTreeBuilder roleTreeBuilder;
 
     private TreeTable tree;
 
@@ -39,58 +46,77 @@ public class Roles extends BasePage {
 
     private static final int WIN_WIDTH = 700;
 
-    private final WebMarkupContainer container;
+    private WebMarkupContainer container;
+
+    /**
+     * Response flag set by the Modal Window after the operation is completed.
+     */
+    private boolean operationResult = false;
 
     public Roles(final PageParameters parameters) {
         super(parameters);
 
-        createRoleWin = new ModalWindow("createRoleWin");
+        add(createRoleWin = new ModalWindow("createRoleWin"));
+
         createRoleWin.setCssClassName(ModalWindow.CSS_CLASS_GRAY);
         createRoleWin.setInitialHeight(WIN_HEIGHT);
         createRoleWin.setInitialWidth(WIN_WIDTH);
+        createRoleWin.setPageMapName("create-role-modal");
         createRoleWin.setCookieName("create-role-modal");
-        add(createRoleWin);
 
         container = new WebMarkupContainer("container");
+
+        IColumn[] columns = new IColumn[]{
+            new PropertyTreeColumn(
+            new ColumnLocation(Alignment.LEFT, 30, Unit.EM),
+            getString("column1"),
+            "userObject.displayName"),
+            new PropertyEditableColumn(
+            new ColumnLocation(Alignment.LEFT, 20, Unit.EM),
+            getString("column2"),
+            "userObject.empty",
+            createRoleWin,
+            Roles.this)};
+
+        Form form = new Form("form");
+        add(form);
+
+        tree = new TreeTable("treeTable", roleTreeBuilder.build(), columns);
+
+        form.add(tree);
+        tree.getTreeState().expandAll();
+        tree.updateTree();
+
+        container.add(tree);
         container.setOutputMarkupId(true);
-        add(container);
 
-        final TreeRolePanel treePanel = new TreeRolePanel("treePanel");
-        treePanel.setOutputMarkupId(true);
-        container.add(treePanel);
-
-        final RoleSummaryPanel nodePanel =
-                new RoleSummaryPanel("summaryPanel",
-                createRoleWin, Roles.this.getPageReference());
-
-        nodePanel.setOutputMarkupId(true);
-
-        container.add(nodePanel);
+        form.add(container);
 
         createRoleWin.setWindowClosedCallback(
                 new ModalWindow.WindowClosedCallback() {
 
-                    private static final long serialVersionUID =
-                            8804221891699487139L;
-
                     @Override
                     public void onClose(final AjaxRequestTarget target) {
+                        target.addComponent(container);
 
-                        final TreeNodeClickUpdate data =
-                                new TreeNodeClickUpdate(target,
-                                nodePanel.getSelectedNode() != null
-                                ? nodePanel.getSelectedNode().getId() : 0);
-
-                        send(getPage(), Broadcast.BREADTH, data);
-                        target.add(container);
-                        if (modalResult) {
+                        if (operationResult) {
                             getSession().info(getString("operation_succeded"));
-                            target.add(feedbackPanel);
-                            modalResult = false;
                         }
+
+                        setResponsePage(Roles.class);
                     }
                 });
+    }
 
-        container.add(createRoleWin);
+    protected AbstractTree getTree() {
+        return tree;
+    }
+
+    public boolean isOperationResult() {
+        return operationResult;
+    }
+
+    public void setOperationResult(boolean operationResult) {
+        this.operationResult = operationResult;
     }
 }

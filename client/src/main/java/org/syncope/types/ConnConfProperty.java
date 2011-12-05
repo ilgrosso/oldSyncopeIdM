@@ -16,16 +16,11 @@ package org.syncope.types;
 
 import org.syncope.client.AbstractBaseBean;
 
-public class ConnConfProperty extends AbstractBaseBean
-        implements Comparable<ConnConfProperty> {
-
-    private static final long serialVersionUID = -8391413960221862238L;
+public class ConnConfProperty extends AbstractBaseBean {
 
     private ConnConfPropSchema schema;
 
     private String value;
-
-    private boolean overridable;
 
     public ConnConfPropSchema getSchema() {
         return schema;
@@ -41,18 +36,5 @@ public class ConnConfProperty extends AbstractBaseBean
 
     public void setValue(String value) {
         this.value = value;
-    }
-
-    public boolean isOverridable() {
-        return overridable;
-    }
-
-    public void setOverridable(boolean overridable) {
-        this.overridable = overridable;
-    }
-
-    @Override
-    public int compareTo(final ConnConfProperty connConfProperty) {
-        return this.getSchema().compareTo(connConfProperty.getSchema());
     }
 }

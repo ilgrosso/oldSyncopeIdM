@@ -27,8 +27,6 @@ import org.syncope.core.util.AttributableUtil;
 @AttrCheck
 public abstract class AbstractAttr extends AbstractBaseBean {
 
-    private static final long serialVersionUID = -9115431608821806124L;
-
     public abstract Long getId();
 
     public <T extends AbstractAttrValue> T addValue(final String value,
@@ -75,7 +73,7 @@ public abstract class AbstractAttr extends AbstractBaseBean {
     public abstract <T extends AbstractAttrValue> boolean removeValue(
             T attrValue);
 
-    public List<String> getValuesAsStrings() {
+    public <T extends AbstractAttrValue> List<String> getValuesAsStrings() {
         List<String> result;
         if (getUniqueValue() != null) {
             result = Collections.singletonList(

@@ -14,32 +14,25 @@
  */
 package org.syncope.core.rest;
 
-import java.io.IOException;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import org.connid.bundles.soap.WebServiceConnector;
-import org.junit.BeforeClass;
+import org.junit.Before;
 import org.junit.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.annotation.ExpectedException;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.syncope.client.to.ConnBundleTO;
 import org.syncope.client.to.ConnInstanceTO;
-import org.syncope.client.to.ResourceTO;
+import org.syncope.types.ConnConfProperty;
 import org.syncope.client.validation.SyncopeClientCompositeErrorException;
 import org.syncope.types.ConnConfPropSchema;
-import org.syncope.types.ConnConfProperty;
 import org.syncope.types.ConnectorCapability;
 
 public class ConnInstanceTestITCase extends AbstractTest {
@@ -48,26 +41,18 @@ public class ConnInstanceTestITCase extends AbstractTest {
 
     private static String bundlesDirectory;
 
-    @BeforeClass
-    public static void init() {
-        Properties props = new Properties();
-        InputStream propStream = null;
+    @Before
+    public void init() {
+        Properties props = new java.util.Properties();
         try {
-            propStream = ConnInstanceTestITCase.class.getResourceAsStream(
+            InputStream propStream =
+                    getClass().getResourceAsStream(
                     "/bundles.properties");
             props.load(propStream);
             connidSoapVersion = props.getProperty("connid.soap.version");
             bundlesDirectory = props.getProperty("bundles.directory");
         } catch (Throwable t) {
             LOG.error("Could not load bundles.properties", t);
-        } finally {
-            if (propStream != null) {
-                try {
-                    propStream.close();
-                } catch (IOException e) {
-                    LOG.error("While reading bundles.properties", e);
-                }
-            }
         }
         assertNotNull(connidSoapVersion);
         assertNotNull(bundlesDirectory);
@@ -90,7 +75,7 @@ public class ConnInstanceTestITCase extends AbstractTest {
         connectorTO.setVersion(connidSoapVersion);
 
         // set connector name
-        connectorTO.setConnectorName(WebServiceConnector.class.getName());
+        connectorTO.setConnectorName(WebServiceConnector.class.getSimpleName());
 
         // set bundle name
         connectorTO.setBundleName("org.connid.bundles.soap");
@@ -127,7 +112,8 @@ public class ConnInstanceTestITCase extends AbstractTest {
         connectorTO.addCapability(ConnectorCapability.SYNC_CREATE);
         connectorTO.addCapability(ConnectorCapability.ASYNC_UPDATE);
 
-        ConnInstanceTO actual = restTemplate.postForObject(
+        ConnInstanceTO actual =
+                (ConnInstanceTO) restTemplate.postForObject(
                 BASE_URL + "connector/create.json",
                 connectorTO, ConnInstanceTO.class);
 
@@ -274,8 +260,8 @@ public class ConnInstanceTestITCase extends AbstractTest {
     @Test
     public void check() {
         Boolean verify = restTemplate.getForObject(
-                BASE_URL + "connector/check/{resourceName}.json",
-                Boolean.class, "ws-target-resource-1");
+                BASE_URL + "connector/check/{connectorId}.json",
+                Boolean.class, 100L);
 
         assertTrue(verify);
     }
@@ -290,108 +276,6 @@ public class ConnInstanceTestITCase extends AbstractTest {
         assertFalse(bundles.isEmpty());
         for (ConnBundleTO bundle : bundles) {
             assertNotNull(bundle);
-        }
-    }
-
-    @Test
-    public void getSchemaNames() {
-        ResourceTO resourceTO = null;
-
-        resourceTO = restTemplate.getForObject(
-                BASE_URL + "/resource/read/{resourceName}.json",
-                ResourceTO.class, "ws-target-resource-1");
-        assertNotNull(resourceTO);
-
-        List<String> schemaNames = Arrays.asList(restTemplate.postForObject(
-                BASE_URL + "connector/schema/list/all",
-                resourceTO, String[].class));
-
-        assertNotNull(schemaNames);
-        assertFalse(schemaNames.isEmpty());
-
-        resourceTO = restTemplate.getForObject(
-                BASE_URL + "/resource/read/{resourceName}.json",
-                ResourceTO.class, "resource-testdb");
-        assertNotNull(resourceTO);
-
-        schemaNames = Arrays.asList(restTemplate.postForObject(
-                BASE_URL + "connector/schema/list",
-                resourceTO, String[].class));
-
-        assertNotNull(schemaNames);
-        assertEquals(1, schemaNames.size());
-
-        resourceTO = restTemplate.getForObject(
-                BASE_URL + "/resource/read/{resourceName}.json",
-                ResourceTO.class, "resource-csv");
-        assertNotNull(resourceTO);
-
-        schemaNames = Arrays.asList(restTemplate.postForObject(
-                BASE_URL + "connector/schema/list",
-                resourceTO, String[].class));
-
-        assertNotNull(schemaNames);
-        assertFalse(schemaNames.isEmpty());
-    }
-
-    @Test
-    public void getConnectorConfiguration() {
-        List<ConnConfProperty> props = Arrays.asList(restTemplate.getForObject(
-                BASE_URL + "connector/{connectorId}/configurationProperty/list",
-                ConnConfProperty[].class, 104));
-        assertNotNull(props);
-        assertFalse(props.isEmpty());
-    }
-
-    @Test
-    public void checkHiddenProperty() {
-        ConnInstanceTO connInstanceTO = restTemplate.getForObject(
-                BASE_URL + "connector/read/{connectorId}.json",
-                ConnInstanceTO.class, "100");
-
-        boolean check = false;
-
-        for (ConnConfProperty prop : connInstanceTO.getConfiguration()) {
-            if ("receiveTimeout".equals(prop.getSchema().getName())) {
-                check = true;
-            }
-        }
-        assertTrue(check);
-    }
-
-    @Test
-    public void checkSelectedLanguage() {
-        // 1. Check Italian
-        List<ConnInstanceTO> connectorInstanceTOs =
-                Arrays.asList(restTemplate.getForObject(
-                BASE_URL + "connector/list.json?lang=it",
-                ConnInstanceTO[].class));
-
-        Map<String, ConnConfProperty> instanceConfMap;
-        for (ConnInstanceTO instance : connectorInstanceTOs) {
-            if ("org.connid.bundles.db.table".equals(
-                    instance.getBundleName())) {
-
-                instanceConfMap = instance.getConfigurationMap();
-                assertEquals("Utente", instanceConfMap.get("user").
-                        getSchema().getDisplayName());
-            }
-        }
-
-        // 2. Check English (default)
-        connectorInstanceTOs =
-                Arrays.asList(restTemplate.getForObject(
-                BASE_URL + "connector/list.json",
-                ConnInstanceTO[].class));
-
-        for (ConnInstanceTO instance : connectorInstanceTOs) {
-            if ("org.connid.bundles.db.table".equals(
-                    instance.getBundleName())) {
-
-                instanceConfMap = instance.getConfigurationMap();
-                assertEquals("User", instanceConfMap.get("user").
-                        getSchema().getDisplayName());
-            }
         }
     }
 }

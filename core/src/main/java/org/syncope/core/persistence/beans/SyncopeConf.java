@@ -14,20 +14,15 @@
  */
 package org.syncope.core.persistence.beans;
 
-import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 
 @Entity
 public class SyncopeConf extends AbstractBaseBean {
 
-    private static final long serialVersionUID = -899341077670090120L;
-
     @Id
-    @Column(name = "confKey")
     private String key;
 
-    @Column(name = "confValue")
     private String value;
 
     public String getKey() {

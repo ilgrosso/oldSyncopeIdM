@@ -14,7 +14,6 @@
  */
 package org.syncope.core.persistence.dao.impl;
 
-import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
@@ -23,7 +22,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Random;
 import java.util.Set;
 import javax.persistence.Query;
@@ -32,7 +30,6 @@ import javax.validation.ValidationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 import org.syncope.client.search.AttributeCond;
-import org.syncope.client.search.SyncopeUserCond;
 import org.syncope.client.search.MembershipCond;
 import org.syncope.client.search.NodeCond;
 import org.syncope.client.search.ResourceCond;
@@ -130,11 +127,6 @@ public class UserSearchDAOImpl extends AbstractDAOImpl
     }
 
     @Override
-    public List<SyncopeUser> search(final NodeCond searchCondition) {
-        return search(null, searchCondition, -1, -1);
-    }
-
-    @Override
     public List<SyncopeUser> search(final Set<Long> adminRoles,
             final NodeCond searchCondition) {
 
@@ -147,51 +139,28 @@ public class UserSearchDAOImpl extends AbstractDAOImpl
             final int page,
             final int itemsPerPage) {
 
-        List<SyncopeUser> result = Collections.EMPTY_LIST;
+        List<SyncopeUser> result;
 
         LOG.debug("Search condition:\n{}", searchCondition);
         if (!searchCondition.checkValidity()) {
             LOG.error("Invalid search condition:\n{}", searchCondition);
-        } else {
-            try {
-                result = doSearch(adminRoles, searchCondition, page,
-                        itemsPerPage);
-            } catch (Throwable t) {
-                LOG.error("While searching users", t);
-            }
+
+            result = Collections.EMPTY_LIST;
+        }
+
+        try {
+            result = doSearch(adminRoles, searchCondition, page, itemsPerPage);
+        } catch (Throwable t) {
+            LOG.error("While searching users", t);
+
+            result = Collections.EMPTY_LIST;
         }
 
         return result;
     }
 
-    @Override
-    public boolean matches(final SyncopeUser user,
-            final NodeCond searchCondition) {
-
-        Map<Integer, Object> parameters = Collections.synchronizedMap(
-                new HashMap<Integer, Object>());
-
-        // 1. get the query string from the search condition
-        StringBuilder queryString = getQuery(searchCondition, parameters);
-
-        // 2. take into account the passed user
-        queryString.insert(0, "SELECT u.user_id FROM (");
-        queryString.append(") u WHERE user_id=:matchesUserId");
-
-        // 3. prepare the search query
-        Query query = entityManager.createNativeQuery(queryString.toString());
-
-        // 4. populate the search query with parameter values
-        fillWithParameters(query, parameters);
-        query.setParameter("matchesUserId", user.getId());
-
-        // 5. executes query
-        List<SyncopeUser> result = query.getResultList();
-
-        return !result.isEmpty();
-    }
-
-    private Integer setParameter(final Map<Integer, Object> parameters,
+    private Integer setParameter(final Random random,
+            final Map<Integer, Object> parameters,
             final Object parameter) {
 
         Integer key;
@@ -209,15 +178,12 @@ public class UserSearchDAOImpl extends AbstractDAOImpl
     private void fillWithParameters(final Query query,
             final Map<Integer, Object> parameters) {
 
-        for (Entry<Integer, Object> entry : parameters.entrySet()) {
-            if (entry.getValue() instanceof Date) {
-                query.setParameter("param" + entry.getKey(),
-                        (Date) entry.getValue(), TemporalType.TIMESTAMP);
-            } else if (entry.getValue() instanceof Boolean) {
-                query.setParameter("param" + entry.getKey(),
-                        ((Boolean) entry.getValue()) ? 1 : 0);
+        for (Integer key : parameters.keySet()) {
+            if (parameters.get(key) instanceof Date) {
+                query.setParameter("param" + key,
+                        (Date) parameters.get(key), TemporalType.TIMESTAMP);
             } else {
-                query.setParameter("param" + entry.getKey(), entry.getValue());
+                query.setParameter("param" + key, parameters.get(key));
             }
         }
     }
@@ -230,7 +196,7 @@ public class UserSearchDAOImpl extends AbstractDAOImpl
                 new HashMap<Integer, Object>());
 
         // 1. get the query string from the search condition
-        final StringBuilder queryString = getQuery(nodeCond, parameters);
+        StringBuilder queryString = getQuery(nodeCond, parameters);
 
         // 2. take into account administrative roles
         queryString.insert(0, "SELECT u.user_id FROM (");
@@ -238,8 +204,7 @@ public class UserSearchDAOImpl extends AbstractDAOImpl
         queryString.append(getAdminRolesFilter(adminRoles)).append(")");
 
         // 3. prepare the search query
-        final Query query =
-                entityManager.createNativeQuery(queryString.toString());
+        Query query = entityManager.createNativeQuery(queryString.toString());
 
         // page starts from 1, while setFirtResult() starts from 0
         query.setFirstResult(itemsPerPage * (page <= 0 ? 0 : page - 1));
@@ -255,8 +220,8 @@ public class UserSearchDAOImpl extends AbstractDAOImpl
                 queryString.toString(), parameters);
 
         // 5. Prepare the result (avoiding duplicates - set)
-        final Set<Number> userIds = new HashSet<Number>();
-        final List resultList = query.getResultList();
+        Set<Number> userIds = new HashSet<Number>();
+        List resultList = query.getResultList();
 
         //fix for HHH-5902 - bug hibernate
         if (resultList != null) {
@@ -269,7 +234,7 @@ public class UserSearchDAOImpl extends AbstractDAOImpl
             }
         }
 
-        final List<SyncopeUser> result =
+        List<SyncopeUser> result =
                 new ArrayList<SyncopeUser>(userIds.size());
 
         SyncopeUser user;
@@ -310,17 +275,13 @@ public class UserSearchDAOImpl extends AbstractDAOImpl
                             nodeCond.getType() == NodeCond.Type.NOT_LEAF,
                             parameters));
                 }
-                if (nodeCond.getSyncopeUserCond() != null) {
-                    query.append(getQuery(nodeCond.getSyncopeUserCond(),
-                            nodeCond.getType() == NodeCond.Type.NOT_LEAF,
-                            parameters));
-                }
                 break;
 
             case AND:
-                query.append(getQuery(nodeCond.getLeftNodeCond(),
+                query.append("(").
+                        append(getQuery(nodeCond.getLeftNodeCond(),
                         parameters)).
-                        append(" AND user_id IN ( ").
+                        append(" INTERSECT ").
                         append(getQuery(nodeCond.getRightNodeCond(),
                         parameters).
                         append(")"));
@@ -346,26 +307,26 @@ public class UserSearchDAOImpl extends AbstractDAOImpl
             final boolean not, final Map<Integer, Object> parameters) {
 
         StringBuilder query = new StringBuilder(
-                "SELECT DISTINCT user_id FROM user_search WHERE ");
+                "SELECT DISTINCT user_id FROM user_search_membership WHERE ");
 
         if (not) {
-            query.append("user_id NOT IN (");
-        } else {
-            query.append("user_id IN (");
+            query.append("user_id NOT IN (").
+                    append("SELECT DISTINCT user_id ").
+                    append("FROM user_search_membership WHERE ");
         }
 
-        query.append("SELECT DISTINCT user_id ").
-                append("FROM user_search_membership WHERE ");
-
+        Integer paramKey;
         if (cond.getRoleId() != null) {
-            query.append("role_id=:param").append(
-                    setParameter(parameters, cond.getRoleId()));
+            paramKey = setParameter(random, parameters, cond.getRoleId());
+            query.append("role_id=:param").append(paramKey);
         } else if (cond.getRoleName() != null) {
-            query.append("role_name=:param").append(
-                    setParameter(parameters, cond.getRoleName()));
+            paramKey = setParameter(random, parameters, cond.getRoleName());
+            query.append("role_name=:param").append(paramKey);
         }
 
-        query.append(")");
+        if (not) {
+            query.append(")");
+        }
 
         return query.toString();
     }
@@ -373,20 +334,27 @@ public class UserSearchDAOImpl extends AbstractDAOImpl
     private String getQuery(final ResourceCond cond,
             final boolean not, final Map<Integer, Object> parameters) {
 
-        final StringBuilder query = new StringBuilder(
-                "SELECT DISTINCT user_id FROM user_search WHERE ");
+        StringBuilder query = new StringBuilder(
+                "SELECT id AS user_id FROM syncopeuser WHERE id ");
 
         if (not) {
-            query.append("user_id NOT IN (");
+            query.append("NOT IN (");
         } else {
-            query.append("user_id IN (");
+            query.append(" IN (");
         }
 
-        query.append("SELECT DISTINCT user_id ").
-                append("FROM user_search_resource WHERE ");
-
-        query.append("resource_name=:param").append(
-                setParameter(parameters, cond.getResourceName()));
+        query.append("SELECT DISTINCT m.syncopeuser_id AS user_id ").
+                append("FROM membership m, ").
+                append("syncoperole_targetresource rr ").
+                append("WHERE rr.targetresources_name=:param").
+                append(setParameter(random, parameters, cond.getName())).
+                append(" ").
+                append("AND rr.roles_id=m.syncoperole_id ").
+                append("UNION ").
+                append("SELECT DISTINCT ur.users_id AS user_id ").
+                append("FROM syncopeuser_targetresource ur ").
+                append("WHERE ur.targetresources_name=:param").
+                append(setParameter(random, parameters, cond.getName()));
 
         query.append(")");
 
@@ -449,6 +417,37 @@ public class UserSearchDAOImpl extends AbstractDAOImpl
             return EMPTY_ATTR_QUERY;
         }
 
+        if (not) {
+            switch (cond.getType()) {
+
+                case ISNULL:
+                    cond.setType(AttributeCond.Type.ISNOTNULL);
+                    break;
+
+                case ISNOTNULL:
+                    cond.setType(AttributeCond.Type.ISNULL);
+                    break;
+
+                case GE:
+                    cond.setType(AttributeCond.Type.LT);
+                    break;
+
+                case GT:
+                    cond.setType(AttributeCond.Type.LE);
+                    break;
+
+                case LE:
+                    cond.setType(AttributeCond.Type.GT);
+                    break;
+
+                case LT:
+                    cond.setType(AttributeCond.Type.GE);
+                    break;
+
+                default:
+            }
+        }
+
         StringBuilder query = new StringBuilder(
                 "SELECT DISTINCT user_id FROM user_search_attr WHERE ").append(
                 "schema_name='").append(schema.getName());
@@ -458,12 +457,12 @@ public class UserSearchDAOImpl extends AbstractDAOImpl
 
             case ISNULL:
                 query.append("' AND ").append(getFieldName(schema.getType())).
-                        append(not ? " IS NOT NULL" : " IS NULL");
+                        append(" IS NULL");
                 break;
 
             case ISNOTNULL:
                 query.append("' AND ").append(getFieldName(schema.getType())).
-                        append(not ? " IS NULL" : " IS NOT NULL");
+                        append(" IS NOT NULL");
                 break;
 
             case LIKE:
@@ -483,7 +482,8 @@ public class UserSearchDAOImpl extends AbstractDAOImpl
                 break;
 
             case EQ:
-                paramKey = setParameter(parameters, attrValue.getValue());
+                paramKey = setParameter(random, parameters,
+                        attrValue.getValue());
                 query.append("' AND ").append(getFieldName(schema.getType()));
                 if (not) {
                     query.append("<>");
@@ -494,164 +494,31 @@ public class UserSearchDAOImpl extends AbstractDAOImpl
                 break;
 
             case GE:
-                paramKey = setParameter(parameters, attrValue.getValue());
-                query.append("' AND ").append(getFieldName(schema.getType()));
-                if (not) {
-                    query.append("<");
-                } else {
-                    query.append(">=");
-                }
-                query.append(":param").append(paramKey);
+                paramKey = setParameter(random, parameters,
+                        attrValue.getValue());
+                query.append("' AND ").append(getFieldName(schema.getType())).
+                        append(">=:param").append(paramKey);
                 break;
 
             case GT:
-                paramKey = setParameter(parameters, attrValue.getValue());
-                query.append("' AND ").append(getFieldName(schema.getType()));
-                if (not) {
-                    query.append("<=");
-                } else {
-                    query.append(">");
-                }
-                query.append(":param").append(paramKey);
+                paramKey = setParameter(random, parameters,
+                        attrValue.getValue());
+                query.append("' AND ").append(getFieldName(schema.getType())).
+                        append(">:param").append(paramKey);
                 break;
 
             case LE:
-                paramKey = setParameter(parameters, attrValue.getValue());
-                query.append("' AND ").append(getFieldName(schema.getType()));
-                if (not) {
-                    query.append(">");
-                } else {
-                    query.append("<=");
-                }
-                query.append(":param").append(paramKey);
+                paramKey = setParameter(random, parameters,
+                        attrValue.getValue());
+                query.append("' AND ").append(getFieldName(schema.getType())).
+                        append("<=:param").append(paramKey);
                 break;
 
             case LT:
-                paramKey = setParameter(parameters, attrValue.getValue());
-                query.append("' AND ").append(getFieldName(schema.getType()));
-                if (not) {
-                    query.append(">=");
-                } else {
-                    query.append("<");
-                }
-                query.append(":param").append(paramKey);
-                break;
-
-            default:
-        }
-
-        return query.toString();
-    }
-
-    private String getQuery(final SyncopeUserCond cond,
-            final boolean not, final Map<Integer, Object> parameters) {
-
-        final String schema = cond.getSchema();
-
-        Field field = null;
-
-        Class<?> i = SyncopeUser.class;
-
-        // loop on class and all superclasses searching for field
-        while (field == null && i != Object.class) {
-            try {
-                field = i.getDeclaredField(schema);
-            } catch (Exception ignore) {
-                // ignore exception
-                LOG.debug("Field '{}' not found on class '{}'",
-                        new String[]{schema, i.getSimpleName()}, ignore);
-            } finally {
-                i = i.getSuperclass();
-            }
-        }
-
-        if (field == null) {
-            LOG.warn("Ignoring invalid schema '{}'", cond.getSchema());
-            return EMPTY_ATTR_QUERY;
-        }
-
-        final StringBuilder query = new StringBuilder(
-                "SELECT DISTINCT user_id FROM user_search WHERE ");
-
-        Integer paramKey;
-        switch (cond.getType()) {
-
-            case ISNULL:
-                query.append(schema).append(not ? " IS NOT NULL" : " IS NULL");
-                break;
-
-            case ISNOTNULL:
-                query.append(schema).append(not ? " IS NULL" : " IS NOT NULL");
-                break;
-
-            case LIKE:
-                if (field.getType() == String.class
-                        || field.getType() == Enum.class) {
-                    query.append(schema);
-                    if (not) {
-                        query.append(" NOT ");
-                    }
-                    query.append(" LIKE '").append(cond.getExpression()).
-                            append("'");
-                } else {
-                    query.append("' 1=1");
-                    LOG.error("LIKE is only compatible with string schemas");
-                }
-                break;
-
-            case EQ:
-                paramKey = setParameter(parameters, cond.getExpression());
-                query.append(schema);
-                if (not) {
-                    query.append("<>");
-                } else {
-                    query.append("=");
-                }
-                query.append(":param").append(paramKey);
-                break;
-
-            case GE:
-                paramKey = setParameter(parameters, cond.getExpression());
-                query.append(schema);
-                if (not) {
-                    query.append("<");
-                } else {
-                    query.append(">=");
-                }
-                query.append(":param").append(paramKey);
-                break;
-
-            case GT:
-                paramKey = setParameter(parameters, cond.getExpression());
-                query.append(schema);
-                if (not) {
-                    query.append("<=");
-                } else {
-                    query.append(">");
-                }
-                query.append(":param").append(paramKey);
-                break;
-
-            case LE:
-                paramKey = setParameter(parameters, cond.getExpression());
-                query.append(schema);
-                if (not) {
-                    query.append(">");
-                } else {
-                    query.append("<=");
-                }
-                query.append(":param").append(paramKey);
-                break;
-
-            case LT:
-                paramKey = setParameter(parameters, cond.getExpression());
-                query.append(schema);
-                if (not) {
-                    query.append(">=");
-                } else {
-                    query.append("<");
-                }
-                query.append(":param").append(paramKey);
+                paramKey = setParameter(random, parameters,
+                        attrValue.getValue());
+                query.append("' AND ").append(getFieldName(schema.getType())).
+                        append("<:param").append(paramKey);
                 break;
 
             default:

@@ -1,9 +1,8 @@
-ALTER USER sa SET PASSWORD '${testDbResourcePassword}';
+ALTER USER sa SET PASSWORD "sa";
 
 DROP TABLE test IF EXISTS;
 CREATE TABLE test (
 id INTEGER PRIMARY KEY,
-password VARCHAR(255) NOT NULL,
-status VARCHAR(5));
+password VARCHAR(255) NOT NULL);
 
-INSERT INTO test VALUES (1, 'password', 'false');
+INSERT INTO test VALUES (1, 'password');

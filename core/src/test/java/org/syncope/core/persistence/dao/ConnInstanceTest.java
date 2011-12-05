@@ -24,10 +24,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 import org.syncope.types.ConnConfProperty;
 import org.syncope.core.persistence.beans.ConnInstance;
-import org.syncope.core.AbstractTest;
-import org.syncope.core.persistence.beans.ExternalResource;
+import org.syncope.core.persistence.AbstractTest;
 import org.syncope.types.ConnConfPropSchema;
-import org.syncope.types.ConnectorCapability;
 
 @Transactional
 public class ConnInstanceTest extends AbstractTest {
@@ -139,37 +137,5 @@ public class ConnInstanceTest extends AbstractTest {
 
         ConnInstance actual = connInstanceDAO.find(100L);
         assertNull("delete did not work", actual);
-    }
-
-    /**
-     * Connector change used to miss connector bean registration.
-     * 
-     * http://code.google.com/p/syncope/issues/detail?id=176
-     */
-    @Test
-    public void issue176() {
-        ConnInstance connectorInstance = connInstanceDAO.find(103L);
-        assertNotNull(connectorInstance);
-        assertTrue(connectorInstance.getCapabilities().isEmpty());
-
-        List<ExternalResource> resources =
-                connInstanceDAO.findExternalResources(connectorInstance);
-
-        assertNotNull(resources);
-        assertEquals(1, resources.size());
-        assertEquals(
-                "ws-target-resource-nopropagation", resources.get(0).getName());
-
-        connectorInstance.addCapability(ConnectorCapability.SEARCH);
-
-        connectorInstance = connInstanceDAO.save(connectorInstance);
-        assertNotNull(connectorInstance);
-        assertFalse(connectorInstance.getCapabilities().isEmpty());
-
-        resources = connInstanceDAO.findExternalResources(connectorInstance);
-        assertNotNull(resources);
-        assertEquals(1, resources.size());
-        assertEquals(
-                "ws-target-resource-nopropagation", resources.get(0).getName());
     }
 }

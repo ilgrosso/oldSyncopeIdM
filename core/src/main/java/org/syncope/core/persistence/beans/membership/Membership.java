@@ -30,7 +30,7 @@ import org.syncope.core.persistence.beans.AbstractAttributable;
 import org.syncope.core.persistence.beans.AbstractAttr;
 import org.syncope.core.persistence.beans.AbstractDerAttr;
 import org.syncope.core.persistence.beans.AbstractVirAttr;
-import org.syncope.core.persistence.beans.ExternalResource;
+import org.syncope.core.persistence.beans.TargetResource;
 import org.syncope.core.persistence.beans.role.SyncopeRole;
 import org.syncope.core.persistence.beans.user.SyncopeUser;
 
@@ -41,8 +41,6 @@ import org.syncope.core.persistence.beans.user.SyncopeUser;
     "syncopeRole_id"
 }))
 public class Membership extends AbstractAttributable {
-
-    private static final long serialVersionUID = 5030106264797289469L;
 
     @Id
     private Long id;
@@ -66,12 +64,10 @@ public class Membership extends AbstractAttributable {
     private List<MVirAttr> virtualAttributes;
 
     public Membership() {
-        super();
-
         attributes = new ArrayList<MAttr>();
         derivedAttributes = new ArrayList<MDerAttr>();
         virtualAttributes = new ArrayList<MVirAttr>();
-        externalResources = Collections.EMPTY_SET;
+        targetResources = Collections.EMPTY_SET;
     }
 
     @Override
@@ -171,27 +167,22 @@ public class Membership extends AbstractAttributable {
     }
 
     @Override
-    public boolean addExternalResource(ExternalResource resource) {
+    public boolean addTargetResource(TargetResource resource) {
         return false;
     }
 
     @Override
-    public boolean removeExternalResource(ExternalResource resource) {
+    public boolean removeTargetResource(TargetResource resource) {
         return false;
     }
 
     @Override
-    public Set<ExternalResource> getExternalResources() {
+    public Set<TargetResource> getTargetResources() {
         return Collections.EMPTY_SET;
     }
 
     @Override
-    public Set<String> getExternalResourceNames() {
-        return Collections.EMPTY_SET;
-    }
-
-    @Override
-    public void setExternalResources(Set<ExternalResource> resources) {
+    public void setResources(Set<TargetResource> resources) {
     }
 
     @Override

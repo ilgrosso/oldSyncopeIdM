@@ -16,7 +16,6 @@ package org.syncope.core.rest.data;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,17 +27,12 @@ import org.syncope.client.to.ResourceTO;
 import org.syncope.client.to.SchemaMappingTO;
 import org.syncope.client.validation.SyncopeClientCompositeErrorException;
 import org.syncope.client.validation.SyncopeClientException;
-import org.syncope.core.persistence.beans.AccountPolicy;
 import org.syncope.core.persistence.beans.ConnInstance;
+import org.syncope.core.persistence.beans.TargetResource;
 import org.syncope.core.persistence.beans.SchemaMapping;
-import org.syncope.core.persistence.beans.ExternalResource;
-import org.syncope.core.persistence.beans.PasswordPolicy;
-import org.syncope.core.persistence.beans.SyncPolicy;
 import org.syncope.core.persistence.dao.ConnInstanceDAO;
-import org.syncope.core.persistence.dao.PolicyDAO;
 import org.syncope.core.util.JexlUtil;
-import org.syncope.types.ConnConfProperty;
-import org.syncope.types.IntMappingType;
+import org.syncope.types.SourceMappingType;
 import org.syncope.types.SyncopeClientExceptionType;
 
 @Component
@@ -51,7 +45,7 @@ public class ResourceDataBinder {
             ResourceDataBinder.class);
 
     private static final String[] MAPPING_IGNORE_PROPERTIES = {
-        "id", "resource", "syncToken"};
+        "id", "resource"};
 
     @Autowired
     private ConnInstanceDAO connectorInstanceDAO;
@@ -59,24 +53,27 @@ public class ResourceDataBinder {
     @Autowired
     private JexlUtil jexlUtil;
 
-    @Autowired
-    private PolicyDAO policyDAO;
-
-    public ExternalResource getResource(final ResourceTO resourceTO)
+    public TargetResource getResource(ResourceTO resourceTO)
             throws SyncopeClientCompositeErrorException {
 
-        return getResource(new ExternalResource(), resourceTO);
+        return getResource(new TargetResource(), resourceTO);
     }
 
-    public ExternalResource getResource(final ExternalResource resource,
-            final ResourceTO resourceTO)
+    public TargetResource getResource(TargetResource resource,
+            ResourceTO resourceTO)
             throws SyncopeClientCompositeErrorException {
+
+        SyncopeClientException requiredValuesMissing =
+                new SyncopeClientException(
+                SyncopeClientExceptionType.RequiredValuesMissing);
 
         if (resourceTO == null) {
             return null;
         }
 
-        resource.setName(resourceTO.getName());
+        if (resourceTO.getName() == null) {
+            requiredValuesMissing.addElement("name");
+        }
 
         ConnInstance connector = null;
 
@@ -84,69 +81,55 @@ public class ResourceDataBinder {
             connector = connectorInstanceDAO.find(resourceTO.getConnectorId());
         }
 
-        if (connector != null) {
-            resource.setConnector(connector);
-            connector.addResource(resource);
+        if (connector == null) {
+            requiredValuesMissing.addElement("connector");
         }
+
+        // Throw composite exception if there is at least one element set
+        // in the composing exceptions
+        if (!requiredValuesMissing.getElements().isEmpty()) {
+            SyncopeClientCompositeErrorException scce =
+                    new SyncopeClientCompositeErrorException(
+                    HttpStatus.BAD_REQUEST);
+            scce.addException(requiredValuesMissing);
+            throw scce;
+        }
+
+        resource.setName(resourceTO.getName());
+
+        resource.setConnector(connector);
+        connector.addResource(resource);
 
         resource.setForceMandatoryConstraint(
                 resourceTO.isForceMandatoryConstraint());
 
-        resource.setPropagationPrimary(resourceTO.isPropagationPrimary());
-
-        resource.setPropagationPriority(resourceTO.getPropagationPriority());
-
-        resource.setPropagationMode(
-                resourceTO.getPropagationMode());
+        resource.setOptionalPropagationMode(
+                resourceTO.getOptionalPropagationMode());
 
         resource.setMappings(
                 getSchemaMappings(resource, resourceTO.getMappings()));
 
         resource.setAccountLink(resourceTO.getAccountLink());
 
-        resource.setCreateTraceLevel(resourceTO.getCreateTraceLevel());
-        resource.setUpdateTraceLevel(resourceTO.getUpdateTraceLevel());
-        resource.setDeleteTraceLevel(resourceTO.getDeleteTraceLevel());
-        resource.setSyncTraceLevel(resourceTO.getSyncTraceLevel());
-
-        resource.setPasswordPolicy(resourceTO.getPasswordPolicy() != null
-                ? (PasswordPolicy) policyDAO.find(resourceTO.getPasswordPolicy())
-                : null);
-
-        resource.setAccountPolicy(resourceTO.getAccountPolicy() != null
-                ? (AccountPolicy) policyDAO.find(resourceTO.getAccountPolicy())
-                : null);
-
-        resource.setSyncPolicy(resourceTO.getSyncPolicy() != null
-                ? (SyncPolicy) policyDAO.find(resourceTO.getSyncPolicy())
-                : null);
-
-        resource.setConnectorConfigurationProperties(
-                new HashSet<ConnConfProperty>(
-                resourceTO.getConnectorConfigurationProperties()));
-        
-        if (resourceTO.getSyncToken() == null) {
-            resource.setSerializedSyncToken(null);
-        }
         return resource;
     }
 
     public List<ResourceTO> getResourceTOs(
-            Collection<ExternalResource> resources) {
+            Collection<TargetResource> resources) {
 
         if (resources == null) {
             return null;
         }
 
         List<ResourceTO> resourceTOs = new ArrayList<ResourceTO>();
-        for (ExternalResource resource : resources) {
+        for (TargetResource resource : resources) {
             resourceTOs.add(getResourceTO(resource));
         }
 
         return resourceTOs;
     }
 
-    public ResourceTO getResourceTO(ExternalResource resource) {
+    public ResourceTO getResourceTO(TargetResource resource) {
 
         if (resource == null) {
             return null;
@@ -171,56 +154,28 @@ public class ResourceDataBinder {
         resourceTO.setForceMandatoryConstraint(
                 resource.isForceMandatoryConstraint());
 
-        resourceTO.setPropagationPrimary(resource.isPropagationPrimary());
+        resourceTO.setOptionalPropagationMode(
+                resource.getOptionalPropagationMode());
 
-        resourceTO.setPropagationPriority(resource.getPropagationPriority());
-
-        resourceTO.setPropagationMode(
-                resource.getPropagationMode());
-
-        resourceTO.setCreateTraceLevel(resource.getCreateTraceLevel());
-        resourceTO.setUpdateTraceLevel(resource.getUpdateTraceLevel());
-        resourceTO.setDeleteTraceLevel(resource.getDeleteTraceLevel());
-        resourceTO.setSyncTraceLevel(resource.getSyncTraceLevel());
-
-        resourceTO.setPasswordPolicy(resource.getPasswordPolicy() != null
-                ? resource.getPasswordPolicy().getId() : null);
-
-        resourceTO.setAccountPolicy(resource.getAccountPolicy() != null
-                ? resource.getAccountPolicy().getId() : null);
-
-        resourceTO.setSyncPolicy(resource.getSyncPolicy() != null
-                ? resource.getSyncPolicy().getId() : null);
-
-        resourceTO.setConnectorConfigurationProperties(
-                resource.getConfiguration());
-        resourceTO.setSyncToken(resource.getSerializedSyncToken());
-        
         return resourceTO;
     }
 
     private List<SchemaMapping> getSchemaMappings(
-            ExternalResource resource, List<SchemaMappingTO> mappings) {
+            TargetResource resource, List<SchemaMappingTO> mappings) {
 
         if (mappings == null) {
             return null;
         }
 
-        final List<SchemaMapping> schemaMappings =
-                new ArrayList<SchemaMapping>();
-
-        SchemaMapping schemaMapping;
+        List<SchemaMapping> schemaMappings = new ArrayList<SchemaMapping>();
         for (SchemaMappingTO mapping : mappings) {
-            schemaMapping = getSchemaMapping(resource, mapping);
-            if (schemaMapping != null) {
-                schemaMappings.add(schemaMapping);
-            }
+            schemaMappings.add(getSchemaMapping(resource, mapping));
         }
 
         return schemaMappings;
     }
 
-    private SchemaMapping getSchemaMapping(ExternalResource resource,
+    private SchemaMapping getSchemaMapping(TargetResource resource,
             SchemaMappingTO mappingTO)
             throws SyncopeClientCompositeErrorException {
 
@@ -232,45 +187,50 @@ public class ResourceDataBinder {
                 new SyncopeClientException(
                 SyncopeClientExceptionType.RequiredValuesMissing);
 
-        // this control needs to be free to get schema names
-        // without a complete/good resourceTO object
-        if (mappingTO == null || mappingTO.getIntMappingType() == null) {
+        if (mappingTO == null) {
             LOG.error("Null mappingTO provided");
+
             return null;
         }
 
-        if (mappingTO.getIntAttrName() == null) {
-            switch (mappingTO.getIntMappingType()) {
+        if (mappingTO.getSourceAttrName() == null) {
+            switch (mappingTO.getSourceMappingType()) {
                 case SyncopeUserId:
-                    mappingTO.setIntAttrName(
-                            IntMappingType.SyncopeUserId.toString());
+                    mappingTO.setSourceAttrName(
+                            SourceMappingType.SyncopeUserId.toString());
                     break;
 
                 case Password:
-                    mappingTO.setIntAttrName(
-                            IntMappingType.Password.toString());
-                    break;
-
-                case Username:
-                    mappingTO.setIntAttrName(
-                            IntMappingType.Username.toString());
+                    mappingTO.setSourceAttrName(
+                            SourceMappingType.Password.toString());
                     break;
 
                 default:
-                    requiredValuesMissing.addElement("intAttrName");
+                    requiredValuesMissing.addElement("sourceAttrName");
             }
+        }
+        if (mappingTO.getDestAttrName() == null) {
+            requiredValuesMissing.addElement("destAttrName");
+        }
+        if (mappingTO.getSourceMappingType() == null) {
+            requiredValuesMissing.addElement("sourceMappingType");
+        }
+        if (mappingTO.getMandatoryCondition() == null) {
+            requiredValuesMissing.addElement("mandatoryCondition");
+        }
+
+        // a resource must be provided
+        if (resource == null) {
+            requiredValuesMissing.addElement("resource");
         }
 
         // Throw composite exception if there is at least one element set
         // in the composing exceptions
-        if (!requiredValuesMissing.isEmpty()) {
+        if (!requiredValuesMissing.getElements().isEmpty()) {
             compositeErrorException.addException(requiredValuesMissing);
         }
 
-        // no mandatory condition implies mandatory condition false
-        if (!jexlUtil.isExpressionValid(
-                mappingTO.getMandatoryCondition() != null
-                ? mappingTO.getMandatoryCondition() : "false")) {
+        if (!jexlUtil.isExpressionValid(mappingTO.getMandatoryCondition())) {
             SyncopeClientException invalidMandatoryCondition =
                     new SyncopeClientException(
                     SyncopeClientExceptionType.InvalidValues);

@@ -23,7 +23,7 @@ import org.springframework.test.annotation.ExpectedException;
 import org.springframework.transaction.annotation.Transactional;
 import org.syncope.core.persistence.beans.role.RSchema;
 import org.syncope.core.persistence.beans.user.USchema;
-import org.syncope.core.AbstractTest;
+import org.syncope.core.persistence.AbstractTest;
 import org.syncope.core.persistence.beans.AbstractSchema;
 import org.syncope.core.persistence.beans.role.RAttr;
 import org.syncope.core.util.AttributableUtil;
@@ -48,7 +48,7 @@ public class SchemaTest extends AbstractTest {
     @Test
     public final void findByName() {
         USchema attributeSchema =
-                schemaDAO.find("fullname", USchema.class);
+                schemaDAO.find("username", USchema.class);
         assertNotNull("did not find expected attribute schema",
                 attributeSchema);
     }
@@ -123,20 +123,12 @@ public class SchemaTest extends AbstractTest {
     }
 
     @Test
-    @ExpectedException(value = InvalidEntityException.class)
-    public final void saveInvalidSchema() {
-        USchema schema = new USchema();
-        schema.setName("username");
-        schemaDAO.save(schema);
-    }
-
-    @Test
     public final void delete() {
-        USchema schema = schemaDAO.find("fullname", USchema.class);
+        USchema schema = schemaDAO.find("username", USchema.class);
 
         schemaDAO.delete(schema.getName(), AttributableUtil.USER);
 
-        USchema actual = schemaDAO.find("fullname", USchema.class);
+        USchema actual = schemaDAO.find("username", USchema.class);
         assertNull("delete did not work", actual);
     }
 }

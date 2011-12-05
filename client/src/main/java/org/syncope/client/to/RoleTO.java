@@ -21,8 +21,6 @@ import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 @JsonIgnoreProperties({"displayName", "empty"})
 public class RoleTO extends AbstractAttributableTO {
 
-    private static final long serialVersionUID = -7785920258290147542L;
-
     private String name;
 
     private long parent;
@@ -33,15 +31,7 @@ public class RoleTO extends AbstractAttributableTO {
 
     private boolean inheritVirtualAttributes;
 
-    private boolean inheritPasswordPolicy;
-
-    private boolean inheritAccountPolicy;
-
     private List<String> entitlements;
-
-    private Long passwordPolicy;
-
-    private Long accountPolicy;
 
     public RoleTO() {
         entitlements = new ArrayList<String>();
@@ -103,51 +93,9 @@ public class RoleTO extends AbstractAttributableTO {
 
     public void setEntitlements(List<String> entitlements) {
         this.entitlements.clear();
-        if (entitlements != null && !entitlements.isEmpty()) {
+        if (entitlements != null || !entitlements.isEmpty()) {
             this.entitlements.addAll(entitlements);
         }
-    }
-
-    public Long getPasswordPolicy() {
-        return passwordPolicy;
-    }
-
-    public void setPasswordPolicy(Long passwordPolicy) {
-        this.passwordPolicy = passwordPolicy;
-    }
-
-    public boolean isInheritPasswordPolicy() {
-        return inheritPasswordPolicy;
-    }
-
-    /**
-     * Specify if password policy must be inherited.
-     * In this case eventual passwordPolicy occurrence will be ignored.
-     * @param inheritPasswordPolicy 'true' to inherit policy, false otherwise.
-     */
-    public void setInheritPasswordPolicy(boolean inheritPasswordPolicy) {
-        this.inheritPasswordPolicy = inheritPasswordPolicy;
-    }
-
-    public Long getAccountPolicy() {
-        return accountPolicy;
-    }
-
-    public void setAccountPolicy(Long accountPolicy) {
-        this.accountPolicy = accountPolicy;
-    }
-
-    public boolean isInheritAccountPolicy() {
-        return inheritAccountPolicy;
-    }
-
-    /**
-     * Specify if account policy must be inherited.
-     * In this case eventual accountPolicy occurrence will be ignored.
-     * @param inheritAccountPolicy 'true' to inherit policy, false otherwise.
-     */
-    public void setInheritAccountPolicy(boolean inheritAccountPolicy) {
-        this.inheritAccountPolicy = inheritAccountPolicy;
     }
 
     public String getDisplayName() {
@@ -166,8 +114,6 @@ public class RoleTO extends AbstractAttributableTO {
             try {
                 result = Long.valueOf(displayName.split(" ")[0]);
             } catch (NumberFormatException e) {
-                // just to avoid PMD warning about "empty catch block"
-                result = 0;
             }
         }
 

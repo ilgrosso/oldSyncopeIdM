@@ -14,50 +14,29 @@
  */
 package org.syncope.console.wicket.markup.html.form;
 
-import org.apache.wicket.ajax.AjaxRequestTarget;
-import org.apache.wicket.ajax.form.AjaxFormComponentUpdatingBehavior;
 import org.apache.wicket.markup.html.form.CheckBox;
+import org.apache.wicket.markup.html.panel.Panel;
 import org.apache.wicket.model.IModel;
 import org.apache.wicket.model.Model;
 
-public class AjaxCheckBoxPanel extends FieldPanel<Boolean> {
+public class AjaxCheckBoxPanel extends Panel {
 
-    private static final long serialVersionUID = 5664138233103884310L;
+    public AjaxCheckBoxPanel(final String id, final String name,
+            final IModel<Boolean> model, final boolean required) {
 
-    public AjaxCheckBoxPanel(
-            final String id,
-            final String name,
-            final IModel<Boolean> model,
-            final boolean active) {
+        super(id, model);
 
-        super(id, name, model, active);
-
-        field = new CheckBox("checkboxField", model);
-        add(field.setLabel(new Model(name)).setOutputMarkupId(true));
-
-        if (active) {
-            field.add(new AjaxFormComponentUpdatingBehavior("onchange") {
-
-                private static final long serialVersionUID =
-                        -1107858522700306810L;
-
-                @Override
-                protected void onUpdate(AjaxRequestTarget art) {
-                    // nothing to do
-                }
-            });
-        }
+        add(new CheckBox("checkboxField", model).setLabel(
+                new Model(name)));
     }
 
-    @Override
-    public FieldPanel addRequiredLabel() {
+    public AjaxCheckBoxPanel(final String id, final String name,
+            final IModel<Boolean> model,
+            final boolean required, final boolean readonly) {
 
-        if (!isRequired()) {
-            setRequired(true);
-        }
+        super(id, model);
 
-        this.isRequiredLabelAdded = true;
-
-        return this;
+        add(new CheckBox("checkboxField", model).setLabel(
+                new Model(name)).setEnabled(!readonly));
     }
 }

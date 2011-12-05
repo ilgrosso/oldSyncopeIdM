@@ -24,7 +24,7 @@ import org.syncope.core.persistence.beans.user.SyncopeUser;
 import org.syncope.core.persistence.beans.user.UAttrValue;
 import org.syncope.core.persistence.beans.user.UDerAttr;
 import org.syncope.core.persistence.beans.user.UDerSchema;
-import org.syncope.core.AbstractTest;
+import org.syncope.core.persistence.AbstractTest;
 import org.syncope.core.persistence.beans.membership.MAttrValue;
 import org.syncope.core.persistence.beans.membership.MDerAttr;
 import org.syncope.core.persistence.beans.membership.MDerSchema;
@@ -62,7 +62,7 @@ public class DerAttrTest extends AbstractTest {
 
     @Test
     public final void findById() {
-        UDerAttr attribute = derAttrDAO.find(100L,
+        UDerAttr attribute = derAttrDAO.find(1000L,
                 UDerAttr.class);
         assertNotNull("did not find expected attribute schema",
                 attribute);
@@ -105,7 +105,7 @@ public class DerAttrTest extends AbstractTest {
     public final void saveMDerAttribute()
             throws ClassNotFoundException {
         MDerSchema deriveddata =
-                derSchemaDAO.find("mderiveddata", MDerSchema.class);
+                derSchemaDAO.find("deriveddata", MDerSchema.class);
         assertNotNull(deriveddata);
 
         Membership owner = membershipDAO.find(1L);
@@ -124,10 +124,10 @@ public class DerAttrTest extends AbstractTest {
 
         MAttrValue sx =
                 (MAttrValue) owner.getAttribute(
-                "mderived_sx").getValues().iterator().next();
+                "derived_sx").getValues().iterator().next();
         MAttrValue dx =
                 (MAttrValue) owner.getAttribute(
-                "mderived_dx").getValues().iterator().next();
+                "derived_dx").getValues().iterator().next();
 
         assertEquals(sx.getValue() + "-" + dx.getValue(),
                 derivedAttribute.getValue(owner.getAttributes()));
@@ -137,7 +137,7 @@ public class DerAttrTest extends AbstractTest {
     public final void saveRDerAttribute()
             throws ClassNotFoundException {
         RDerSchema deriveddata =
-                derSchemaDAO.find("rderiveddata", RDerSchema.class);
+                derSchemaDAO.find("deriveddata", RDerSchema.class);
         assertNotNull(deriveddata);
 
         SyncopeRole owner = roleDAO.find(1L);
@@ -156,10 +156,10 @@ public class DerAttrTest extends AbstractTest {
 
         RAttrValue sx =
                 (RAttrValue) owner.getAttribute(
-                "rderived_sx").getValues().iterator().next();
+                "derived_sx").getValues().iterator().next();
         RAttrValue dx =
                 (RAttrValue) owner.getAttribute(
-                "rderived_dx").getValues().iterator().next();
+                "derived_dx").getValues().iterator().next();
 
         assertEquals(sx.getValue() + "-" + dx.getValue(),
                 derivedAttribute.getValue(owner.getAttributes()));
@@ -167,7 +167,7 @@ public class DerAttrTest extends AbstractTest {
 
     @Test
     public final void delete() {
-        UDerAttr attribute = derAttrDAO.find(100L,
+        UDerAttr attribute = derAttrDAO.find(1000L,
                 UDerAttr.class);
         String attributeSchemaName =
                 attribute.getDerivedSchema().getName();
@@ -175,7 +175,7 @@ public class DerAttrTest extends AbstractTest {
         derAttrDAO.delete(attribute.getId(),
                 UDerAttr.class);
 
-        UDerAttr actual = derAttrDAO.find(100L,
+        UDerAttr actual = derAttrDAO.find(1000L,
                 UDerAttr.class);
         assertNull("delete did not work", actual);
 

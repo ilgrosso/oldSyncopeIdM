@@ -14,16 +14,16 @@
  */
 package org.syncope.console.pages;
 
-import org.apache.wicket.request.mapper.parameter.PageParameters;
+import org.apache.wicket.PageParameters;
 
 /**
  * Syncope Home-Page.
  */
-public class HomePage extends BasePage {
+public class HomePage extends BasePage
+{
 
-    private static final long serialVersionUID = -6712990478380766293L;
-
-    public HomePage(final PageParameters parameters) {
-        super(parameters);
+    public HomePage( PageParameters parameters )
+    {
+        super( parameters );
     }
 }

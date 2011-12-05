@@ -28,7 +28,7 @@ import org.syncope.core.persistence.dao.AttrValueDAO;
 import org.syncope.core.persistence.dao.SchemaDAO;
 import org.syncope.core.persistence.dao.RoleDAO;
 import org.syncope.core.persistence.dao.UserDAO;
-import org.syncope.core.AbstractTest;
+import org.syncope.core.persistence.AbstractTest;
 import org.syncope.core.persistence.beans.membership.Membership;
 
 @Transactional
@@ -61,7 +61,7 @@ public class UserTest extends AbstractTest {
         assertNotNull(schemaDAO.find("loginDate", USchema.class));
 
         List<Membership> memberships =
-                roleDAO.findMemberships(roleDAO.find(7L));
+                roleDAO.getMemberships(roleDAO.find(7L));
         assertTrue(memberships.isEmpty());
     }
 }

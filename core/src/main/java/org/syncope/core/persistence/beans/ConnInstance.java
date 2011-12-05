@@ -14,10 +14,15 @@
  */
 package org.syncope.core.persistence.beans;
 
+import java.beans.XMLDecoder;
+import java.beans.XMLEncoder;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import javax.persistence.CascadeType;
@@ -30,15 +35,11 @@ import javax.persistence.FetchType;
 import javax.persistence.Id;
 import javax.persistence.Lob;
 import javax.persistence.OneToMany;
-import org.hibernate.annotations.Type;
-import org.syncope.core.util.XMLSerializer;
 import org.syncope.types.ConnConfProperty;
 import org.syncope.types.ConnectorCapability;
 
 @Entity
 public class ConnInstance extends AbstractBaseBean {
-
-    private static final long serialVersionUID = -2294708794497208872L;
 
     @Id
     private Long id;
@@ -77,8 +78,9 @@ public class ConnInstance extends AbstractBaseBean {
      * This is directly implemented by the Configuration bean class which
      * contains annotated ConfigurationProperties (@ConfigurationProperty).
      */
-    @Lob
-    @Type(type = "org.hibernate.type.StringClobType")
+    // @Lob
+    // TODO: http://code.google.com/p/syncope/issues/detail?id=127
+    @Column(nullable = false, length = 1000000)
     private String xmlConfiguration;
 
     private String displayName;
@@ -89,35 +91,10 @@ public class ConnInstance extends AbstractBaseBean {
      */
     @OneToMany(cascade = {CascadeType.REFRESH, CascadeType.MERGE},
     mappedBy = "connector")
-    private List<ExternalResource> resources;
+    private List<TargetResource> resources;
 
     public ConnInstance() {
-        super();
         capabilities = EnumSet.noneOf(ConnectorCapability.class);
-    }
-
-    /**
-     * Copy constructor.
-     * 
-     * @param that
-     */
-    public ConnInstance(final ConnInstance that) {
-        super();
-        this.bundleName = that.bundleName;
-        this.capabilities = that.capabilities.isEmpty()
-                ? EnumSet.noneOf(ConnectorCapability.class)
-                : EnumSet.copyOf(that.capabilities);
-        this.connectorName = that.connectorName;
-        this.displayName = that.displayName;
-        this.id = that.id;
-
-        this.resources = new ArrayList<ExternalResource>();
-        if (that.resources != null) {
-            this.resources.addAll(that.resources);
-        }
-
-        this.version = that.version;
-        this.xmlConfiguration = that.xmlConfiguration;
     }
 
     public String getVersion() {
@@ -145,18 +122,37 @@ public class ConnInstance extends AbstractBaseBean {
     }
 
     public Set<ConnConfProperty> getConfiguration() {
-        Set<ConnConfProperty> result =
-                XMLSerializer.<HashSet<ConnConfProperty>>deserialize(
-                xmlConfiguration);
-        if (result == null) {
-            result = Collections.emptySet();
+        Set<ConnConfProperty> result = Collections.EMPTY_SET;
+
+        try {
+            ByteArrayInputStream tokenContentIS = new ByteArrayInputStream(
+                    URLDecoder.decode(xmlConfiguration, "UTF-8").getBytes());
+
+            XMLDecoder decoder = new XMLDecoder(tokenContentIS);
+            Object object = decoder.readObject();
+            decoder.close();
+
+            result = (Set<ConnConfProperty>) object;
+        } catch (Throwable t) {
+            LOG.error("During connector properties deserialization", t);
         }
+
         return result;
     }
 
     public void setConfiguration(final Set<ConnConfProperty> configuration) {
-        xmlConfiguration = XMLSerializer.serialize(
-                new HashSet<ConnConfProperty>(configuration));
+        try {
+            ByteArrayOutputStream tokenContentOS = new ByteArrayOutputStream();
+            XMLEncoder encoder = new XMLEncoder(tokenContentOS);
+            encoder.writeObject(configuration);
+            encoder.flush();
+            encoder.close();
+
+            xmlConfiguration = URLEncoder.encode(tokenContentOS.toString(),
+                    "UTF-8");
+        } catch (Throwable t) {
+            LOG.error("During connector properties serialization", t);
+        }
     }
 
     public Long getId() {
@@ -171,25 +167,25 @@ public class ConnInstance extends AbstractBaseBean {
         this.displayName = displayName;
     }
 
-    public List<ExternalResource> getResources() {
+    public List<TargetResource> getResources() {
         if (this.resources == null) {
-            this.resources = new ArrayList<ExternalResource>();
+            this.resources = new ArrayList<TargetResource>();
         }
         return this.resources;
     }
 
-    public void setResources(List<ExternalResource> resources) {
+    public void setResources(List<TargetResource> resources) {
         this.resources = resources;
     }
 
-    public boolean addResource(ExternalResource resource) {
+    public boolean addResource(TargetResource resource) {
         if (this.resources == null) {
-            this.resources = new ArrayList<ExternalResource>();
+            this.resources = new ArrayList<TargetResource>();
         }
         return this.resources.add(resource);
     }
 
-    public boolean removeResource(ExternalResource resource) {
+    public boolean removeResource(TargetResource resource) {
         if (this.resources == null) {
             return true;
         }

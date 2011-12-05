@@ -16,22 +16,26 @@ package org.syncope.console;
 
 import org.apache.wicket.Component;
 import org.apache.wicket.Page;
+import org.apache.wicket.Request;
+import org.apache.wicket.RequestCycle;
+import org.apache.wicket.Response;
 import org.apache.wicket.RestartResponseAtInterceptPageException;
 import org.apache.wicket.Session;
 import org.apache.wicket.authorization.IUnauthorizedComponentInstantiationListener;
 import org.apache.wicket.authorization.UnauthorizedInstantiationException;
-import org.apache.wicket.authroles.authorization.strategies.role.IRoleCheckingStrategy;
-import org.apache.wicket.authroles.authorization.strategies.role.RoleAuthorizationStrategy;
-import org.apache.wicket.authroles.authorization.strategies.role.metadata.MetaDataRoleAuthorizationStrategy;
+import org.apache.wicket.authorization.strategies.role.IRoleCheckingStrategy;
+import org.apache.wicket.authorization.strategies.role.RoleAuthorizationStrategy;
+import org.apache.wicket.authorization.strategies.role.metadata.MetaDataRoleAuthorizationStrategy;
 import org.apache.wicket.markup.html.WebPage;
 import org.apache.wicket.markup.html.basic.Label;
 import org.apache.wicket.markup.html.link.BookmarkablePageLink;
 import org.apache.wicket.protocol.http.WebApplication;
-import org.apache.wicket.request.Request;
-import org.apache.wicket.request.Response;
+import org.apache.wicket.protocol.http.WebRequest;
+import org.apache.wicket.protocol.http.WebResponse;
 import org.apache.wicket.spring.injection.annot.SpringComponentInjector;
 import org.syncope.console.commons.XMLRolesReader;
 import org.syncope.console.pages.Configuration;
+import org.syncope.console.pages.Connectors;
 import org.syncope.console.pages.Login;
 import org.syncope.console.pages.Logout;
 import org.syncope.console.pages.Report;
@@ -39,7 +43,6 @@ import org.syncope.console.pages.Resources;
 import org.syncope.console.pages.Roles;
 import org.syncope.console.pages.Schema;
 import org.syncope.console.pages.Tasks;
-import org.syncope.console.pages.Todo;
 import org.syncope.console.pages.Users;
 import org.syncope.console.pages.WelcomePage;
 
@@ -52,9 +55,7 @@ public class SyncopeApplication extends WebApplication
 
     @Override
     protected void init() {
-        getComponentInstantiationListeners().add(
-                new SpringComponentInjector(this));
-
+        addComponentInstantiationListener(new SpringComponentInjector(this));
         getResourceSettings().setThrowExceptionOnMissingResource(true);
 
         getSecuritySettings().
@@ -64,7 +65,23 @@ public class SyncopeApplication extends WebApplication
 
         getMarkupSettings().setStripWicketTags(true);
 
-        getRequestCycleListeners().add(new SyncopeRequestCycleListener());
+        // setup authorizations
+        MetaDataRoleAuthorizationStrategy.authorize(Schema.class,
+                "SCHEMA_LIST");
+        MetaDataRoleAuthorizationStrategy.authorize(Roles.class,
+                "ROLE_LIST");
+        MetaDataRoleAuthorizationStrategy.authorize(Connectors.class,
+                "CONNECTOR_LIST");
+        MetaDataRoleAuthorizationStrategy.authorize(Resources.class,
+                "RESOURCE_LIST");
+        MetaDataRoleAuthorizationStrategy.authorize(Users.class,
+                "USER_LIST");
+        MetaDataRoleAuthorizationStrategy.authorize(Report.class,
+                "REPORT_LIST");
+        MetaDataRoleAuthorizationStrategy.authorize(Tasks.class,
+                "TASK_LIST");
+        MetaDataRoleAuthorizationStrategy.authorize(Configuration.class,
+                "CONFIGURATION_LIST");
     }
 
     public void setupNavigationPane(final WebPage page,
@@ -75,8 +92,10 @@ public class SyncopeApplication extends WebApplication
 
         BookmarkablePageLink schemaLink =
                 new BookmarkablePageLink("schema", Schema.class);
-        MetaDataRoleAuthorizationStrategy.authorizeAll(
-                schemaLink, WebPage.ENABLE);
+        String allowedSchemaRoles =
+                xmlRolesReader.getAllAllowedRoles("Schema", "list");
+        MetaDataRoleAuthorizationStrategy.authorize(
+                schemaLink, WebPage.ENABLE, allowedSchemaRoles);
         page.add(schemaLink);
 
         BookmarkablePageLink usersLink =
@@ -89,22 +108,27 @@ public class SyncopeApplication extends WebApplication
 
         BookmarkablePageLink rolesLink =
                 new BookmarkablePageLink("roles", Roles.class);
-        MetaDataRoleAuthorizationStrategy.authorizeAll(
-                rolesLink, WebPage.ENABLE);
+        String allowedRoleRoles =
+                xmlRolesReader.getAllAllowedRoles("Roles", "list");
+        MetaDataRoleAuthorizationStrategy.authorize(
+                rolesLink, WebPage.ENABLE, allowedRoleRoles);
         page.add(rolesLink);
 
         BookmarkablePageLink resourcesLink =
                 new BookmarkablePageLink("resources", Resources.class);
-        MetaDataRoleAuthorizationStrategy.authorizeAll(
-                resourcesLink, WebPage.ENABLE);
+        String allowedResourcesRoles =
+                xmlRolesReader.getAllAllowedRoles("Resources", "list");
+        MetaDataRoleAuthorizationStrategy.authorize(
+                resourcesLink, WebPage.ENABLE, allowedResourcesRoles);
         page.add(resourcesLink);
 
-        BookmarkablePageLink todoLink =
-                new BookmarkablePageLink("todo", Todo.class);
+        BookmarkablePageLink connectorsLink =
+                new BookmarkablePageLink("connectors", Connectors.class);
+        String allowedConnectorsRoles =
+                xmlRolesReader.getAllAllowedRoles("Connectors", "list");
         MetaDataRoleAuthorizationStrategy.authorize(
-                todoLink, WebPage.ENABLE,
-                xmlRolesReader.getAllAllowedRoles("Approval", "list"));
-        page.add(todoLink);
+                connectorsLink, WebPage.ENABLE, allowedConnectorsRoles);
+        page.add(connectorsLink);
 
         BookmarkablePageLink reportLink =
                 new BookmarkablePageLink("report", Report.class);
@@ -146,6 +170,14 @@ public class SyncopeApplication extends WebApplication
     }
 
     @Override
+    public final RequestCycle newRequestCycle(final Request request,
+            final Response response) {
+
+        return new SyncopeRequestCycle(this, (WebRequest) request,
+                (WebResponse) response);
+    }
+
+    @Override
     public void onUnauthorizedInstantiation(final Component component) {
         SyncopeSession.get().invalidate();
 
@@ -158,7 +190,7 @@ public class SyncopeApplication extends WebApplication
 
     @Override
     public boolean hasAnyRole(
-            final org.apache.wicket.authroles.authorization.strategies.role.Roles roles) {
+            org.apache.wicket.authorization.strategies.role.Roles roles) {
 
         return SyncopeSession.get().hasAnyRole(roles);
     }

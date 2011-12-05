@@ -44,11 +44,6 @@ public abstract class AbstractDAOImpl implements DAO {
     }
 
     @Override
-    public void detach(final Object object) {
-        entityManager.detach(object);
-    }
-
-    @Override
     public void flush() {
         entityManager.flush();
     }

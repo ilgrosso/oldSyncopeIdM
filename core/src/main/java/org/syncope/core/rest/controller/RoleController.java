@@ -96,13 +96,26 @@ public class RoleController extends AbstractController {
         roleDAO.delete(roleId);
     }
 
+    @PreAuthorize("hasRole('ROLE_LIST')")
     @RequestMapping(method = RequestMethod.GET,
     value = "/list")
     public List<RoleTO> list() {
+        Set<Long> allowedRoleIds = EntitlementUtil.getRoleIds(
+                EntitlementUtil.getOwnedEntitlementNames());
+
         List<SyncopeRole> roles = roleDAO.findAll();
         List<RoleTO> roleTOs = new ArrayList<RoleTO>();
+        RoleTO roleTO;
         for (SyncopeRole role : roles) {
-            roleTOs.add(roleDataBinder.getRoleTO(role));
+            if (allowedRoleIds.contains(role.getId())) {
+                roleTO = roleDataBinder.getRoleTO(role);
+                if (roleTO.getParent() != 0
+                        && !allowedRoleIds.contains(roleTO.getParent())) {
+
+                    roleTO.setParent(0);
+                }
+                roleTOs.add(roleTO);
+            }
         }
 
         return roleTOs;

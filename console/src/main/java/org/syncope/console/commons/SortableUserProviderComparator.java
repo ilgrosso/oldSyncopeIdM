@@ -20,7 +20,6 @@ import java.util.Map;
 import java.util.Set;
 import org.apache.wicket.extensions.markup.html.repeater.util.SortableDataProvider;
 import org.apache.wicket.model.AbstractReadOnlyModel;
-import org.syncope.client.to.AttributeTO;
 import org.syncope.client.to.UserTO;
 
 public class SortableUserProviderComparator
@@ -53,9 +52,9 @@ public class SortableUserProviderComparator
 
     private class AttrModel extends AbstractReadOnlyModel<Comparable> {
 
-        private final Map<String, AttributeTO> attrMap;
+        private final Map<String, List<String>> attrMap;
 
-        public AttrModel(final Map<String, AttributeTO> attrMap) {
+        public AttrModel(final Map<String, List<String>> attrMap) {
             super();
 
             this.attrMap = attrMap;
@@ -65,8 +64,7 @@ public class SortableUserProviderComparator
         public Comparable getObject() {
             Comparable result = null;
 
-            List<String> values = attrMap.get(
-                    provider.getSort().getProperty()).getValues();
+            List<String> values = attrMap.get(provider.getSort().getProperty());
             if (values != null && !values.isEmpty()) {
                 result = values.iterator().next();
             }

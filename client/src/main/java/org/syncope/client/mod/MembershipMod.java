@@ -16,11 +16,8 @@ package org.syncope.client.mod;
 
 import java.util.Collections;
 import java.util.Set;
-import org.codehaus.jackson.annotate.JsonIgnore;
 
 public class MembershipMod extends AbstractAttributableMod {
-
-    private static final long serialVersionUID = 2511869129977331525L;
 
     private long role;
 
@@ -68,12 +65,5 @@ public class MembershipMod extends AbstractAttributableMod {
 
     @Override
     public void setResourcesToBeRemoved(Set<String> resourcesToBeRemoved) {
-    }
-
-    @JsonIgnore
-    @Override
-    public boolean isEmpty() {
-        return super.isEmpty()
-                && role == 0;
     }
 }

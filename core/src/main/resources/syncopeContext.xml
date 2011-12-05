@@ -13,19 +13,18 @@
   limitations under the License.
 -->
 <beans xmlns="http://www.springframework.org/schema/beans"
-       xmlns:context="http://www.springframework.org/schema/context"
+ xmlns:context="http://www.springframework.org/schema/context"
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xsi:schemaLocation="http://www.springframework.org/schema/beans
-                           http://www.springframework.org/schema/beans/spring-beans.xsd
-                           http://www.springframework.org/schema/context
-                           http://www.springframework.org/schema/context/spring-context.xsd">
+       http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/context
+       http://www.springframework.org/schema/context/spring-context.xsd">
 
     <bean class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
         <property name="locations">
             <list>
                 <value>classpath:persistence.properties</value>
                 <value>classpath:security.properties</value>
-                <value>classpath:workflow.properties</value>
             </list>
         </property>
         <property name="ignoreResourceNotFound" value="true" />
@@ -35,18 +34,5 @@
     <bean class="org.syncope.core.util.ApplicationContextProvider"/>
 
     <context:component-scan base-package="org.syncope.core.init"/>
-    <context:component-scan base-package="org.syncope.core.util"/>
-    
-    <bean id="propagationManager"
-          class="org.syncope.core.propagation.PropagationManager"/>
 
-    <bean id="notificationManager"
-          class="org.syncope.core.notification.NotificationManager"/>
-          
-    <bean id="jexlEngine" class="org.apache.commons.jexl2.JexlEngine">
-        <property name="cache" value="512"/>
-        <property name="lenient" value="true"/>
-        <property name="silent" value="false"/>
-    </bean>
-    <bean id="jexlUtil" class="org.syncope.core.util.JexlUtil"/>
 </beans>

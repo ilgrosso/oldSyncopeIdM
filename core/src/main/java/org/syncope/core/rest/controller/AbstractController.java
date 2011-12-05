@@ -20,16 +20,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.TypeMismatchException;
 import org.springframework.transaction.annotation.Transactional;
-import org.syncope.client.to.PropagationTaskTO;
-import org.syncope.client.to.SchedTaskTO;
-import org.syncope.client.to.SyncTaskTO;
-import org.syncope.client.to.TaskTO;
-import org.syncope.core.persistence.beans.NotificationTask;
-import org.syncope.core.persistence.beans.PropagationTask;
-import org.syncope.core.persistence.beans.SchedTask;
-import org.syncope.core.persistence.beans.SyncTask;
-import org.syncope.core.persistence.beans.Task;
-import org.syncope.core.util.TaskUtil;
 
 @Transactional(rollbackFor = {
     Throwable.class
@@ -51,60 +41,6 @@ public abstract class AbstractController {
             LOG.error("Attributable not supported: " + kind);
 
             throw new TypeMismatchException(kind, AttributableUtil.class, e);
-        }
-
-        return result;
-    }
-
-    protected TaskUtil getTaskUtil(final String kind) {
-        TaskUtil result = null;
-
-        try {
-            result = TaskUtil.valueOf(kind.toUpperCase());
-        } catch (Exception e) {
-            LOG.error("Task not supported: " + kind);
-
-            throw new TypeMismatchException(kind, TaskUtil.class, e);
-        }
-
-        return result;
-    }
-
-    protected TaskUtil getTaskUtil(final Task task) {
-        TaskUtil result = (task instanceof PropagationTask)
-                ? TaskUtil.PROPAGATION
-                : (task instanceof NotificationTask)
-                ? TaskUtil.NOTIFICATION
-                : (task instanceof SyncTask)
-                ? TaskUtil.SYNC
-                : (task instanceof SchedTask)
-                ? TaskUtil.SCHED
-                : null;
-
-        if (result == null) {
-            LOG.error("Task not supported: " + task.getClass().getName());
-
-            throw new TypeMismatchException(task.getClass().getName(),
-                    TaskUtil.class);
-        }
-
-        return result;
-    }
-
-    protected TaskUtil getTaskUtil(final TaskTO taskTO) {
-        TaskUtil result = (taskTO instanceof PropagationTaskTO)
-                ? TaskUtil.PROPAGATION
-                : (taskTO instanceof SyncTaskTO)
-                ? TaskUtil.SYNC
-                : (taskTO instanceof SchedTaskTO)
-                ? TaskUtil.SCHED
-                : null;
-
-        if (result == null) {
-            LOG.error("Task not supported: " + taskTO.getClass().getName());
-
-            throw new TypeMismatchException(taskTO.getClass().getName(),
-                    TaskUtil.class);
         }
 
         return result;

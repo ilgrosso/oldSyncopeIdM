@@ -16,23 +16,14 @@ package org.syncope.client.mod;
 
 import java.util.HashSet;
 import java.util.Set;
-import org.codehaus.jackson.annotate.JsonIgnore;
 
 public class UserMod extends AbstractAttributableMod {
 
-    private static final long serialVersionUID = 3081848906558106204L;
-
     private String password;
-
-    private String username;
-
     private Set<MembershipMod> membershipsToBeAddeded;
-
     private Set<Long> membershipsToBeRemoved;
 
     public UserMod() {
-        super();
-
         membershipsToBeAddeded = new HashSet<MembershipMod>();
         membershipsToBeRemoved = new HashSet<Long>();
     }
@@ -51,14 +42,6 @@ public class UserMod extends AbstractAttributableMod {
 
     public void setMembershipsToBeAdded(Set<MembershipMod> membershipMods) {
         this.membershipsToBeAddeded = membershipMods;
-    }
-
-    public String getUsername() {
-        return username;
-    }
-
-    public void setUsername(String username) {
-        this.username = username;
     }
 
     public String getPassword() {
@@ -83,15 +66,5 @@ public class UserMod extends AbstractAttributableMod {
 
     public void setMembershipsToBeRemoved(Set<Long> membershipsToBeRemoved) {
         this.membershipsToBeRemoved = membershipsToBeRemoved;
-    }
-
-    @JsonIgnore
-    @Override
-    public boolean isEmpty() {
-        return super.isEmpty()
-                && password == null
-                && username == null
-                && membershipsToBeAddeded.isEmpty()
-                && membershipsToBeRemoved.isEmpty();
     }
 }

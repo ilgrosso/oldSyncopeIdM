@@ -21,7 +21,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 import org.syncope.core.init.ConnInstanceLoader;
 import org.syncope.core.persistence.beans.ConnInstance;
-import org.syncope.core.persistence.beans.ExternalResource;
 import org.syncope.core.persistence.dao.ConnInstanceDAO;
 
 @Repository
@@ -38,39 +37,21 @@ public class ConnInstanceDAOImpl extends AbstractDAOImpl
 
     @Override
     public List<ConnInstance> findAll() {
-        Query query = entityManager.createQuery("SELECT e "
-                + "FROM " + ConnInstance.class.getSimpleName() + " e");
-        return query.getResultList();
-    }
-
-    @Override
-    public List<ExternalResource> findExternalResources(
-            final ConnInstance connector) {
-
-        final Query query = entityManager.createQuery("SELECT e "
-                + "FROM " + ExternalResource.class.getSimpleName() + " e "
-                + "WHERE connector=:connector");
-
-        query.setParameter("connector", connector);
-
+        Query query = entityManager.createQuery("SELECT e FROM ConnInstance e");
         return query.getResultList();
     }
 
     @Override
     public ConnInstance save(final ConnInstance connector) {
-        final ConnInstance merged = entityManager.merge(connector);
-
-        final List<ExternalResource> resources = findExternalResources(merged);
-
-        for (ExternalResource resource : resources) {
-            try {
-                connInstanceLoader.registerConnector(resource);
-            } catch (NotFoundException e) {
-                LOG.error("While registering connector for resource", e);
-            }
+        ConnInstance actual = entityManager.merge(connector);
+        try {
+            connInstanceLoader.registerConnector(actual);
+        } catch (NotFoundException e) {
+            LOG.error("While registering the connector for instance "
+                    + actual, e);
         }
 
-        return merged;
+        return actual;
     }
 
     @Override

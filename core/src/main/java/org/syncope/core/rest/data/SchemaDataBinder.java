@@ -15,7 +15,6 @@
 package org.syncope.core.rest.data;
 
 import java.util.Iterator;
-import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
@@ -55,26 +54,27 @@ public class SchemaDataBinder {
     private <T extends AbstractDerSchema> AbstractSchema populate(
             final AbstractSchema schema,
             final SchemaTO schemaTO,
+            final Class<T> derivedReference,
             final SyncopeClientCompositeErrorException scce)
             throws SyncopeClientCompositeErrorException {
 
-        if (StringUtils.isBlank(schemaTO.getMandatoryCondition())) {
+        if (schemaTO.getMandatoryCondition() == null) {
             SyncopeClientException requiredValuesMissing =
                     new SyncopeClientException(
                     SyncopeClientExceptionType.RequiredValuesMissing);
             requiredValuesMissing.addElement("mandatoryCondition");
 
             scce.addException(requiredValuesMissing);
-        } else {
-            if (!jexlUtil.isExpressionValid(schemaTO.getMandatoryCondition())) {
-                SyncopeClientException invalidMandatoryCondition =
-                        new SyncopeClientException(
-                        SyncopeClientExceptionType.InvalidValues);
-                invalidMandatoryCondition.addElement(
-                        schemaTO.getMandatoryCondition());
+        }
 
-                scce.addException(invalidMandatoryCondition);
-            }
+        if (!jexlUtil.isExpressionValid(schemaTO.getMandatoryCondition())) {
+            SyncopeClientException invalidMandatoryCondition =
+                    new SyncopeClientException(
+                    SyncopeClientExceptionType.InvalidValues);
+            invalidMandatoryCondition.addElement(
+                    schemaTO.getMandatoryCondition());
+
+            scce.addException(invalidMandatoryCondition);
         }
 
         if (scce.hasExceptions()) {
@@ -88,10 +88,11 @@ public class SchemaDataBinder {
 
     public <T extends AbstractDerSchema> AbstractSchema create(
             final SchemaTO schemaTO,
-            AbstractSchema schema)
+            AbstractSchema schema,
+            final Class<T> derivedReference)
             throws SyncopeClientCompositeErrorException {
 
-        return populate(schema, schemaTO,
+        return populate(schema, schemaTO, derivedReference,
                 new SyncopeClientCompositeErrorException(
                 HttpStatus.BAD_REQUEST));
     }
@@ -106,7 +107,8 @@ public class SchemaDataBinder {
                 new SyncopeClientCompositeErrorException(
                 HttpStatus.BAD_REQUEST);
 
-        schema = populate(schema, schemaTO, scce);
+        schema = populate(schema, schemaTO,
+                attributableUtil.derivedSchemaClass(), scce);
 
         boolean validationExceptionFound = false;
         AbstractAttr attribute;
@@ -133,8 +135,7 @@ public class SchemaDataBinder {
 
         if (validationExceptionFound) {
             SyncopeClientException e = new SyncopeClientException(
-                    SyncopeClientExceptionType.valueOf(
-                    "Invalid" + schema.getClass().getSimpleName()));
+                    SyncopeClientExceptionType.InvalidUpdate);
             e.addElement(schema.getName());
 
             scce.addException(e);

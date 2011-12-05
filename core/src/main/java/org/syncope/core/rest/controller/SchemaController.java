@@ -50,8 +50,9 @@ public class SchemaController extends AbstractController {
             @PathVariable("kind") final String kind)
             throws SyncopeClientCompositeErrorException {
 
-        AbstractSchema schema = schemaDataBinder.create(
-                schemaTO, getAttributableUtil(kind).newSchema());
+        AbstractSchema schema = schemaDataBinder.create(schemaTO,
+                getAttributableUtil(kind).newSchema(),
+                getAttributableUtil(kind).derivedSchemaClass());
 
         schema = schemaDAO.save(schema);
 
@@ -77,6 +78,7 @@ public class SchemaController extends AbstractController {
         }
     }
 
+    @PreAuthorize("hasRole('SCHEMA_LIST')")
     @RequestMapping(method = RequestMethod.GET,
     value = "/{kind}/list")
     public List<SchemaTO> list(@PathVariable("kind") final String kind) {

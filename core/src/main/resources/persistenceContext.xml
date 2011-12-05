@@ -32,7 +32,6 @@
     <context:annotation-config/>
     <context:component-scan base-package="org.syncope.core.persistence"/>
     <context:component-scan base-package="org.syncope.core.rest.data"/>
-    <context:component-scan base-package="org.syncope.core.policy"/>
 
     <aop:aspectj-autoproxy/>
     <bean class="org.syncope.core.monitor.CacheMonitor"/>
@@ -43,9 +42,6 @@
 
     <!-- Use JNDI datasource as default but, when not available, revert to
          local datasource, using different properties for execution and testing -->
-<!--    <bean id="dataSource" class="net.sf.log4jdbc.Log4jdbcProxyDataSource">
-        <constructor-arg ref="dataSourceSpied" />
-    </bean>-->
     <bean id="dataSource"
           class="org.springframework.jndi.JndiObjectFactoryBean">
         <property name="jndiName" value="java:comp/env/jdbc/syncopeDataSource"/>
@@ -53,10 +49,10 @@
     </bean>
     <bean id="localDataSource"
           class="org.springframework.jdbc.datasource.DriverManagerDataSource">
-        <property name="driverClassName" value="${hibernate.connection.driver_class}"/>
-        <property name="url" value="${hibernate.connection.url}"/>
-        <property name="username" value="${hibernate.connection.username}"/>
-        <property name="password" value="${hibernate.connection.password}"/>
+        <property name="driverClassName" value="${hibernate.connection.driver_class:org.hsqldb.jdbcDriver}"/>
+        <property name="url" value="${hibernate.connection.url:jdbc:hsqldb:mem:syncopedb}"/>
+        <property name="username" value="${hibernate.connection.username:sa}"/>
+        <property name="password" value="${hibernate.connection.password:}"/>
     </bean>
 
     <bean id="entityManagerFactory"
@@ -73,7 +69,6 @@
         <property name="jpaPropertyMap">
             <map>
                 <entry key="hibernate.order_updates" value="true"/>
-                <entry key="hibernate.id.new_generator_mappings" value="true"/>
                 <entry key="hibernate.generate_statistics" value="true"/>
 
                 <!-- Second level cache -->
@@ -90,14 +85,26 @@
         </property>
     </bean>
 
-    <bean id="entityManager" class="org.springframework.orm.jpa.support.SharedEntityManagerBean">
+    <bean id="entityManager"
+          class="org.springframework.orm.jpa.support.SharedEntityManagerBean">
         <property name="entityManagerFactory" ref="entityManagerFactory"/>
     </bean>
 
-    <bean id="transactionManager" class="org.springframework.orm.jpa.JpaTransactionManager">
+    <tx:annotation-driven/>
+    <bean id="transactionManager"
+          class="org.springframework.orm.jpa.JpaTransactionManager">
         <property name="entityManagerFactory" ref="entityManagerFactory"/>
     </bean>
-    <tx:annotation-driven/>
+
+    <bean id="jexlEngine" class="org.apache.commons.jexl2.JexlEngine">
+        <property name="cache" value="512"/>
+        <property name="lenient" value="true"/>
+        <property name="silent" value="false"/>
+    </bean>
+    <bean id="jexlUtil" class="org.syncope.core.util.JexlUtil"/>
+
+    <bean id="propagationManager"
+          class="org.syncope.core.persistence.propagation.PropagationManager"/>
 
     <bean id="validator"
           class="org.springframework.validation.beanvalidation.LocalValidatorFactoryBean"/>

@@ -15,11 +15,8 @@
 package org.syncope.core.persistence.beans.role;
 
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import javax.persistence.Basic;
 import javax.persistence.Cacheable;
@@ -39,13 +36,8 @@ import javax.validation.constraints.Min;
 import org.syncope.core.persistence.beans.AbstractAttributable;
 import org.syncope.core.persistence.beans.AbstractAttr;
 import org.syncope.core.persistence.beans.AbstractDerAttr;
-import org.syncope.core.persistence.beans.AbstractDerSchema;
-import org.syncope.core.persistence.beans.AbstractSchema;
 import org.syncope.core.persistence.beans.AbstractVirAttr;
-import org.syncope.core.persistence.beans.AbstractVirSchema;
-import org.syncope.core.persistence.beans.AccountPolicy;
 import org.syncope.core.persistence.beans.Entitlement;
-import org.syncope.core.persistence.beans.PasswordPolicy;
 
 @Entity
 @Table(uniqueConstraints =
@@ -55,8 +47,6 @@ import org.syncope.core.persistence.beans.PasswordPolicy;
 }))
 @Cacheable
 public class SyncopeRole extends AbstractAttributable {
-
-    private static final long serialVersionUID = -5281258853142421875L;
 
     @Id
     private Long id;
@@ -82,36 +72,20 @@ public class SyncopeRole extends AbstractAttributable {
     @Valid
     private List<RVirAttr> virtualAttributes;
 
-    @Basic(optional = true)
+    @Basic
     @Min(0)
     @Max(1)
     private Integer inheritAttributes;
 
-    @Basic(optional = true)
+    @Basic
     @Min(0)
     @Max(1)
     private Integer inheritDerivedAttributes;
 
-    @Basic(optional = true)
+    @Basic
     @Min(0)
     @Max(1)
     private Integer inheritVirtualAttributes;
-
-    @Basic(optional = true)
-    @Min(0)
-    @Max(1)
-    private Integer inheritPasswordPolicy;
-
-    @Basic(optional = true)
-    @Min(0)
-    @Max(1)
-    private Integer inheritAccountPolicy;
-
-    @ManyToOne(fetch = FetchType.EAGER, optional = true)
-    private PasswordPolicy passwordPolicy;
-
-    @ManyToOne(fetch = FetchType.EAGER, optional = true)
-    private AccountPolicy accountPolicy;
 
     public SyncopeRole() {
         super();
@@ -123,8 +97,6 @@ public class SyncopeRole extends AbstractAttributable {
         inheritAttributes = getBooleanAsInteger(false);
         inheritDerivedAttributes = getBooleanAsInteger(false);
         inheritVirtualAttributes = getBooleanAsInteger(false);
-        inheritPasswordPolicy = getBooleanAsInteger(false);
-        inheritAccountPolicy = getBooleanAsInteger(false);
     }
 
     @Override
@@ -245,37 +217,21 @@ public class SyncopeRole extends AbstractAttributable {
         this.inheritAttributes = getBooleanAsInteger(inheritAttributes);
     }
 
-    /**
-     * Get all inherited attributes from the ancestors.
-     * @return a list of inherited and only inherited attributes.
-     */
     public List<RAttr> findInheritedAttributes() {
-        final Map<RSchema, RAttr> result = new HashMap<RSchema, RAttr>();
-
+        List<RAttr> result = new ArrayList<RAttr>(attributes);
         if (isInheritAttributes() && getParent() != null) {
-            final Map<AbstractSchema, AbstractAttr> attrMap = getAttributesMap();
-
-            // Add attributes not specialized
-            for (RAttr attr : (Collection<RAttr>) getParent().getAttributes()) {
-                if (!attrMap.containsKey(attr.getSchema())) {
-                    result.put((RSchema) attr.getSchema(), attr);
-                }
-            }
-
-            // Add attributes not specialized and not already added
-            for (RAttr attr : getParent().findInheritedAttributes()) {
-                if (!attrMap.containsKey(attr.getSchema())
-                        && !result.containsKey((RSchema) attr.getSchema())) {
-                    result.put((RSchema) attr.getSchema(), attr);
-                }
-            }
+            result.addAll(getParent().findInheritedAttributes());
         }
 
-        return new ArrayList<RAttr>(result.values());
+        return result;
     }
 
     public boolean isInheritDerivedAttributes() {
         return isBooleanAsInteger(inheritDerivedAttributes);
+    }
+
+    public boolean isInheritVirtualAttributes() {
+        return isBooleanAsInteger(inheritVirtualAttributes);
     }
 
     public void setInheritDerivedAttributes(boolean inheritDerivedAttributes) {
@@ -284,123 +240,27 @@ public class SyncopeRole extends AbstractAttributable {
 
     }
 
-    /**
-     * Get all inherited derived attributes from the ancestors.
-     * @return a list of inherited and only inherited attributes.
-     */
-    public List<RDerAttr> findInheritedDerivedAttributes() {
-        final Map<RDerSchema, RDerAttr> result =
-                new HashMap<RDerSchema, RDerAttr>();
-
-        if (isInheritDerivedAttributes() && getParent() != null) {
-            final Map<AbstractDerSchema, AbstractDerAttr> attrMap =
-                    getDerivedAttributesMap();
-
-            // Add attributes not specialized
-            for (RDerAttr attr :
-                    (Collection<RDerAttr>) getParent().getDerivedAttributes()) {
-                if (!attrMap.containsKey(attr.getDerivedSchema())) {
-                    result.put((RDerSchema) attr.getDerivedSchema(), attr);
-                }
-            }
-
-            // Add attributes not specialized and not already added
-            for (RDerAttr attr : getParent().findInheritedDerivedAttributes()) {
-                if (!attrMap.containsKey(attr.getDerivedSchema())
-                        && !result.containsKey(
-                        (RDerSchema) attr.getDerivedSchema())) {
-                    result.put((RDerSchema) attr.getDerivedSchema(), attr);
-                }
-            }
-        }
-
-        return new ArrayList<RDerAttr>(result.values());
-    }
-
-    public boolean isInheritVirtualAttributes() {
-        return isBooleanAsInteger(inheritVirtualAttributes);
-    }
-
     public void setInheritVirtualAttributes(boolean inheritVirtualAttributes) {
         this.inheritVirtualAttributes =
                 getBooleanAsInteger(inheritVirtualAttributes);
 
     }
 
-    /**
-     * Get all inherited virtual attributes from the ancestors.
-     * @return a list of inherited and only inherited attributes.
-     */
-    public List<RVirAttr> findInheritedVirtualAttributes() {
-        final Map<RVirSchema, RVirAttr> result =
-                new HashMap<RVirSchema, RVirAttr>();
-
-        if (isInheritVirtualAttributes() && getParent() != null) {
-            final Map<AbstractVirSchema, AbstractVirAttr> attrMap =
-                    getVirtualAttributesMap();
-
-            // Add attributes not specialized
-            for (RVirAttr attr :
-                    (Collection<RVirAttr>) getParent().getVirtualAttributes()) {
-                if (!attrMap.containsKey(attr.getVirtualSchema())) {
-                    result.put((RVirSchema) attr.getVirtualSchema(), attr);
-                }
-            }
-
-            // Add attributes not specialized and not already added
-            for (RVirAttr attr : getParent().findInheritedVirtualAttributes()) {
-                if (!attrMap.containsKey(attr.getVirtualSchema())
-                        && !result.containsKey(
-                        (RVirSchema) attr.getVirtualSchema())) {
-                    result.put((RVirSchema) attr.getVirtualSchema(), attr);
-                }
-            }
+    public List<RDerAttr> findInheritedDerivedAttributes() {
+        List<RDerAttr> result = new ArrayList<RDerAttr>(derivedAttributes);
+        if (isInheritDerivedAttributes() && getParent() != null) {
+            result.addAll(getParent().findInheritedDerivedAttributes());
         }
 
-        return new ArrayList<RVirAttr>(result.values());
+        return result;
     }
 
-    /**
-     * Get first valid password policy.
-     * @return parent password policy if isInheritPasswordPolicy is 'true' and
-     * parent is not null. Return local passowrd policy otherwise.
-     */
-    public PasswordPolicy getPasswordPolicy() {
-        return isInheritPasswordPolicy() && getParent() != null
-                ? getParent().getPasswordPolicy() : passwordPolicy;
-    }
+    public List<RVirAttr> findInheritedVirtualAttributes() {
+        List<RVirAttr> result = new ArrayList<RVirAttr>(virtualAttributes);
+        if (isInheritVirtualAttributes() && getParent() != null) {
+            result.addAll(getParent().findInheritedVirtualAttributes());
+        }
 
-    public void setPasswordPolicy(PasswordPolicy passwordPolicy) {
-        this.passwordPolicy = passwordPolicy;
-    }
-
-    public boolean isInheritPasswordPolicy() {
-        return isBooleanAsInteger(inheritPasswordPolicy);
-    }
-
-    public void setInheritPasswordPolicy(boolean inheritPasswordPolicy) {
-        this.inheritPasswordPolicy = getBooleanAsInteger(inheritPasswordPolicy);
-    }
-
-    /**
-     * Get first valid account policy.
-     * @return parent account policy if isInheritAccountPolicy is 'true' and 
-     * parent is not null. Return local account policy otherwise.
-     */
-    public AccountPolicy getAccountPolicy() {
-        return isInheritAccountPolicy() && getParent() != null
-                ? getParent().getAccountPolicy() : accountPolicy;
-    }
-
-    public void setAccountPolicy(AccountPolicy accountPolicy) {
-        this.accountPolicy = accountPolicy;
-    }
-
-    public boolean isInheritAccountPolicy() {
-        return isBooleanAsInteger(inheritAccountPolicy);
-    }
-
-    public void setInheritAccountPolicy(boolean inheritAccountPolicy) {
-        this.inheritAccountPolicy = getBooleanAsInteger(inheritAccountPolicy);
+        return result;
     }
 }

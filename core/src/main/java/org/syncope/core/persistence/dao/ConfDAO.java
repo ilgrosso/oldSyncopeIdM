@@ -23,8 +23,6 @@ public interface ConfDAO extends DAO {
     SyncopeConf find(String name)
             throws MissingConfKeyException;
 
-    SyncopeConf find(String name, String defaultValue);
-
     List<SyncopeConf> findAll();
 
     SyncopeConf save(SyncopeConf syncopeConfiguration)

@@ -14,13 +14,10 @@
  */
 package org.syncope.core.persistence.beans;
 
-import java.text.SimpleDateFormat;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import javax.persistence.FetchType;
 import javax.persistence.ManyToMany;
@@ -29,13 +26,11 @@ import javax.persistence.MappedSuperclass;
 @MappedSuperclass
 public abstract class AbstractAttributable extends AbstractBaseBean {
 
-    private static final long serialVersionUID = -4801685541488201119L;
-
     /**
      * Provisioning target resources.
      */
     @ManyToMany(fetch = FetchType.EAGER)
-    protected Set<ExternalResource> externalResources;
+    protected Set<TargetResource> targetResources;
 
     public <T extends AbstractAttr> T getAttribute(final String schemaName) {
         T result = null;
@@ -97,81 +92,37 @@ public abstract class AbstractAttributable extends AbstractBaseBean {
         return result;
     }
 
-    public boolean addExternalResource(
-            final ExternalResource externalResource) {
-
-        if (externalResources == null) {
-            externalResources = new HashSet<ExternalResource>();
+    public boolean addTargetResource(final TargetResource targetResource) {
+        if (targetResources == null) {
+            targetResources = new HashSet<TargetResource>();
         }
-        return externalResources.add(externalResource);
+        return targetResources.add(targetResource);
     }
 
-    public boolean removeExternalResource(
-            final ExternalResource externalResource) {
-
-        return externalResources == null
+    public boolean removeTargetResource(final TargetResource targetResource) {
+        return targetResources == null
                 ? true
-                : externalResources.remove(externalResource);
+                : targetResources.remove(targetResource);
     }
 
-    public Set<ExternalResource> getExternalResources() {
-        return externalResources == null
+    public Set<TargetResource> getTargetResources() {
+        return targetResources == null
                 ? Collections.EMPTY_SET
-                : externalResources;
+                : targetResources;
     }
 
-    public Set<String> getExternalResourceNames() {
-        Set<String> resourceNames;
-
-        if (externalResources == null) {
-            resourceNames = Collections.EMPTY_SET;
-        } else {
-            resourceNames = new HashSet<String>(externalResources.size());
-            for (ExternalResource resource : externalResources) {
-                resourceNames.add(resource.getName());
-            }
-        }
-
-        return resourceNames;
+    /**
+     * Provide al inherited target resources.
+     * This method must be implemented by all that beans that can be indirectly
+     * associated to some target resources (SyncopeUser for example).
+     * @return
+     */
+    public Set<TargetResource> getInheritedTargetResources() {
+        return Collections.EMPTY_SET;
     }
 
-    public void setExternalResources(
-            final Set<ExternalResource> externalResources) {
-
-        this.externalResources = externalResources;
-    }
-
-    protected Map<AbstractSchema, AbstractAttr> getAttributesMap() {
-        final Map<AbstractSchema, AbstractAttr> map =
-                new HashMap<AbstractSchema, AbstractAttr>();
-
-        for (AbstractAttr attr : getAttributes()) {
-            map.put((AbstractSchema) attr.getSchema(), attr);
-        }
-
-        return map;
-    }
-
-    protected Map<AbstractDerSchema, AbstractDerAttr> getDerivedAttributesMap() {
-        final Map<AbstractDerSchema, AbstractDerAttr> map =
-                new HashMap<AbstractDerSchema, AbstractDerAttr>();
-
-        for (AbstractDerAttr attr : getDerivedAttributes()) {
-            map.put((AbstractDerSchema) attr.getDerivedSchema(), attr);
-        }
-
-        return map;
-    }
-
-    protected Map<AbstractVirSchema, AbstractVirAttr> getVirtualAttributesMap() {
-        final Map<AbstractVirSchema, AbstractVirAttr> map =
-                new HashMap<AbstractVirSchema, AbstractVirAttr>();
-
-        for (AbstractVirAttr attr : getVirtualAttributes()) {
-            map.put((AbstractVirSchema) attr.getVirtualSchema(), attr);
-        }
-
-        return map;
+    public void setResources(Set<TargetResource> resources) {
+        this.targetResources = resources;
     }
 
     public abstract Long getId();
@@ -208,10 +159,4 @@ public abstract class AbstractAttributable extends AbstractBaseBean {
 
     public abstract void setVirtualAttributes(
             List<? extends AbstractVirAttr> virtualAttributes);
-
-    public final SimpleDateFormat getDateFormatter() {
-        final SimpleDateFormat dateFormatter = DATE_FORMAT.get();
-        dateFormatter.setLenient(false);
-        return dateFormatter;
-    }
 }

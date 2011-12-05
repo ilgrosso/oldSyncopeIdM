@@ -16,8 +16,6 @@ package org.syncope.core.persistence.beans;
 
 public abstract class AbstractAttrUniqueValue extends AbstractAttrValue {
 
-    private static final long serialVersionUID = -1114553598914979353L;
-
     public abstract <T extends AbstractSchema> T getSchema();
 
     public abstract <T extends AbstractSchema> void setSchema(T schema);

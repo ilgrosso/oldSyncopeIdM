@@ -19,12 +19,7 @@ import org.syncope.core.persistence.beans.AbstractAttrValue;
 
 public class InvalidAttrValueException extends ValidationException {
 
-    public InvalidAttrValueException(final AbstractAttrValue value) {
+    public InvalidAttrValueException(AbstractAttrValue value) {
         super("Could not validate " + value);
-    }
-
-    public InvalidAttrValueException(
-            final AbstractAttrValue value, Throwable t) {
-        super("Could not validate " + value, t);
     }
 }

@@ -28,15 +28,12 @@ public enum SyncopeClientExceptionType {
     InvalidConnInstance(
     "Syncope.InvalidConnInstance",
     "Syncope.InvalidConnInstance.message"),
-    InvalidPasswordPolicy(
-    "Syncope.InvalidPolicy",
-    "Syncope.InvalidPolicy.reason"),
-    InvalidAccountPolicy(
-    "Syncope.InvalidPolicy",
-    "Syncope.InvalidPolicy.reason"),
-    InvalidSyncPolicy(
-    "Syncope.InvalidPolicy",
-    "Syncope.InvalidPolicy.reason"),
+    InvalidPassword(
+    "Syncope.InvalidPassword",
+    "Syncope.InvalidPassword.reason"),
+    IncompleteTaskExecution(
+    "Syncope.IncompleteTaskExecution",
+    "Syncope.IncompleteTaskExecution.id"),
     InvalidRoles(
     "Syncope.InvalidRoles",
     "Syncope.InvalidRoles.name"),
@@ -46,57 +43,15 @@ public enum SyncopeClientExceptionType {
     InvalidSearchCondition(
     "Syncope.InvalidSearchCondition",
     ""),
-    InvalidPropagationTaskExecReport(
-    "Syncope.InvalidPropagationTaskExecReport",
-    "Syncope.InvalidPropagationTaskExecReport.element"),
-    InvalidUSchema(
-    "Syncope.InvalidUSchemaUpdate",
-    "Syncope.InvalidUSchemaUpdate.name"),
-    InvalidUDerSchema(
-    "Syncope.InvalidUDerSchemaUpdate",
-    "Syncope.InvalidUDerSchemaUpdate.name"),
-    InvalidUVirSchema(
-    "Syncope.InvalidUVirSchemaUpdate",
-    "Syncope.InvalidUVirSchemaUpdate.name"),
-    InvalidRSchema(
-    "Syncope.InvalidRSchemaUpdate",
-    "Syncope.InvalidRSchemaUpdate.name"),
-    InvalidRDerSchema(
-    "Syncope.InvalidRDerSchemaUpdate",
-    "Syncope.InvalidRDerSchemaUpdate.name"),
-    InvalidRVirSchema(
-    "Syncope.InvalidRVirSchemaUpdate",
-    "Syncope.InvalidRVirSchemaUpdate.name"),
-    InvalidMSchema(
-    "Syncope.InvalidMSchemaUpdate",
-    "Syncope.InvalidMSchemaUpdate.name"),
-    InvalidMDerSchema(
-    "Syncope.InvalidMDerSchemaUpdate",
-    "Syncope.InvalidMDerSchemaUpdate.name"),
-    InvalidMVirSchema(
-    "Syncope.InvalidMVirSchemaUpdate",
-    "Syncope.InvalidMVirSchemaUpdate.name"),
+    InvalidTaskExecutionReport(
+    "Syncope.InvalidTaskExecutionReport",
+    "Syncope.InvalidTaskExecutionReport.element"),
     InvalidSchemaMapping(
     "Syncope.InvalidSchemaMapping",
     ""),
-    InvalidSyncopeUser(
-    "Syncope.InvalidSyncopeUser",
-    "Syncope.InvalidSyncopeUser.element"),
-    InvalidExternalResource(
-    "Syncope.InvalidExternalResource",
-    "Syncope.InvalidExternalResource.element"),
-    InvalidNotification(
-    "Syncope.InvalidNotification",
-    "Syncope.InvalidNotification.element"),
-    InvalidPropagationTask(
-    "Syncope.InvalidPropagationTask",
-    "Syncope.InvalidPropagationTask.element"),
-    InvalidSchedTask(
-    "Syncope.InvalidSchedTask",
-    "Syncope.InvalidSchedTask.element"),
-    InvalidSyncTask(
-    "Syncope.InvalidSyncTask",
-    "Syncope.InvalidSyncTask.element"),
+    InvalidUpdate(
+    "Syncope.InvalidUpdate",
+    "Syncope.InvalidUpdate.name"),
     InvalidValues(
     "Syncope.InvalidValues",
     "Syncope.InvalidValues.attributeName"),
@@ -112,9 +67,6 @@ public enum SyncopeClientExceptionType {
     RequiredValuesMissing(
     "Syncope.RequiredValuesMissing",
     "Syncope.RequiredValuesMissing.attributeName"),
-    Scheduling(
-    "Syncope.Scheduling",
-    "Syncope.Scheduling.message"),
     UnauthorizedRole(
     "Syncope.UnauthorizedRole",
     "Syncope.UnauthorizedRole.id"),

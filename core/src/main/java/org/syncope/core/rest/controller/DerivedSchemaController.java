@@ -50,8 +50,10 @@ public class DerivedSchemaController extends AbstractController {
             throws SyncopeClientCompositeErrorException {
 
         AbstractDerSchema derivedSchema =
-                derivedSchemaDataBinder.create(derivedSchemaTO,
-                getAttributableUtil(kind).newDerivedSchema());
+                derivedSchemaDataBinder.create(
+                derivedSchemaTO,
+                getAttributableUtil(kind).newDerivedSchema(),
+                getAttributableUtil(kind).schemaClass());
 
         derivedSchema = derivedSchemaDAO.save(derivedSchema);
 
@@ -81,6 +83,7 @@ public class DerivedSchemaController extends AbstractController {
         }
     }
 
+    @PreAuthorize("hasRole('SCHEMA_LIST')")
     @RequestMapping(method = RequestMethod.GET,
     value = "/{kind}/list")
     public List<DerivedSchemaTO> list(@PathVariable("kind") final String kind) {
@@ -136,7 +139,7 @@ public class DerivedSchemaController extends AbstractController {
         }
 
         derivedSchema = derivedSchemaDataBinder.update(derivedSchemaTO,
-                derivedSchema);
+                derivedSchema, getAttributableUtil(kind).schemaClass());
 
         derivedSchema = derivedSchemaDAO.save(derivedSchema);
         return derivedSchemaDataBinder.getDerivedSchemaTO(derivedSchema);

@@ -25,8 +25,6 @@ public class NodeCond extends AbstractBaseBean {
 
     private Type type;
 
-    private SyncopeUserCond syncopeUserCond;
-
     private AttributeCond attributeCond;
 
     private MembershipCond membershipCond;
@@ -36,15 +34,6 @@ public class NodeCond extends AbstractBaseBean {
     private NodeCond leftNodeCond;
 
     private NodeCond rightNodeCond;
-
-    public static NodeCond getLeafCond(final SyncopeUserCond syncopeUserCond) {
-        NodeCond nodeCond = new NodeCond();
-
-        nodeCond.type = Type.LEAF;
-        nodeCond.syncopeUserCond = syncopeUserCond;
-
-        return nodeCond;
-    }
 
     public static NodeCond getLeafCond(final AttributeCond attributeCond) {
         NodeCond nodeCond = new NodeCond();
@@ -70,12 +59,6 @@ public class NodeCond extends AbstractBaseBean {
         nodeCond.type = Type.LEAF;
         nodeCond.resourceCond = resourceCond;
 
-        return nodeCond;
-    }
-
-    public static NodeCond getNotLeafCond(final SyncopeUserCond syncopeUserCond) {
-        NodeCond nodeCond = getLeafCond(syncopeUserCond);
-        nodeCond.type = Type.NOT_LEAF;
         return nodeCond;
     }
 
@@ -141,16 +124,8 @@ public class NodeCond extends AbstractBaseBean {
         this.membershipCond = membershipCond;
     }
 
-    public void setResourceCond(final ResourceCond resourceCond) {
+    public void setResourceCond(ResourceCond resourceCond) {
         this.resourceCond = resourceCond;
-    }
-
-    public SyncopeUserCond getSyncopeUserCond() {
-        return syncopeUserCond;
-    }
-
-    public void setSyncopeUserCond(final SyncopeUserCond syncopeUserCond) {
-        this.syncopeUserCond = syncopeUserCond;
     }
 
     public final NodeCond getLeftNodeCond() {
@@ -185,23 +160,15 @@ public class NodeCond extends AbstractBaseBean {
         switch (type) {
             case LEAF:
             case NOT_LEAF:
-                return (syncopeUserCond != null
-                        && attributeCond == null
-                        && membershipCond == null
-                        && resourceCond == null
-                        && syncopeUserCond.checkValidity())
-                        || (syncopeUserCond == null
-                        && attributeCond != null
+                return (attributeCond != null
                         && membershipCond == null
                         && resourceCond == null
                         && attributeCond.checkValidity())
-                        || (syncopeUserCond == null
-                        && attributeCond == null
+                        || (attributeCond == null
                         && membershipCond != null
                         && resourceCond == null
                         && membershipCond.checkValidity())
-                        || (syncopeUserCond == null
-                        && attributeCond == null
+                        || (attributeCond == null
                         && membershipCond == null
                         && resourceCond != null
                         && resourceCond.checkValidity());

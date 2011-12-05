@@ -24,16 +24,12 @@ import org.syncope.types.EntityViolationType;
 
 public class InvalidEntityException extends ValidationException {
 
-    private String entityClassSimpleName;
-
     private final Map<Class, Set<EntityViolationType>> violations;
 
-    public InvalidEntityException(final String entityClassSimpleName,
+    public InvalidEntityException(
             final Set<ConstraintViolation<Object>> violations) {
 
         super();
-
-        this.entityClassSimpleName = entityClassSimpleName;
 
         this.violations = new HashMap<Class, Set<EntityViolationType>>();
         EntityViolationType entityViolationType;
@@ -69,10 +65,6 @@ public class InvalidEntityException extends ValidationException {
         }
 
         return found;
-    }
-
-    public String getEntityClassSimpleName() {
-        return entityClassSimpleName;
     }
 
     public final Map<Class, Set<EntityViolationType>> getViolations() {

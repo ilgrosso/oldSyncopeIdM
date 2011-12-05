@@ -21,17 +21,21 @@ import org.syncope.client.AbstractBaseBean;
  */
 public class ResourceCond extends AbstractBaseBean {
 
-    private String resourceName;
+    private String name;
 
-    public String getResourceName() {
-        return resourceName;
+    public ResourceCond() {
+        super();
     }
 
-    public void setResourceName(String resourceName) {
-        this.resourceName = resourceName;
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 
     public final boolean checkValidity() {
-        return resourceName != null;
+        return name != null;
     }
 }

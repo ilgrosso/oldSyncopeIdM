@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.syncope</groupId>
         <artifactId>syncope</artifactId>
-        <version>0.7-SNAPSHOT</version>
+        <version>0.6.1</version>
     </parent>
 
     <name>Syncope core</name>
@@ -29,14 +29,19 @@
     <packaging>war</packaging>
 
     <properties>
-        <jdbcdriver.groupId>com.h2database</jdbcdriver.groupId>
-        <jdbcdriver.artifactId>h2</jdbcdriver.artifactId>
-        
         <cargo.servlet.port>9080</cargo.servlet.port>
         <cargo.run.dir>${project.build.directory}/syncope-core-test</cargo.run.dir>
-        <cargo.log>${log.directory}/core-cargo.log</cargo.log>
-        <cargo.output>${log.directory}/core-cargo-output.log</cargo.output>
-        <javaagent></javaagent>
+        <cargo.log>/var/tmp/syncope-core-cargo.log</cargo.log>
+        <cargo.output>/var/tmp/syncope-core-cargo-output.log</cargo.output>
+
+        <logfile>/var/tmp/syncope-core.log</logfile>
+        <logfile.persistence>/var/tmp/syncope-core-persistence.log</logfile.persistence>
+        <logfile.rest>/var/tmp/syncope-core-rest.log</logfile.rest>
+        <logfile.connid>/var/tmp/syncope-core-connid.log</logfile.connid>
+        <logfile.test>/var/tmp/syncope-core-test.log</logfile.test>
+        <logfile.monitor>/var/tmp/syncope-core-monitor.log</logfile.monitor>
+
+        <bundles.directory>/var/tmp/bundles</bundles.directory>
     </properties>
 
     <dependencies>
@@ -77,21 +82,35 @@
         </dependency>
 
         <dependency>
-            <groupId>org.activiti</groupId>
-            <artifactId>activiti-engine</artifactId>
+            <groupId>commons-lang</groupId>
+            <artifactId>commons-lang</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>commons-httpclient</groupId>
+            <artifactId>commons-httpclient</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>opensymphony</groupId>
+            <artifactId>osworkflow</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.activiti</groupId>
-            <artifactId>activiti-spring</artifactId>
+            <groupId>opensymphony</groupId>
+            <artifactId>propertyset</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>opensymphony</groupId>
+            <artifactId>oscore</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.beanshell</groupId>
+            <artifactId>bsh</artifactId>
         </dependency>
 
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-core</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-beans</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
@@ -127,22 +146,32 @@
         </dependency>
 
         <dependency>
+            <groupId>cglib</groupId>
+            <artifactId>cglib-nodep</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.codehaus.jackson</groupId>
+            <artifactId>jackson-mapper-lgpl</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>com.thoughtworks.xstream</groupId>
             <artifactId>xstream</artifactId>
         </dependency>
-        
+
+        <dependency>
+            <groupId>org.aspectj</groupId>
+            <artifactId>aspectjrt</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.aspectj</groupId>
+            <artifactId>aspectjweaver</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>org.apache.velocity</groupId>
             <artifactId>velocity</artifactId>
-        </dependency>
-        
-        <dependency>
-            <groupId>org.quartz-scheduler</groupId>
-            <artifactId>quartz</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.quartz-scheduler</groupId>
-            <artifactId>quartz-oracle</artifactId>
         </dependency>
 
         <dependency>
@@ -158,11 +187,6 @@
             <artifactId>ehcache-core</artifactId>
         </dependency>
 
-        <dependency>
-            <groupId>org.codehaus.groovy</groupId>
-            <artifactId>groovy-all</artifactId>
-        </dependency>
-            
         <dependency>
             <groupId>org.dbunit</groupId>
             <artifactId>dbunit</artifactId>
@@ -204,7 +228,7 @@
             <artifactId>framework-internal</artifactId>
         </dependency>
 
-        <!-- CXF: needed by soap connector -->
+            <!-- CXF: needed by soap connector -->
         <dependency>
             <groupId>org.apache.cxf</groupId>
             <artifactId>cxf-rt-frontend-jaxws</artifactId>
@@ -234,41 +258,19 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.connid.bundles</groupId>
-            <artifactId>org.connid.bundles.csvdir</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>com.h2database</groupId>
-            <artifactId>h2</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>commons-httpclient</groupId>
-            <artifactId>commons-httpclient</artifactId>
+            <groupId>org.hsqldb</groupId>
+            <artifactId>hsqldb</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-test</artifactId>
             <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.lazyluke</groupId>
-            <artifactId>log4jdbc-remix</artifactId>
-            <version>0.2.4</version>
-            <scope>test</scope>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.slf4j</groupId>
-                    <artifactId>slf4j-log4j12</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
         <!-- /TEST -->
     </dependencies>
@@ -277,21 +279,7 @@
         <finalName>${project.parent.artifactId}</finalName>
 
         <plugins>
-                
-            <plugin>
-                <groupId>org.syncope</groupId>
-                <artifactId>syncope-build-tools</artifactId>
-                <executions>
-                    <execution>
-                        <id>set-dynamic-properties</id>
-                        <phase>validate</phase>
-                        <goals>
-                            <goal>set-dynamic-properties</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-                
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-war-plugin</artifactId>
@@ -326,6 +314,9 @@
                         </goals>
                         <configuration>
                             <skip>false</skip>
+                            <includes>
+                                <include>**/dao/*Test.java</include>
+                            </includes>
                             <excludes>
                                 <exclude>**/relationships/**Test.java</exclude>
                             </excludes>
@@ -355,7 +346,6 @@
                 <configuration>
                     <redirectTestOutputToFile>true</redirectTestOutputToFile>
                     <encoding>utf-8</encoding>
-                    <runOrder>alphabetical</runOrder>
                 </configuration>
                 <executions>
                     <execution>
@@ -374,7 +364,7 @@
                 <executions>
                     <execution>
                         <id>explodeSyncopeWAR</id>
-                        <phase>pre-integration-test</phase>
+                        <phase>package</phase>
                         <configuration>
                             <target>
                                 <unzip src="${project.build.directory}/${project.build.finalName}.war" dest="${cargo.run.dir}">
@@ -383,15 +373,8 @@
                                         <exclude name="**/ehcache.xml" />
                                         <exclude name="**/persistence.properties" />
                                         <exclude name="**/security.properties" />
-                                        <exclude name="**/workflow.properties" />
                                     </patternset>
                                 </unzip>
-                                <copy file="${project.build.directory}/test-classes/org/syncope/core/scheduling/TestSyncJobActions.class"
-                                      todir="${cargo.run.dir}/WEB-INF/classes/org/syncope/core/scheduling"/>
-                                <mkdir dir="${project.build.directory}/test-conf"/>
-                                <copy todir="${project.build.directory}/test-conf" includeEmptyDirs="false">
-                                    <fileset dir="${project.build.directory}/test-classes" excludes="**/*.class"/>
-                                </copy>
                             </target>
                         </configuration>
                         <goals>
@@ -400,23 +383,11 @@
                     </execution>
                     <execution>
                         <id>setupTomcat</id>
-                        <phase>pre-integration-test</phase>
+                        <phase>package</phase>
                         <configuration>
                             <target>
                                 <get src="http://archive.apache.org/dist/tomcat/tomcat-7/v${tomcat.version}/bin/apache-tomcat-${tomcat.version}.zip" dest="${java.io.tmpdir}" skipexisting="true" />
                                 <unzip src="${java.io.tmpdir}/apache-tomcat-${tomcat.version}.zip" dest="${java.io.tmpdir}" overwrite="false" />
-                            </target>
-                        </configuration>
-                        <goals>
-                            <goal>run</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <id>setupCSV</id>
-                        <phase>pre-integration-test</phase>
-                        <configuration>
-                            <target>
-                                <copy file="${project.build.directory}/test-classes/test.csv" todir="${java.io.tmpdir}" overwrite="true"/>
                             </target>
                         </configuration>
                         <goals>
@@ -433,7 +404,7 @@
                 <executions>
                     <execution>
                         <id>set-bundles</id>
-                        <phase>process-test-resources</phase>
+                        <phase>pre-integration-test</phase>
                         <goals>
                             <goal>copy</goal>
                         </goals>
@@ -443,19 +414,13 @@
                                     <groupId>org.connid.bundles.soap</groupId>
                                     <artifactId>org.connid.bundles.soap</artifactId>
                                     <version>${connid.soap.version}</version>
-                                    <outputDirectory>${bundles.directory}</outputDirectory>
+                                    <outputDirectory>${bundles.directory}</outputDirectory>                                
                                 </artifactItem>
                                 <artifactItem>
                                     <groupId>org.connid.bundles.db</groupId>
                                     <artifactId>org.connid.bundles.db.table</artifactId>
                                     <version>${connid.db.table.version}</version>
-                                    <outputDirectory>${bundles.directory}</outputDirectory>
-                                </artifactItem>
-                                <artifactItem>
-                                    <groupId>org.connid.bundles</groupId>
-                                    <artifactId>org.connid.bundles.csvdir</artifactId>
-                                    <version>${connid.csvdir.version}</version>
-                                    <outputDirectory>${bundles.directory}</outputDirectory>
+                                    <outputDirectory>${bundles.directory}</outputDirectory>                                
                                 </artifactItem>
                             </artifactItems>
                         </configuration>
@@ -464,61 +429,28 @@
             </plugin>
             
             <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>exec-maven-plugin</artifactId>
+                <groupId>org.onebusaway.plugins</groupId>
+                <artifactId>maven-hsqldb-plugin</artifactId>
                 <inherited>true</inherited>
+                <configuration>
+                    <dbName>testdb</dbName>
+                    <mode>server</mode>
+                    <isTransient>true</isTransient>
+                </configuration>
                 <dependencies>
                     <dependency>
-                        <groupId>com.h2database</groupId>
-                        <artifactId>h2</artifactId>
-                        <version>${h2.version}</version>
+                        <groupId>org.hsqldb</groupId>
+                        <artifactId>hsqldb</artifactId>
+                        <version>${hsqldb.version}</version>
                     </dependency>
                 </dependencies>
                 <executions>
                     <execution>
                         <id>startTestDb</id>
-                        <phase>pre-integration-test</phase>
+                        <phase>package</phase>
                         <goals>
-                            <goal>java</goal>
+                            <goal>run</goal>    
                         </goals>
-                        <configuration>
-                            <includeProjectDependencies>false</includeProjectDependencies>
-                            <includePluginDependencies>true</includePluginDependencies>
-                            <executableDependency>
-                                <groupId>com.h2database</groupId>
-                                <artifactId>h2</artifactId>
-                            </executableDependency>
-                            <mainClass>org.h2.tools.Server</mainClass>
-                            <arguments>
-                                <argument>-tcp</argument>
-                                <argument>-tcpDaemon</argument>
-                                <argument>-web</argument>
-                                <argument>-webDaemon</argument>
-                                <argument>-webPort</argument>
-                                <argument>9082</argument>
-                            </arguments>
-                            <systemProperties>
-                                <systemProperty>
-                                    <key>h2.baseDir</key>
-                                    <value>${project.build.directory}/test-classes</value>
-                                </systemProperty>
-                            </systemProperties>
-                        </configuration>
-                    </execution>
-                    <execution>
-                        <id>default-cli</id>
-                        <goals>
-                            <goal>exec</goal>
-                        </goals>
-                        <configuration>
-                            <executable>java</executable>
-                            <arguments>
-                                <argument>-classpath</argument>
-                                <classpath />
-                                <argument>org.syncope.core.util.SchemaExporter</argument>
-                                <argument>H2</argument>
-                            </arguments>
-                        </configuration>
                     </execution>
                 </executions>
             </plugin>
@@ -529,16 +461,16 @@
                 <inherited>true</inherited>
                 <dependencies>
                     <dependency>
-                        <groupId>com.h2database</groupId>
-                        <artifactId>h2</artifactId>
-                        <version>${h2.version}</version>
+                        <groupId>org.hsqldb</groupId>
+                        <artifactId>hsqldb</artifactId>
+                        <version>${hsqldb.version}</version>
                     </dependency>
                 </dependencies>
                 <configuration>
-                    <driver>${testDbResourceDriver}</driver>
-                    <url>${testDbResourceURL}</url>
-                    <username>${testDbResourceUsername}</username>
-                    <password/>
+                    <driver>org.hsqldb.jdbcDriver</driver>
+                    <url>jdbc:hsqldb:hsql://localhost:9001/testdb;shutdown=true</url>
+                    <username>sa</username>
+                    <password />
                     <srcFiles>
                         <srcFile>${project.build.directory}/test-classes/testdb.sql</srcFile>
                     </srcFiles>
@@ -548,7 +480,7 @@
                         <id>loadTestDb</id>
                         <phase>pre-integration-test</phase>
                         <goals>
-                            <goal>execute</goal>
+                            <goal>execute</goal>    
                         </goals>
                     </execution>
                 </executions>
@@ -559,6 +491,7 @@
                 <artifactId>cargo-maven2-plugin</artifactId>
                 <inherited>true</inherited>
                 <configuration>
+                    <wait>true</wait>
                     <container>
                         <containerId>tomcat7x</containerId>
                         <home>${java.io.tmpdir}/apache-tomcat-${tomcat.version}</home>
@@ -566,15 +499,10 @@
                         <output>${cargo.output}</output>
                         <dependencies>
                             <dependency>
-                                <location>${project.build.directory}/test-conf</location>
+                                <location>${settings.localRepository}/org/hsqldb/hsqldb/${hsqldb.version}/hsqldb-${hsqldb.version}.jar</location>
                             </dependency>
                             <dependency>
-                                <groupId>com.h2database</groupId>
-                                <artifactId>h2</artifactId>
-                            </dependency>
-                            <dependency>
-                                <groupId>${jdbcdriver.groupId}</groupId>
-                                <artifactId>${jdbcdriver.artifactId}</artifactId>
+                                <location>${project.build.directory}/test-classes/</location>
                             </dependency>
                         </dependencies>
                     </container>
@@ -582,19 +510,8 @@
                         <type>standalone</type>
                         <properties>
                             <cargo.servlet.port>${cargo.servlet.port}</cargo.servlet.port>
-                            <cargo.tomcat.ajp.port>8889</cargo.tomcat.ajp.port>
-                            <cargo.rmi.port>8805</cargo.rmi.port>
-
-<!--                            <cargo.jvmargs>-Xdebug -Xrunjdwp:transport=dt_socket,address=8000,server=y,suspend=n</cargo.jvmargs>-->
-                            <cargo.jvmargs>-noverify ${javaagent} -Drebel.spring_plugin=false</cargo.jvmargs>
+                            <!--<cargo.jvmargs>-Xdebug -Xrunjdwp:transport=dt_socket,address=9009,server=y,suspend=n</cargo.jvmargs>-->
                         </properties>
-                        <configfiles>
-                            <configfile>
-                                <file>${project.build.directory}/test-classes/context.xml</file>
-                                <todir>conf/</todir>
-                                <tofile>context.xml</tofile>
-                            </configfile>
-                        </configfiles>
                         <deployables>
                             <deployable>
                                 <location>${cargo.run.dir}</location>
@@ -618,6 +535,9 @@
                         <goals>
                             <goal>start</goal>
                         </goals>
+                        <configuration>
+                            <wait>false</wait>
+                        </configuration>
                     </execution>
                     <execution>
                         <id>stop-container</id>
@@ -627,6 +547,21 @@
                         </goals>
                     </execution>
                 </executions>
+            </plugin>
+            
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>1.2</version>
+                <configuration>
+                    <executable>java</executable>
+                    <arguments>
+                        <argument>-classpath</argument>
+                        <classpath />
+                        <argument>org.syncope.core.persistence.util.SchemaExporter</argument>
+                        <argument>HSQL</argument>
+                    </arguments>
+                </configuration>
             </plugin>
 
         </plugins>
@@ -642,521 +577,20 @@
             <testResource>
                 <directory>src/test/resources</directory>
                 <filtering>true</filtering>
-                <excludes>
-                    <exclude>oracle/**</exclude>
-                    <exclude>postgres/**</exclude>
-                    <exclude>mysql/**</exclude>
-                </excludes>
             </testResource>
         </testResources>
     </build>
-    
-    <profiles>
-        
-        <profile>
-            <id>dev</id>
-            <properties>
-                <waitForCheck>true</waitForCheck>
-                <sureExcludes>**</sureExcludes>
-                <javaagent></javaagent>
-            </properties>
-            <dependencies>
-                <dependency>
-                    <groupId>com.h2database</groupId>
-                    <artifactId>h2</artifactId>
-                    <scope>compile</scope>
-                </dependency>
-            </dependencies>
-            <build>
-                <defaultGoal>clean verify</defaultGoal>
-                
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-surefire-plugin</artifactId>
-                        <inherited>true</inherited>
-                        <configuration>
-                            <skip>true</skip>
-                        </configuration>
-                        <executions>
-                            <execution>
-                                <id>test-phase-execution</id>
-                                <phase>test</phase>
-                                <goals>
-                                    <goal>test</goal>
-                                </goals>
-                                <configuration>
-                                    <skip>false</skip>
-                                    <includes>
-                                        <include>**/dao/**Test.java</include>
-                                    </includes>
-                                    <excludes>
-                                        <exclude>**/relationships/**Test.java</exclude>
-                                        <exclude>${sureExcludes}</exclude>
-                                    </excludes>
-                                </configuration>
-                            </execution>
-                            <execution>
-                                <id>relationship-test-execution</id>
-                                <phase>test</phase>
-                                <goals>
-                                    <goal>test</goal>
-                                </goals>
-                                <configuration>
-                                    <skip>false</skip>
-                                    <includes>
-                                        <include>**/relationships/**Test.java</include>
-                                    </includes>
-                                    <excludes>
-                                        <exclude>**/dao/**Test.java</exclude>
-                                        <exclude>${sureExcludes}</exclude>
-                                    </excludes>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
 
-                    <plugin>
-                        <groupId>org.codehaus.mojo</groupId>
-                        <artifactId>build-helper-maven-plugin</artifactId>
-                        <inherited>true</inherited>
-                        <executions>
-                            <execution>
-                                <id>add-dev-source</id>
-                                <phase>generate-sources</phase>
-                                <goals>
-                                    <goal>add-source</goal>
-                                </goals>
-                                <configuration>
-                                    <sources>
-                                        <source>src/test/dev/java</source>
-                                    </sources>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                    <plugin>
-                        <groupId>org.codehaus.mojo</groupId>
-                        <artifactId>xml-maven-plugin</artifactId>
-                        <inherited>true</inherited>
-                        <executions>
-                            <execution>
-                                <id>enableH2Console</id>
-                                <phase>process-test-resources</phase>
-                                <goals>
-                                    <goal>transform</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                        <configuration>
-                            <transformationSets>
-                                <transformationSet>
-                                    <dir>src/main/webapp/WEB-INF</dir>
-                                    <includes>
-                                        <include>web.xml</include>
-                                    </includes>
-                                    <stylesheet>src/test/resources/webxml4dev.xsl</stylesheet>
-                                </transformationSet>
-                            </transformationSets>
-                        </configuration>
-                    </plugin>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-war-plugin</artifactId>
-                        <inherited>true</inherited>
-                        <configuration>
-                            <webXml>${project.build.directory}/generated-resources/xml/xslt/web.xml</webXml>
-                            <webResources>
-                                <resource>
-                                    <directory>src/main/webapp</directory>
-                                    <includes>
-                                        <include>**/*.jsp</include>
-                                    </includes>
-                                    <filtering>true</filtering>
-                                </resource>
-                            </webResources>
-                        </configuration>
-                    </plugin>
-                    <plugin>
-                        <groupId>org.codehaus.cargo</groupId>
-                        <artifactId>cargo-maven2-plugin</artifactId>
-                        <inherited>true</inherited>
-                        <configuration>
-                            <wait>${waitForCheck}</wait>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-        
-        <profile>
-            <id>jrebel</id>
-            <properties>
-                <skipTests>true</skipTests>
-                <javaagent>-javaagent:${env.REBEL_HOME}/jrebel.jar</javaagent>
-                <waitForCheck>true</waitForCheck>
-            </properties>
-            <dependencies>
-                <dependency>
-                    <groupId>com.h2database</groupId>
-                    <artifactId>h2</artifactId>
-                    <scope>compile</scope>
-                </dependency>
-            </dependencies>
-            <build>
-                <defaultGoal>clean verify</defaultGoal>
-                
-                <plugins>
-                    <plugin>
-                        <groupId>org.zeroturnaround</groupId>
-                        <artifactId>jrebel-maven-plugin</artifactId>
-                        <inherited>true</inherited>
-                        <configuration>
-                            <classpath>
-                                <resources>
-                                    <resource>
-                                        <excludes>
-                                            <exclude>content.xml</exclude>
-                                            <exclude>ehcache.xml</exclude>
-                                            <exclude>persistence.properties</exclude>
-                                            <exclude>security.properties</exclude>
-                                            <exclude>workflow.properties</exclude>
-                                        </excludes>
-                                    </resource>
-                                </resources>    
-                            </classpath>    
-                        </configuration>
-                        <executions>
-                            <execution>
-                                <id>generate-rebel-xml</id>
-                                <phase>process-resources</phase>
-                                <goals>
-                                    <goal>generate</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                    </plugin>
-                    <plugin>
-                        <groupId>org.codehaus.mojo</groupId>
-                        <artifactId>build-helper-maven-plugin</artifactId>
-                        <inherited>true</inherited>
-                        <executions>
-                            <execution>
-                                <id>add-dev-source</id>
-                                <phase>generate-sources</phase>
-                                <goals>
-                                    <goal>add-source</goal>
-                                </goals>
-                                <configuration>
-                                    <sources>
-                                        <source>src/test/dev/java</source>
-                                    </sources>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                    <plugin>
-                        <groupId>org.codehaus.mojo</groupId>
-                        <artifactId>xml-maven-plugin</artifactId>
-                        <inherited>true</inherited>
-                        <executions>
-                            <execution>
-                                <id>enableH2Console</id>
-                                <phase>process-test-resources</phase>
-                                <goals>
-                                    <goal>transform</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                        <configuration>
-                            <transformationSets>
-                                <transformationSet>
-                                    <dir>src/main/webapp/WEB-INF</dir>
-                                    <includes>
-                                        <include>web.xml</include>
-                                    </includes>
-                                    <stylesheet>src/test/resources/webxml4dev.xsl</stylesheet>
-                                </transformationSet>
-                            </transformationSets>
-                        </configuration>
-                    </plugin>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-war-plugin</artifactId>
-                        <inherited>true</inherited>
-                        <configuration>
-                            <webXml>${project.build.directory}/generated-resources/xml/xslt/web.xml</webXml>
-                            <webResources>
-                                <resource>
-                                    <directory>src/main/webapp</directory>
-                                    <includes>
-                                        <include>**/*.jsp</include>
-                                    </includes>
-                                    <filtering>true</filtering>
-                                </resource>
-                            </webResources>
-                        </configuration>
-                    </plugin>
-                    <plugin>
-                        <groupId>org.codehaus.cargo</groupId>
-                        <artifactId>cargo-maven2-plugin</artifactId>
-                        <inherited>true</inherited>
-                        <configuration>
-                            <wait>${waitForCheck}</wait>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-        
-        <profile>
-            <id>oracle-it</id>
-            <properties>
-                <jdbcdriver.groupId>com.oracle</jdbcdriver.groupId>
-                <jdbcdriver.artifactId>ojdbc6</jdbcdriver.artifactId>
-                <javaagent></javaagent>
-            </properties>
-            <dependencies>
-                <dependency>
-                    <groupId>com.oracle</groupId>
-                    <artifactId>ojdbc6</artifactId>
-                    <version>11.1.0</version>
-                    <scope>test</scope>
-                </dependency>
-            </dependencies>
-            <build>
-                <defaultGoal>clean verify</defaultGoal>
-                
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-antrun-plugin</artifactId>
-                        <inherited>true</inherited>
-                        <executions>
-                            <execution>
-                                <id>set-oracle</id>
-                                <phase>process-test-resources</phase>
-                                <configuration>
-                                    <target>
-                                        <copy tofile="${project.build.directory}/classes/META-INF/orm.xml"
-                                              file="${basedir}/src/main/resources/META-INF/orm.xml.oracle"
-                                              overwrite="true"/>
-                                    </target>
-                                </configuration>
-                                <goals>
-                                    <goal>run</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-                
-                <testResources>
-                    <testResource>
-                        <directory>src/test/resources</directory>
-                        <filtering>true</filtering>
-                        <excludes>
-                            <exclude>persistence.properties</exclude>
-                        </excludes>
-                    </testResource>
-                    <testResource>
-                        <directory>src/test/resources/oracle</directory>
-                        <filtering>true</filtering>
-                    </testResource>
-                </testResources>
-            </build>
-        </profile>
-        
-        <profile>
-            <id>postgres-it</id>
-            <properties>
-                <jdbcdriver.groupId>postgresql</jdbcdriver.groupId>
-                <jdbcdriver.artifactId>postgresql</jdbcdriver.artifactId>
-                <javaagent></javaagent>
-            </properties>
-            <dependencies>
-                <dependency>
-                    <groupId>postgresql</groupId>
-                    <artifactId>postgresql</artifactId>
-                    <version>9.0-801.jdbc4</version>
-                    <scope>test</scope>
-                </dependency>
-            </dependencies>
-            <build>
-                <defaultGoal>clean verify</defaultGoal>
-
-                <testResources>
-                    <testResource>
-                        <directory>src/test/resources</directory>
-                        <filtering>true</filtering>
-                        <excludes>
-                            <exclude>persistence.properties</exclude>
-                        </excludes>
-                    </testResource>
-                    <testResource>
-                        <directory>src/test/resources/postgres</directory>
-                        <filtering>true</filtering>
-                    </testResource>
-                </testResources>
-            </build>
-        </profile>
-        
-        <profile>
-            <id>mysql-it</id>
-            <properties>
-                <jdbcdriver.groupId>mysql</jdbcdriver.groupId>
-                <jdbcdriver.artifactId>mysql-connector-java</jdbcdriver.artifactId>
-                <javaagent></javaagent>
-            </properties>
-            <dependencies>
-                <dependency>
-                    <groupId>mysql</groupId>
-                    <artifactId>mysql-connector-java</artifactId>
-                    <version>5.1.18</version>
-                    <scope>test</scope>
-                </dependency>
-            </dependencies>
-            <build>
-                <defaultGoal>clean verify</defaultGoal>
-
-                <testResources>
-                    <testResource>
-                        <directory>src/test/resources</directory>
-                        <filtering>true</filtering>
-                        <excludes>
-                            <exclude>persistence.properties</exclude>
-                        </excludes>
-                    </testResource>
-                    <testResource>
-                        <directory>src/test/resources/mysql</directory>
-                        <filtering>true</filtering>
-                    </testResource>
-                </testResources>
-            </build>
-        </profile>
-        
-        <profile>
-            <id>notification-test</id>
-            
-            <properties>
-                <mail.password></mail.password>
-            </properties>
-                        
-            <build>
-                <defaultGoal>clean test</defaultGoal>
-
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-surefire-plugin</artifactId>
-                        <inherited>true</inherited>
-                        <configuration>
-                            <skip>true</skip>
-                        </configuration>
-                        <executions>
-                            <execution>
-                                <id>notification-test-phase-execution</id>
-                                <phase>test</phase>
-                                <goals>
-                                    <goal>test</goal>
-                                </goals>
-                                <configuration>
-                                    <skip>false</skip>
-                                    <includes>
-                                        <include>**/notification/**Test.java</include>
-                                    </includes>
-                                </configuration>
-                            </execution>
-                            <execution>
-                                <id>test-phase-execution</id>
-                                <phase>test</phase>
-                                <goals>
-                                    <goal>test</goal>
-                                </goals>
-                                <configuration>
-                                    <skip>true</skip>
-                                </configuration>
-                            </execution>
-                            <execution>
-                                <id>relationship-test-execution</id>
-                                <phase>test</phase>
-                                <goals>
-                                    <goal>test</goal>
-                                </goals>
-                                <configuration>
-                                    <skip>true</skip>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                    
-                    <plugin>
-                        <groupId>org.codehaus.mojo</groupId>
-                        <artifactId>build-helper-maven-plugin</artifactId>
-                        <inherited>true</inherited>
-                        <executions>
-                            <execution>
-                                <id>add-notification-test-source</id>
-                                <phase>generate-test-sources</phase>
-                                <goals>
-                                    <goal>add-test-source</goal>
-                                </goals>
-                                <configuration>
-                                    <sources>
-                                        <source>src/test/notifications/java</source>
-                                    </sources>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>  
-                
-                <testResources>
-                    <testResource>
-                        <directory>src/test/resources</directory>
-                        <filtering>true</filtering>
-                        <excludes>
-                            <exclude>oracle/**</exclude>
-                            <exclude>postgres/**</exclude>
-                            <exclude>mysql/**</exclude>
-                        </excludes>
-                    </testResource>
-                    <testResource>
-                        <directory>src/test/notifications/resources</directory>
-                        <filtering>true</filtering>
-                    </testResource>
-                </testResources>
-            </build>
-        </profile>
-    </profiles>
-    
     <reporting>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>
-                <version>2.8</version>
                 <configuration>
-                    <configLocation>org/syncope/checkstyle.xml</configLocation>
-                    <targetJdk>${targetJdk}</targetJdk>
+                    <configLocation>${project.parent.basedir}/syncope_checks.xml</configLocation>
                 </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-pmd-plugin</artifactId>
-                <version>2.6</version>
-                <configuration>
-                    <rulesets>
-                        <ruleset>org/syncope/pmd.xml</ruleset>
-                    </rulesets>
-                    <targetJdk>${targetJdk}</targetJdk>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-jxr-plugin</artifactId>
-                <version>2.3</version>
             </plugin>
         </plugins>
     </reporting>
+    
 </project>

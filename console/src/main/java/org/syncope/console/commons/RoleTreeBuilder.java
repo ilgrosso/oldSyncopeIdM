@@ -14,7 +14,6 @@
  */
 package org.syncope.console.commons;
 
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -66,17 +65,14 @@ public class RoleTreeBuilder {
 
     public TreeModel build(final List<RoleTO> roles) {
         DefaultMutableTreeNode fakeroot =
-                new DefaultMutableTreeNode(new FakeRootRoleTO());
+                new DefaultMutableTreeNode(new FakerootTO());
 
         populateSubtree(fakeroot, roles);
 
         return new DefaultTreeModel(fakeroot);
     }
 
-    private static class RoleTOComparator
-            implements Comparator<RoleTO>, Serializable {
-
-        private static final long serialVersionUID = 7085057398406518811L;
+    private class RoleTOComparator implements Comparator<RoleTO> {
 
         @Override
         public int compare(final RoleTO r1, final RoleTO r2) {
@@ -91,11 +87,9 @@ public class RoleTreeBuilder {
         }
     }
 
-    private static class FakeRootRoleTO extends RoleTO {
+    private static class FakerootTO extends RoleTO {
 
-        private static final long serialVersionUID = 4839183625773925488L;
-
-        public FakeRootRoleTO() {
+        public FakerootTO() {
             super();
 
             setId(0);

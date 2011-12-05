@@ -14,17 +14,18 @@
  */
 package org.syncope.core.rest.data;
 
-import java.util.Date;
 import org.syncope.core.util.AttributableUtil;
+import com.opensymphony.workflow.Workflow;
+import com.opensymphony.workflow.spi.Step;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import javassist.NotFoundException;
-import org.apache.commons.lang.StringUtils;
-import org.springframework.beans.BeanUtils;
-import org.springframework.beans.factory.annotation.Autowired;
+import javax.persistence.EntityNotFoundException;
+import org.apache.commons.lang.builder.ReflectionToStringBuilder;
+import org.apache.commons.lang.builder.ToStringStyle;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 import org.syncope.client.mod.MembershipMod;
 import org.syncope.client.mod.UserMod;
 import org.syncope.client.to.MembershipTO;
@@ -34,127 +35,140 @@ import org.syncope.client.validation.SyncopeClientException;
 import org.syncope.core.persistence.beans.AbstractAttr;
 import org.syncope.core.persistence.beans.AbstractDerAttr;
 import org.syncope.core.persistence.beans.AbstractVirAttr;
-import org.syncope.core.persistence.beans.Policy;
-import org.syncope.core.persistence.beans.ExternalResource;
-import org.syncope.core.persistence.beans.PropagationTask;
-import org.syncope.core.persistence.beans.TaskExec;
+import org.syncope.core.persistence.beans.TargetResource;
 import org.syncope.core.persistence.beans.membership.Membership;
 import org.syncope.core.persistence.beans.membership.MAttr;
 import org.syncope.core.persistence.beans.membership.MDerAttr;
 import org.syncope.core.persistence.beans.membership.MVirAttr;
 import org.syncope.core.persistence.beans.role.SyncopeRole;
 import org.syncope.core.persistence.beans.user.SyncopeUser;
-import org.syncope.core.persistence.dao.TaskDAO;
-import org.syncope.core.persistence.dao.TaskExecDAO;
-import org.syncope.core.propagation.PropagationByResource;
-import org.syncope.core.rest.controller.UnauthorizedRoleException;
-import org.syncope.core.util.EntitlementUtil;
+import org.syncope.core.persistence.beans.user.UAttr;
+import org.syncope.core.persistence.beans.user.UDerAttr;
+import org.syncope.core.persistence.beans.user.UVirAttr;
+import org.syncope.core.persistence.propagation.ResourceOperations;
 import org.syncope.types.CipherAlgorithm;
-import org.syncope.types.PasswordPolicySpec;
-import org.syncope.types.PropagationOperation;
-import org.syncope.types.PropagationTaskExecStatus;
+import org.syncope.types.ResourceOperationType;
 import org.syncope.types.SyncopeClientExceptionType;
 
 @Component
-@Transactional(rollbackFor = {
-    Throwable.class
-})
 public class UserDataBinder extends AbstractAttributableDataBinder {
 
-    private static final String[] IGNORE_USER_PROPERTIES = {
-        "memberships",
-        "attributes",
-        "derivedAttributes",
-        "virtualAttributes",
-        "resources"};
+    public enum CheckinResultAction {
 
-    @Autowired
-    private TaskDAO taskDAO;
-
-    @Autowired
-    private TaskExecDAO taskExecDAO;
-
-    @Transactional(readOnly = true)
-    public SyncopeUser getUserFromId(final Long userId)
-            throws NotFoundException, UnauthorizedRoleException {
-
-        if (userId == null) {
-            throw new NotFoundException("Null user id");
-        }
-
-        SyncopeUser user = userDAO.find(userId);
-        if (user == null) {
-            throw new NotFoundException("User " + userId);
-        }
-
-        Set<Long> roleIds = user.getRoleIds();
-        Set<Long> adminRoleIds = EntitlementUtil.getRoleIds(
-                EntitlementUtil.getOwnedEntitlementNames());
-        roleIds.removeAll(adminRoleIds);
-        if (!roleIds.isEmpty()) {
-            throw new UnauthorizedRoleException(roleIds);
-        }
-
-        return user;
+        CREATE, OVERWRITE, REJECT
     }
 
-    @Transactional(readOnly = true)
-    public boolean verifyPassword(final Long userId, final String password)
-            throws NotFoundException, UnauthorizedRoleException {
+    public class CheckInResult {
 
-        SyncopeUser user = getUserFromId(userId);
+        private CheckinResultAction action;
 
-        SyncopeUser passwordUser = new SyncopeUser();
-        passwordUser.setPassword(password, user.getCipherAlgoritm(), 0);
+        private Long syncopeUserId;
 
-        return user.getPassword().
-                equalsIgnoreCase(passwordUser.getPassword());
+        private Long workflowId;
+
+        public CheckinResultAction getAction() {
+            return action;
+        }
+
+        public void setAction(CheckinResultAction action) {
+            this.action = action;
+        }
+
+        public Long getSyncopeUserId() {
+            return syncopeUserId;
+        }
+
+        public void setSyncopeUserId(Long syncopeUserId) {
+            this.syncopeUserId = syncopeUserId;
+        }
+
+        public Long getWorkflowId() {
+            return workflowId;
+        }
+
+        public void setWorkflowId(Long workflowId) {
+            this.workflowId = workflowId;
+        }
+
+        @Override
+        public String toString() {
+            return ReflectionToStringBuilder.toString(this,
+                    ToStringStyle.MULTI_LINE_STYLE);
+        }
     }
 
-    @Transactional(readOnly = true)
-    public SyncopeUser getUserFromUsername(final String username)
-            throws NotFoundException, UnauthorizedRoleException {
-
-        if (username == null) {
-            throw new NotFoundException("Null username");
-        }
-
-        SyncopeUser user = userDAO.find(username);
-        if (user == null) {
-            throw new NotFoundException("User " + username);
-        }
-
-        Set<Long> roleIds = user.getRoleIds();
-        Set<Long> adminRoleIds = EntitlementUtil.getRoleIds(
-                EntitlementUtil.getOwnedEntitlementNames());
-        roleIds.removeAll(adminRoleIds);
-        if (!roleIds.isEmpty()) {
-            throw new UnauthorizedRoleException(roleIds);
-        }
-
-        return user;
+    public CheckInResult checkIn(final UserTO userTO) {
+        CheckInResult result = new CheckInResult();
+        result.setAction(CheckinResultAction.CREATE);
+        return result;
     }
 
-    private CipherAlgorithm getCipherAlgoritm() {
-        CipherAlgorithm cipherAlgoritm;
+    public void empty(final SyncopeUser user) {
+        Set<Long> ids = new HashSet<Long>();
+        for (AbstractAttr attribute : user.getAttributes()) {
+            ids.add(attribute.getId());
+        }
+        for (Long attrId : ids) {
+            attributeDAO.delete(attrId, UAttr.class);
+        }
+        user.getAttributes().clear();
 
-        try {
-            cipherAlgoritm = CipherAlgorithm.valueOf(
-                    confDAO.find("password.cipher.algorithm").getValue());
-        } catch (Exception e) {
-            LOG.error("Cipher algorithm nof found. Let's use AES", e);
-            cipherAlgoritm = CipherAlgorithm.AES;
+        ids.clear();
+        for (AbstractDerAttr derivedAttribute : user.getDerivedAttributes()) {
+            ids.add(derivedAttribute.getId());
+        }
+        for (Long derAttrId : ids) {
+            derivedAttributeDAO.delete(derAttrId, UDerAttr.class);
+        }
+        user.getDerivedAttributes().clear();
+
+        ids.clear();
+        for (AbstractVirAttr virtualAttribute : user.getVirtualAttributes()) {
+            ids.add(virtualAttribute.getId());
+        }
+        for (Long virAttrId : ids) {
+            virtualAttributeDAO.delete(virAttrId, UVirAttr.class);
+        }
+        user.getVirtualAttributes().clear();
+
+        ids.clear();
+        for (Membership membership : user.getMemberships()) {
+            ids.add(membership.getId());
+        }
+        for (Long membershipId : ids) {
+            membershipDAO.delete(membershipId);
         }
 
-        return cipherAlgoritm;
+        for (TargetResource resource : user.getTargetResources()) {
+            resource.removeUser(user);
+        }
+        user.getTargetResources().clear();
+
+        user.setPassword(null, getCipherAlgoritm());
     }
 
     public void create(final SyncopeUser user, final UserTO userTO)
-            throws SyncopeClientCompositeErrorException {
+            throws SyncopeClientCompositeErrorException, NotFoundException {
 
         SyncopeClientCompositeErrorException scce =
                 new SyncopeClientCompositeErrorException(
                 HttpStatus.BAD_REQUEST);
+
+        // password
+        // TODO: check password policies
+        SyncopeClientException invalidPassword = new SyncopeClientException(
+                SyncopeClientExceptionType.InvalidPassword);
+        if (userTO.getPassword() == null || userTO.getPassword().isEmpty()) {
+            LOG.error("No password provided");
+
+            invalidPassword.addElement("Null password");
+        } else {
+            user.setPassword(userTO.getPassword(), getCipherAlgoritm());
+        }
+
+        if (!invalidPassword.getElements().isEmpty()) {
+            scce.addException(invalidPassword);
+        }
 
         // memberships
         SyncopeRole role;
@@ -188,110 +202,58 @@ public class UserDataBinder extends AbstractAttributableDataBinder {
 
         // attributes, derived attributes, virtual attributes and resources
         fill(user, userTO, AttributableUtil.USER, scce);
-
-        // set password
-        int passwordHistorySize = 0;
-
-        try {
-            Policy policy = policyDAO.getGlobalPasswordPolicy();
-            PasswordPolicySpec passwordPolicy = policy.getSpecification();
-            passwordHistorySize = passwordPolicy.getHistoryLength();
-        } catch (Throwable ignore) {
-            // ignore exceptions
-        }
-
-        if (userTO.getPassword() == null || userTO.getPassword().isEmpty()) {
-            LOG.error("No password provided");
-        } else {
-            user.setPassword(userTO.getPassword(), getCipherAlgoritm(),
-                    passwordHistorySize);
-        }
-
-        // set username
-        user.setUsername(userTO.getUsername());
-
-        // set creation date (at execution time)
-        user.setCreationDate(new Date());
     }
 
-    /**
-     * Update user, given UserMod.
-     *
-     * @param user to be updated
-     * @param userMod bean containing update request
-     * @return updated user + propagation by resource
-     * @throws SyncopeClientCompositeErrorException if anything goes wrong
-     * @see PropagationByResource
-     */
-    public PropagationByResource update(final SyncopeUser user,
-            final UserMod userMod)
+    public ResourceOperations update(SyncopeUser user, UserMod userMod)
             throws SyncopeClientCompositeErrorException {
-
-        PropagationByResource propByRes = new PropagationByResource();
 
         SyncopeClientCompositeErrorException scce =
                 new SyncopeClientCompositeErrorException(
                 HttpStatus.BAD_REQUEST);
 
-        // when requesting to add user to new resources, either directly or
-        // through role subscription, password is mandatory (issue 147)
-        // first, let's take current resources into account
-        Set<String> currentResources = user.getExternalResourceNames();
-
         // password
         if (userMod.getPassword() != null) {
-            int passwordHistorySize = 0;
-            try {
-                Policy policy = policyDAO.getGlobalPasswordPolicy();
-                PasswordPolicySpec passwordPolicy = policy.getSpecification();
-                passwordHistorySize = passwordPolicy.getHistoryLength();
-            } catch (Throwable ignore) {
-                // ignore exceptions
-            }
-
-            user.setPassword(userMod.getPassword(), getCipherAlgoritm(),
-                    passwordHistorySize);
-
-            user.setChangePwdDate(new Date());
-
-            propByRes.addAll(PropagationOperation.UPDATE,
-                    user.getExternalResourceNames());
-        }
-
-        // username
-        if (userMod.getUsername() != null) {
-            user.setUsername(userMod.getUsername());
-            propByRes.addAll(PropagationOperation.UPDATE,
-                    user.getExternalResourceNames());
+            user.setPassword(userMod.getPassword(), getCipherAlgoritm());
         }
 
         // attributes, derived attributes, virtual attributes and resources
-        propByRes.merge(fill(user, userMod, AttributableUtil.USER, scce));
+        ResourceOperations resourceOperations =
+                fill(user, userMod, AttributableUtil.USER, scce);
 
         // store the role ids of membership required to be added
         Set<Long> membershipToBeAddedRoleIds = new HashSet<Long>();
-        for (MembershipMod membToBeAdded : userMod.getMembershipsToBeAdded()) {
-            membershipToBeAddedRoleIds.add(membToBeAdded.getRole());
+        for (MembershipMod membershipToBeAdded :
+                userMod.getMembershipsToBeAdded()) {
+
+            membershipToBeAddedRoleIds.add(membershipToBeAdded.getRole());
         }
 
         // memberships to be removed
         Membership membership = null;
-        for (Long membershipId : userMod.getMembershipsToBeRemoved()) {
-            LOG.debug("Membership to be removed: {}", membershipId);
+        for (Long membershipToBeRemovedId :
+                userMod.getMembershipsToBeRemoved()) {
 
-            membership = membershipDAO.find(membershipId);
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("Membership to be removed: "
+                        + membershipToBeRemovedId);
+            }
+
+            membership = membershipDAO.find(membershipToBeRemovedId);
             if (membership == null) {
-                LOG.debug("Invalid membership id specified to be removed: {}",
-                        membershipId);
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug(
+                            "Invalid membership id specified to be removed: "
+                            + membershipToBeRemovedId);
+                }
             } else {
-                for (ExternalResource resource :
-                        membership.getSyncopeRole().getExternalResources()) {
+                for (TargetResource resource :
+                        membership.getSyncopeRole().getTargetResources()) {
 
                     if (!membershipToBeAddedRoleIds.contains(
                             membership.getSyncopeRole().getId())) {
 
-                        propByRes.add(PropagationOperation.DELETE,
-                                resource.getName());
+                        resourceOperations.add(ResourceOperationType.DELETE,
+                                resource);
                     }
                 }
 
@@ -306,52 +268,67 @@ public class UserDataBinder extends AbstractAttributableDataBinder {
 
                     Set<Long> attributeIds = new HashSet<Long>(
                             membership.getAttributes().size());
-                    for (AbstractAttr attribute : membership.getAttributes()) {
+                    for (AbstractAttr attribute :
+                            membership.getAttributes()) {
+
                         attributeIds.add(attribute.getId());
                     }
                     for (Long attributeId : attributeIds) {
-                        attributeDAO.delete(attributeId, MAttr.class);
+                        attributeDAO.delete(attributeId,
+                                MAttr.class);
                     }
-                    attributeIds.clear();
 
+                    attributeIds.clear();
                     // remove derived attributes
-                    for (AbstractDerAttr derAttr :
+
+                    for (AbstractDerAttr derivedAttribute :
                             membership.getDerivedAttributes()) {
 
-                        attributeIds.add(derAttr.getId());
+                        attributeIds.add(derivedAttribute.getId());
                     }
-                    for (Long derAttrId : attributeIds) {
-                        derAttrDAO.delete(derAttrId, MDerAttr.class);
-                    }
-                    attributeIds.clear();
 
+                    for (Long derivedAttributeId : attributeIds) {
+                        derivedAttributeDAO.delete(derivedAttributeId,
+                                MDerAttr.class);
+                    }
+
+                    attributeIds.clear();
                     // remove virtual attributes
-                    for (AbstractVirAttr virAttr :
+
+                    for (AbstractVirAttr virtulaAttribute :
                             membership.getVirtualAttributes()) {
 
-                        attributeIds.add(virAttr.getId());
+                        attributeIds.add(virtulaAttribute.getId());
                     }
-                    for (Long virAttrId : attributeIds) {
-                        virAttrDAO.delete(virAttrId, MVirAttr.class);
+
+                    for (Long virtualAttributeId : attributeIds) {
+                        virtualAttributeDAO.delete(
+                                virtualAttributeId, MVirAttr.class);
                     }
-                    attributeIds.clear();
                 } else {
                     user.removeMembership(membership);
 
-                    membershipDAO.delete(membershipId);
+                    membershipDAO.delete(membershipToBeRemovedId);
                 }
             }
         }
 
         // memberships to be added
         SyncopeRole role = null;
-        for (MembershipMod membershipMod : userMod.getMembershipsToBeAdded()) {
-            LOG.debug("Membership to be added: role({})",
-                    membershipMod.getRole());
+        for (MembershipMod membershipMod :
+                userMod.getMembershipsToBeAdded()) {
+
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("Membership to be added: role("
+                        + membershipMod.getRole() + ")");
+            }
 
             role = roleDAO.find(membershipMod.getRole());
             if (role == null) {
-                LOG.debug("Ignoring invalid role {}", membershipMod.getRole());
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("Ignoring invalid role "
+                            + membershipMod.getRole());
+                }
             } else {
                 membership = user.getMembership(role.getId());
                 if (membership == null) {
@@ -361,45 +338,44 @@ public class UserDataBinder extends AbstractAttributableDataBinder {
 
                     user.addMembership(membership);
 
-                    propByRes.addAll(PropagationOperation.UPDATE,
-                            role.getExternalResourceNames());
+                    resourceOperations.addAll(ResourceOperationType.UPDATE,
+                            role.getTargetResources());
                 }
 
-                propByRes.merge(fill(membership, membershipMod,
+                resourceOperations.merge(fill(membership, membershipMod,
                         AttributableUtil.MEMBERSHIP, scce));
             }
         }
 
-        // now, let's see if there are new resource subscriptions without
-        // providing password
-        Set<String> updatedResources = user.getExternalResourceNames();
-        updatedResources.removeAll(currentResources);
-        if (!updatedResources.isEmpty()
-                && StringUtils.isBlank(userMod.getPassword())) {
-
-            SyncopeClientException sce = new SyncopeClientException(
-                    SyncopeClientExceptionType.RequiredValuesMissing);
-            sce.addElement("password cannot be empty "
-                    + "when subscribing to new resources");
-            scce.addException(sce);
-
-            throw scce;
-        }
-
-        return propByRes;
+        return resourceOperations;
     }
 
-    @Transactional(readOnly = true)
-    public UserTO getUserTO(final SyncopeUser user) {
+    public UserTO getUserTO(SyncopeUser user, Workflow userWorkflow) {
         UserTO userTO = new UserTO();
+        userTO.setId(user.getId());
+        userTO.setToken(user.getToken());
+        userTO.setTokenExpireTime(user.getTokenExpireTime());
+        userTO.setPassword(user.getPassword());
 
-        BeanUtils.copyProperties(user, userTO, IGNORE_USER_PROPERTIES);
+        try {
+            List<Step> currentSteps = userWorkflow.getCurrentSteps(
+                    user.getWorkflowId());
+
+            if (currentSteps != null && !currentSteps.isEmpty()) {
+                userTO.setStatus(currentSteps.iterator().next().getStatus());
+            } else {
+                LOG.error("Could not find status information for {}", user);
+            }
+        } catch (EntityNotFoundException e) {
+            LOG.error("Could not find workflow entry with id "
+                    + user.getWorkflowId());
+        }
 
         fillTO(userTO,
                 user.getAttributes(),
                 user.getDerivedAttributes(),
                 user.getVirtualAttributes(),
-                user.getExternalResources());
+                user.getTargetResources());
 
         MembershipTO membershipTO;
         for (Membership membership : user.getMemberships()) {
@@ -412,34 +388,25 @@ public class UserDataBinder extends AbstractAttributableDataBinder {
                     membership.getAttributes(),
                     membership.getDerivedAttributes(),
                     membership.getVirtualAttributes(),
-                    membership.getExternalResources());
+                    membership.getTargetResources());
 
             userTO.addMembership(membershipTO);
-        }
-
-        for (ExternalResource resource : user.getExternalResources()) {
-            for (PropagationTask task : taskDAO.findAll(resource, user)) {
-                TaskExec exec = taskExecDAO.findLatestStarted(task);
-                userTO.addPropagationStatus(resource.getName(),
-                        exec == null ? null
-                        : PropagationTaskExecStatus.valueOf(exec.getStatus()));
-            }
         }
 
         return userTO;
     }
 
-    @Transactional(readOnly = true)
-    public UserTO getUserTO(final String username)
-            throws NotFoundException, UnauthorizedRoleException {
+    private CipherAlgorithm getCipherAlgoritm() {
+        CipherAlgorithm cipherAlgoritm;
 
-        return getUserTO(getUserFromUsername(username));
-    }
+        try {
+            cipherAlgoritm = CipherAlgorithm.valueOf(
+                    confDAO.find("password.cipher.algorithm").getValue());
+        } catch (Exception e) {
+            LOG.error("Cipher algorithm nof found. Let's use AES", e);
+            cipherAlgoritm = CipherAlgorithm.AES;
+        }
 
-    @Transactional(readOnly = true)
-    public UserTO getUserTO(final Long userId)
-            throws NotFoundException, UnauthorizedRoleException {
-
-        return getUserTO(getUserFromId(userId));
+        return cipherAlgoritm;
     }
 }

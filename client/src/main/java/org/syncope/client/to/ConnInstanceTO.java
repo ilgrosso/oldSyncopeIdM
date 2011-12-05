@@ -16,17 +16,12 @@ package org.syncope.client.to;
 
 import org.syncope.types.ConnConfProperty;
 import java.util.EnumSet;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
-import org.codehaus.jackson.annotate.JsonIgnore;
 import org.syncope.client.AbstractBaseBean;
 import org.syncope.types.ConnectorCapability;
 
 public class ConnInstanceTO extends AbstractBaseBean {
-
-    private static final long serialVersionUID = 2707778645445168671L;
 
     private Long id;
 
@@ -43,8 +38,6 @@ public class ConnInstanceTO extends AbstractBaseBean {
     private String displayName;
 
     public ConnInstanceTO() {
-        super();
-
         configuration = new HashSet<ConnConfProperty>();
         capabilities = EnumSet.noneOf(ConnectorCapability.class);
     }
@@ -75,17 +68,6 @@ public class ConnInstanceTO extends AbstractBaseBean {
 
     public Set<ConnConfProperty> getConfiguration() {
         return this.configuration;
-    }
-
-    @JsonIgnore
-    public Map<String, ConnConfProperty> getConfigurationMap() {
-        Map<String, ConnConfProperty> result =
-                new HashMap<String, ConnConfProperty>();
-        for (ConnConfProperty prop : getConfiguration()) {
-            result.put(prop.getSchema().getName(), prop);
-        }
-
-        return result;
     }
 
     public boolean addConfiguration(ConnConfProperty property) {

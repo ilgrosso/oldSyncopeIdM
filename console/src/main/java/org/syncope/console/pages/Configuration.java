@@ -14,22 +14,26 @@
  */
 package org.syncope.console.pages;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.LoggerContext;
 import java.io.Serializable;
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import org.apache.wicket.Page;
+import org.apache.wicket.PageParameters;
 import org.apache.wicket.ajax.AjaxRequestTarget;
 import org.apache.wicket.ajax.form.AjaxFormComponentUpdatingBehavior;
 import org.apache.wicket.ajax.markup.html.AjaxLink;
-import org.apache.wicket.authroles.authorization.strategies.role.metadata.MetaDataRoleAuthorizationStrategy;
+import org.apache.wicket.authorization.strategies.role.metadata.MetaDataRoleAuthorizationStrategy;
 import org.apache.wicket.extensions.ajax.markup.html.IndicatingAjaxLink;
 import org.apache.wicket.extensions.ajax.markup.html.modal.ModalWindow;
 import org.apache.wicket.extensions.ajax.markup.html.repeater.data.table.AjaxFallbackDefaultDataTable;
 import org.apache.wicket.extensions.markup.html.repeater.data.grid.ICellPopulator;
-import org.apache.wicket.extensions.markup.html.repeater.data.sort.SortOrder;
 import org.apache.wicket.extensions.markup.html.repeater.data.table.AbstractColumn;
 import org.apache.wicket.extensions.markup.html.repeater.data.table.IColumn;
 import org.apache.wicket.extensions.markup.html.repeater.data.table.PropertyColumn;
@@ -43,11 +47,11 @@ import org.apache.wicket.markup.html.list.PropertyListView;
 import org.apache.wicket.markup.repeater.Item;
 import org.apache.wicket.model.AbstractReadOnlyModel;
 import org.apache.wicket.model.IModel;
+import org.apache.wicket.model.Model;
 import org.apache.wicket.model.PropertyModel;
-import org.apache.wicket.model.ResourceModel;
-import org.apache.wicket.request.mapper.parameter.PageParameters;
 import org.apache.wicket.spring.injection.annot.SpringBean;
 import org.slf4j.LoggerFactory;
+import org.springframework.web.client.RestClientException;
 import org.syncope.client.to.ConfigurationTO;
 import org.syncope.client.to.LoggerTO;
 import org.syncope.console.commons.Constants;
@@ -57,40 +61,14 @@ import org.syncope.console.rest.ConfigurationRestClient;
 import org.syncope.console.wicket.ajax.markup.html.IndicatingDeleteOnConfirmAjaxLink;
 import org.syncope.console.wicket.markup.html.form.DeleteLinkPanel;
 import org.syncope.console.wicket.markup.html.form.EditLinkPanel;
-import ch.qos.logback.classic.Level;
-import ch.qos.logback.classic.Logger;
-import ch.qos.logback.classic.LoggerContext;
-import org.syncope.console.pages.panels.PoliciesPanel;
-import org.syncope.types.PolicyType;
-import org.apache.wicket.extensions.ajax.markup.html.IndicatingAjaxButton;
-import org.apache.wicket.markup.html.form.TextArea;
-import org.apache.wicket.markup.html.link.Link;
-import org.apache.wicket.model.CompoundPropertyModel;
-import org.apache.wicket.model.Model;
-import org.apache.wicket.request.handler.resource.ResourceStreamRequestHandler;
-import org.apache.wicket.request.resource.ContentDisposition;
-import org.apache.wicket.util.resource.StringResourceStream;
-import org.syncope.client.to.NotificationTO;
-import org.syncope.client.to.WorkflowDefinitionTO;
-import org.syncope.client.validation.SyncopeClientCompositeErrorException;
-import org.syncope.console.rest.NotificationRestClient;
-import org.syncope.console.rest.WorkflowRestClient;
 
 /**
  * Configurations WebPage.
  */
 public class Configuration extends BasePage {
 
-    private static final long serialVersionUID = -2838270869037702214L;
-
     @SpringBean
-    private ConfigurationRestClient confRestClient;
-
-    @SpringBean
-    private NotificationRestClient notificationRestClient;
-
-    @SpringBean
-    private WorkflowRestClient wfRestClient;
+    private ConfigurationRestClient restClient;
 
     @SpringBean
     private PreferenceManager prefMan;
@@ -99,135 +77,40 @@ public class Configuration extends BasePage {
 
     private final ModalWindow editConfigWin;
 
-    private static final int CONFIG_WIN_HEIGHT = 200;
+    private static final int WIN_HEIGHT = 300;
 
-    private static final int CONFIG_WIN_WIDTH = 350;
-
-    private final ModalWindow createNotificationWin;
-
-    private final ModalWindow editNotificationWin;
-
-    private static final int NOTIFICATION_WIN_HEIGHT = 500;
-
-    private static final int NOTIFICATION_WIN_WIDTH = 900;
+    private static final int WIN_WIDTH = 400;
 
     private WebMarkupContainer confContainer;
 
-    private WebMarkupContainer notificationContainer;
+    /**
+     * Response flag set by the Modal Window after the operation
+     * is completed.
+     */
+    private boolean operationResult = false;
 
-    private int confPaginatorRows;
-
-    private int notificationPaginatorRows;
+    private int paginatorRows;
 
     public Configuration(final PageParameters parameters) {
         super(parameters);
 
         add(createConfigWin = new ModalWindow("createConfigurationWin"));
         add(editConfigWin = new ModalWindow("editConfigurationWin"));
-        setupSyncopeConf();
 
-        add(new PoliciesPanel("passwordPoliciesPanel", PolicyType.PASSWORD));
-        add(new PoliciesPanel("accountPoliciesPanel", PolicyType.ACCOUNT));
-        add(new PoliciesPanel("syncPoliciesPanel", PolicyType.SYNC));
-
-        add(createNotificationWin = new ModalWindow("createNotificationWin"));
-        add(editNotificationWin = new ModalWindow("editNotificationWin"));
-        setupNotification();
-
-        // Workflow definition stuff
-        final WorkflowDefinitionTO workflowDef = wfRestClient.getDefinition();
-
-        WebMarkupContainer workflowDefContainer =
-                new WebMarkupContainer("workflowDefContainer");
-
-        Form wfForm = new Form("workflowDefForm",
-                new CompoundPropertyModel(workflowDef));
-
-        TextArea<WorkflowDefinitionTO> workflowDefArea =
-                new TextArea<WorkflowDefinitionTO>("workflowDefArea",
-                new PropertyModel<WorkflowDefinitionTO>(
-                workflowDef, "xmlDefinition"));
-        wfForm.add(workflowDefArea);
-
-        IndicatingAjaxButton submit = new IndicatingAjaxButton(
-                "apply", new Model<String>(getString("submit"))) {
-
-            private static final long serialVersionUID = -958724007591692537L;
-
-            @Override
-            protected void onSubmit(final AjaxRequestTarget target,
-                    final Form form) {
-
-                try {
-                    wfRestClient.updateDefinition(workflowDef);
-                    info(getString("operation_succeded"));
-                } catch (SyncopeClientCompositeErrorException scee) {
-                    error(getString("error") + ":" + scee.getMessage());
-                }
-                target.add(feedbackPanel);
-            }
-
-            @Override
-            protected void onError(final AjaxRequestTarget target,
-                    final Form form) {
-
-                target.add(feedbackPanel);
-            }
-        };
-
-        MetaDataRoleAuthorizationStrategy.authorize(
-                submit, ENABLE, xmlRolesReader.getAllAllowedRoles(
-                "Configuration", "workflowDefUpdate"));
-        wfForm.add(submit);
-
-        workflowDefContainer.add(wfForm);
-
-        MetaDataRoleAuthorizationStrategy.authorize(
-                workflowDefContainer, ENABLE, xmlRolesReader.getAllAllowedRoles(
-                "Configuration", "workflowDefRead"));
-        add(workflowDefContainer);
-
-        // Logger stuff
-        PropertyListView coreLoggerList =
-                new LoggerPropertyList(null,
-                "corelogger",
-                confRestClient.getLoggers());
-        WebMarkupContainer coreLoggerContainer =
-                new WebMarkupContainer("coreLoggerContainer");
-        coreLoggerContainer.add(coreLoggerList);
-        coreLoggerContainer.setOutputMarkupId(true);
-        add(coreLoggerContainer);
-
-        ConsoleLoggerController consoleLoggerController =
-                new ConsoleLoggerController();
-        PropertyListView consoleLoggerList =
-                new LoggerPropertyList(
-                consoleLoggerController,
-                "consolelogger",
-                consoleLoggerController.getLoggers());
-        WebMarkupContainer consoleLoggerContainer =
-                new WebMarkupContainer("consoleLoggerContainer");
-        consoleLoggerContainer.add(consoleLoggerList);
-        consoleLoggerContainer.setOutputMarkupId(true);
-        add(consoleLoggerContainer);
-    }
-
-    private final void setupSyncopeConf() {
-        confPaginatorRows = prefMan.getPaginatorRows(getRequest(),
+        paginatorRows = prefMan.getPaginatorRows(
+                getWebRequestCycle().getWebRequest(),
                 Constants.PREF_CONFIGURATION_PAGINATOR_ROWS);
 
         List<IColumn> confColumns = new ArrayList<IColumn>();
 
-        confColumns.add(new PropertyColumn(new ResourceModel("key"),
+        confColumns.add(new PropertyColumn(new Model(getString("key")),
                 "key", "key"));
 
-        confColumns.add(new PropertyColumn(new ResourceModel("value"),
+        confColumns.add(new PropertyColumn(new Model(getString("value")),
                 "value", "value"));
 
-        confColumns.add(new AbstractColumn<ConfigurationTO>(
-                new ResourceModel("edit")) {
-
-            private static final long serialVersionUID = 2054811145491901166L;
+        confColumns.add(new AbstractColumn<ConfigurationTO>(new Model<String>(
+                getString("edit"))) {
 
             @Override
             public void populateItem(
@@ -238,25 +121,19 @@ public class Configuration extends BasePage {
                 final ConfigurationTO configurationTO = model.getObject();
                 AjaxLink editLink = new IndicatingAjaxLink("editLink") {
 
-                    private static final long serialVersionUID =
-                            -7978723352517770644L;
-
                     @Override
-                    public void onClick(final AjaxRequestTarget target) {
+                    public void onClick(AjaxRequestTarget target) {
 
                         editConfigWin.setPageCreator(
                                 new ModalWindow.PageCreator() {
 
-                                    private static final long serialVersionUID =
-                                            -7834632442532690940L;
-
-                                    @Override
                                     public Page createPage() {
-                                        return new ConfigurationModalPage(
-                                                Configuration.this.
-                                                getPageReference(),
+                                        ConfigurationModalPage window =
+                                                new ConfigurationModalPage(
+                                                Configuration.this,
                                                 editConfigWin,
                                                 configurationTO, false);
+                                        return window;
                                     }
                                 });
 
@@ -276,39 +153,33 @@ public class Configuration extends BasePage {
         });
 
         confColumns.add(new AbstractColumn<ConfigurationTO>(
-                new ResourceModel("delete")) {
-
-            private static final long serialVersionUID = 2054811145491901166L;
+                new Model<String>(getString("delete"))) {
 
             @Override
             public void populateItem(
                     final Item<ICellPopulator<ConfigurationTO>> cellItem,
-                    final String componentId,
-                    final IModel<ConfigurationTO> model) {
+                    final String componentId, IModel<ConfigurationTO> model) {
 
                 final ConfigurationTO configurationTO = model.getObject();
 
                 AjaxLink deleteLink = new IndicatingDeleteOnConfirmAjaxLink(
                         "deleteLink") {
 
-                    private static final long serialVersionUID =
-                            -7978723352517770644L;
-
                     @Override
                     public void onClick(final AjaxRequestTarget target) {
                         try {
-                            confRestClient.deleteConfiguration(configurationTO.
+                            restClient.deleteConfiguration(configurationTO.
                                     getKey());
-                        } catch (SyncopeClientCompositeErrorException e) {
+                        } catch (UnsupportedEncodingException e) {
                             LOG.error("While deleting a conf key", e);
                             error(e.getMessage());
                             return;
                         }
 
                         info(getString("operation_succeded"));
-                        target.add(feedbackPanel);
+                        target.addComponent(feedbackPanel);
 
-                        target.add(confContainer);
+                        target.addComponent(confContainer);
                     }
                 };
 
@@ -323,9 +194,10 @@ public class Configuration extends BasePage {
             }
         });
 
+
         final AjaxFallbackDefaultDataTable confTable =
                 new AjaxFallbackDefaultDataTable("syncopeconf", confColumns,
-                new SyncopeConfProvider(), confPaginatorRows);
+                new SyncopeConfProvider(), paginatorRows);
 
         confContainer = new WebMarkupContainer("confContainer");
         confContainer.add(confTable);
@@ -334,13 +206,15 @@ public class Configuration extends BasePage {
         add(confContainer);
 
         createConfigWin.setCssClassName(ModalWindow.CSS_CLASS_GRAY);
-        createConfigWin.setInitialHeight(CONFIG_WIN_HEIGHT);
-        createConfigWin.setInitialWidth(CONFIG_WIN_WIDTH);
+        createConfigWin.setInitialHeight(WIN_HEIGHT);
+        createConfigWin.setInitialWidth(WIN_WIDTH);
+        createConfigWin.setPageMapName("create-configuration-modal");
         createConfigWin.setCookieName("create-configuration-modal");
 
         editConfigWin.setCssClassName(ModalWindow.CSS_CLASS_GRAY);
-        editConfigWin.setInitialHeight(CONFIG_WIN_HEIGHT);
-        editConfigWin.setInitialWidth(CONFIG_WIN_WIDTH);
+        editConfigWin.setInitialHeight(WIN_HEIGHT);
+        editConfigWin.setInitialWidth(WIN_HEIGHT);
+        editConfigWin.setPageMapName("edit-configuration-modal");
         editConfigWin.setCookieName("edit-configuration-modal");
 
         setWindowClosedCallback(createConfigWin, confContainer);
@@ -349,21 +223,17 @@ public class Configuration extends BasePage {
         AjaxLink createConfigurationLink = new AjaxLink(
                 "createConfigurationLink") {
 
-            private static final long serialVersionUID = -7978723352517770644L;
-
             @Override
-            public void onClick(final AjaxRequestTarget target) {
+            public void onClick(AjaxRequestTarget target) {
 
                 createConfigWin.setPageCreator(new ModalWindow.PageCreator() {
 
-                    private static final long serialVersionUID =
-                            -7834632442532690940L;
-
                     @Override
                     public Page createPage() {
-                        return new ConfigurationModalPage(
-                                Configuration.this.getPageReference(),
+                        ConfigurationModalPage window =
+                                new ConfigurationModalPage(Configuration.this,
                                 createConfigWin, new ConfigurationTO(), true);
+                        return window;
                     }
                 });
 
@@ -371,274 +241,109 @@ public class Configuration extends BasePage {
             }
         };
 
-        MetaDataRoleAuthorizationStrategy.authorize(
-                createConfigurationLink, ENABLE,
-                xmlRolesReader.getAllAllowedRoles("Configuration", "create"));
+        String allowedRoles = xmlRolesReader.getAllAllowedRoles(
+                "Configuration", "create");
+        MetaDataRoleAuthorizationStrategy.authorize(createConfigurationLink,
+                ENABLE, allowedRoles);
+
         add(createConfigurationLink);
 
-        Link dbExportLink = new Link<Void>("dbExportLink") {
-
-            private static final long serialVersionUID = -4331619903296515985L;
-
-            @Override
-            public void onClick() {
-                StringResourceStream stream =
-                        new StringResourceStream(
-                        confRestClient.dbContentAsXml(), "text/xml");
-                getRequestCycle().scheduleRequestHandlerAfterCurrent(
-                        new ResourceStreamRequestHandler(stream).setFileName(
-                        "content.xml").setContentDisposition(
-                        ContentDisposition.ATTACHMENT));
-            }
-        };
-
-        MetaDataRoleAuthorizationStrategy.authorize(
-                dbExportLink, ENABLE,
-                xmlRolesReader.getAllAllowedRoles("Configuration", "read"));
-        add(dbExportLink);
-
-        Form confPaginatorForm = new Form("confPaginatorForm");
+        Form paginatorForm = new Form("PaginatorForm");
 
         final DropDownChoice rowsChooser = new DropDownChoice("rowsChooser",
-                new PropertyModel(this, "confPaginatorRows"),
+                new PropertyModel(this, "paginatorRows"),
                 prefMan.getPaginatorChoices());
 
         rowsChooser.add(new AjaxFormComponentUpdatingBehavior("onchange") {
 
-            private static final long serialVersionUID = -1107858522700306810L;
-
             @Override
             protected void onUpdate(final AjaxRequestTarget target) {
-                prefMan.set(getRequest(),
-                        getResponse(),
+                prefMan.set(getWebRequestCycle().getWebRequest(),
+                        getWebRequestCycle().getWebResponse(),
                         Constants.PREF_CONFIGURATION_PAGINATOR_ROWS,
-                        String.valueOf(confPaginatorRows));
-                confTable.setItemsPerPage(confPaginatorRows);
+                        String.valueOf(paginatorRows));
+                confTable.setRowsPerPage(paginatorRows);
 
-                target.add(confContainer);
+                target.addComponent(confContainer);
             }
         });
 
-        confPaginatorForm.add(rowsChooser);
-        add(confPaginatorForm);
+        paginatorForm.add(rowsChooser);
+        add(paginatorForm);
+
+        add(paginatorForm);
+
+        // Logger stuff
+        PropertyListView coreLoggerList =
+                new LoggerPropertyList(null,
+                "corelogger",
+                restClient.getLoggers());
+        WebMarkupContainer coreLoggerContainer =
+                new WebMarkupContainer("coreLoggerContainer");
+        coreLoggerContainer.add(coreLoggerList);
+        coreLoggerContainer.setOutputMarkupId(true);
+        add(coreLoggerContainer);
+
+
+        ConsoleLoggerController consoleLoggerController =
+                new ConsoleLoggerController();
+        PropertyListView consoleLoggerList =
+                new LoggerPropertyList(
+                consoleLoggerController,
+                "consolelogger",
+                consoleLoggerController.getLoggers());
+        WebMarkupContainer consoleLoggerContainer =
+                new WebMarkupContainer("consoleLoggerContainer");
+        consoleLoggerContainer.add(consoleLoggerList);
+        consoleLoggerContainer.setOutputMarkupId(true);
+        add(consoleLoggerContainer);
     }
 
-    private final void setupNotification() {
-        notificationPaginatorRows = prefMan.getPaginatorRows(getRequest(),
-                Constants.PREF_NOTIFICATION_PAGINATOR_ROWS);
+    /**
+     * Set a WindowClosedCallback for a ModalWindow instance.
+     * @param window
+     * @param container
+     */
+    public void setWindowClosedCallback(ModalWindow window,
+            final WebMarkupContainer container) {
 
-        List<IColumn> notificationCols = new ArrayList<IColumn>();
-        notificationCols.add(new PropertyColumn(new ResourceModel("id"),
-                "id", "id"));
-        notificationCols.add(new PropertyColumn(new ResourceModel("events"),
-                "events", "events"));
-        notificationCols.add(new PropertyColumn(new ResourceModel("subject"),
-                "subject", "subject"));
-        notificationCols.add(new PropertyColumn(new ResourceModel("template"),
-                "template", "template"));
-        notificationCols.add(new PropertyColumn(new ResourceModel("traceLevel"),
-                "traceLevel", "traceLevel"));
+        window.setWindowClosedCallback(
+                new ModalWindow.WindowClosedCallback() {
 
-        notificationCols.add(new AbstractColumn<NotificationTO>(
-                new ResourceModel("edit")) {
-
-            private static final long serialVersionUID = 2054811145491901166L;
-
-            @Override
-            public void populateItem(
-                    final Item<ICellPopulator<NotificationTO>> cellItem,
-                    final String componentId,
-                    final IModel<NotificationTO> model) {
-
-                final NotificationTO notificationTO = model.getObject();
-                AjaxLink editLink = new IndicatingAjaxLink("editLink") {
-
-                    private static final long serialVersionUID =
-                            -7978723352517770644L;
-
-                    @Override
-                    public void onClick(final AjaxRequestTarget target) {
-
-                        editNotificationWin.setPageCreator(
-                                new ModalWindow.PageCreator() {
-
-                                    private static final long serialVersionUID =
-                                            -7834632442532690940L;
-
-                                    @Override
-                                    public Page createPage() {
-                                        return new NotificationModalPage(
-                                                Configuration.this.
-                                                getPageReference(),
-                                                editNotificationWin,
-                                                notificationTO, false);
-                                    }
-                                });
-
-                        editNotificationWin.show(target);
-                    }
-                };
-
-                EditLinkPanel panel = new EditLinkPanel(componentId, model);
-                panel.add(editLink);
-
-                MetaDataRoleAuthorizationStrategy.authorize(panel, ENABLE,
-                        xmlRolesReader.getAllAllowedRoles(
-                        "Notification", "read"));
-
-                cellItem.add(panel);
-            }
-        });
-
-        notificationCols.add(new AbstractColumn<NotificationTO>(
-                new ResourceModel("delete")) {
-
-            private static final long serialVersionUID = 2054811145491901166L;
-
-            @Override
-            public void populateItem(
-                    final Item<ICellPopulator<NotificationTO>> cellItem,
-                    final String componentId,
-                    final IModel<NotificationTO> model) {
-
-                final NotificationTO notificationTO = model.getObject();
-
-                AjaxLink deleteLink = new IndicatingDeleteOnConfirmAjaxLink(
-                        "deleteLink") {
-
-                    private static final long serialVersionUID =
-                            -7978723352517770644L;
-
-                    @Override
-                    public void onClick(final AjaxRequestTarget target) {
-                        try {
-                            notificationRestClient.deleteNotification(
-                                    notificationTO.getId());
-                        } catch (SyncopeClientCompositeErrorException e) {
-                            LOG.error("While deleting a notification", e);
-                            error(e.getMessage());
-                            return;
+                    public void onClose(AjaxRequestTarget target) {
+                        target.addComponent(container);
+                        if (operationResult) {
+                            info(getString("operation_succeded"));
+                            target.addComponent(feedbackPanel);
+                            operationResult = false;
                         }
-
-                        info(getString("operation_succeded"));
-                        target.add(feedbackPanel);
-
-                        target.add(notificationContainer);
                     }
-                };
+                });
+    }
 
-                DeleteLinkPanel panel = new DeleteLinkPanel(componentId, model);
-                panel.add(deleteLink);
+    public boolean isOperationResult() {
+        return operationResult;
+    }
 
-                MetaDataRoleAuthorizationStrategy.authorize(panel, ENABLE,
-                        xmlRolesReader.getAllAllowedRoles(
-                        "Notification", "delete"));
-
-                cellItem.add(panel);
-            }
-        });
-
-        final AjaxFallbackDefaultDataTable notificationTable =
-                new AjaxFallbackDefaultDataTable("notificationTable",
-                notificationCols,
-                new NotificationProvider(), notificationPaginatorRows);
-
-        notificationContainer = new WebMarkupContainer("notificationContainer");
-        notificationContainer.add(notificationTable);
-        notificationContainer.setOutputMarkupId(true);
-
-        add(notificationContainer);
-
-        createNotificationWin.setCssClassName(ModalWindow.CSS_CLASS_GRAY);
-        createNotificationWin.setInitialHeight(NOTIFICATION_WIN_HEIGHT);
-        createNotificationWin.setInitialWidth(NOTIFICATION_WIN_WIDTH);
-        createNotificationWin.setCookieName("create-notification-modal");
-
-        editNotificationWin.setCssClassName(ModalWindow.CSS_CLASS_GRAY);
-        editNotificationWin.setInitialHeight(NOTIFICATION_WIN_HEIGHT);
-        editNotificationWin.setInitialWidth(NOTIFICATION_WIN_WIDTH);
-        editNotificationWin.setCookieName("edit-notification-modal");
-
-        setWindowClosedCallback(createNotificationWin, notificationContainer);
-        setWindowClosedCallback(editNotificationWin, notificationContainer);
-
-        AjaxLink createNotificationLink = new AjaxLink(
-                "createNotificationLink") {
-
-            private static final long serialVersionUID = -7978723352517770644L;
-
-            @Override
-            public void onClick(final AjaxRequestTarget target) {
-
-                createNotificationWin.setPageCreator(
-                        new ModalWindow.PageCreator() {
-
-                            private static final long serialVersionUID =
-                                    -7834632442532690940L;
-
-                            @Override
-                            public Page createPage() {
-                                return new NotificationModalPage(
-                                        Configuration.this.getPageReference(),
-                                        createNotificationWin,
-                                        new NotificationTO(), true);
-                            }
-                        });
-
-                createNotificationWin.show(target);
-            }
-        };
-
-        MetaDataRoleAuthorizationStrategy.authorize(
-                createNotificationLink, ENABLE,
-                xmlRolesReader.getAllAllowedRoles("Notification", "create"));
-        add(createNotificationLink);
-
-        Form notificationPaginatorForm = new Form("notificationPaginatorForm");
-
-        final DropDownChoice rowsChooser = new DropDownChoice("rowsChooser",
-                new PropertyModel(this, "notificationPaginatorRows"),
-                prefMan.getPaginatorChoices());
-
-        rowsChooser.add(new AjaxFormComponentUpdatingBehavior("onchange") {
-
-            private static final long serialVersionUID = -1107858522700306810L;
-
-            @Override
-            protected void onUpdate(final AjaxRequestTarget target) {
-                prefMan.set(getRequest(),
-                        getResponse(),
-                        Constants.PREF_NOTIFICATION_PAGINATOR_ROWS,
-                        String.valueOf(notificationPaginatorRows));
-                notificationTable.setItemsPerPage(notificationPaginatorRows);
-
-                target.add(notificationContainer);
-            }
-        });
-
-        notificationPaginatorForm.add(rowsChooser);
-        add(notificationPaginatorForm);
+    public void setOperationResult(boolean operationResult) {
+        this.operationResult = operationResult;
     }
 
     private class SyncopeConfProvider
             extends SortableDataProvider<ConfigurationTO> {
 
-        private static final long serialVersionUID = -276043813563988590L;
-
         private SortableDataProviderComparator<ConfigurationTO> comparator;
 
         public SyncopeConfProvider() {
             //Default sorting
-            setSort("key", SortOrder.ASCENDING);
+            setSort("key", true);
             comparator =
                     new SortableDataProviderComparator<ConfigurationTO>(this);
         }
 
         @Override
-        public Iterator<ConfigurationTO> iterator(final int first,
-                final int count) {
-
-            List<ConfigurationTO> list = confRestClient.getAllConfigurations();
+        public Iterator<ConfigurationTO> iterator(int first, int count) {
+            List<ConfigurationTO> list = getAllConfigurations();
 
             Collections.sort(list, comparator);
 
@@ -647,7 +352,7 @@ public class Configuration extends BasePage {
 
         @Override
         public int size() {
-            return confRestClient.getAllConfigurations().size();
+            return getAllConfigurations().size();
         }
 
         @Override
@@ -656,80 +361,32 @@ public class Configuration extends BasePage {
 
             return new AbstractReadOnlyModel<ConfigurationTO>() {
 
-                private static final long serialVersionUID =
-                        774694801558497248L;
-
                 @Override
                 public ConfigurationTO getObject() {
                     return configuration;
                 }
             };
         }
-    }
 
-    private class NotificationProvider
-            extends SortableDataProvider<NotificationTO> {
+        private List<ConfigurationTO> getAllConfigurations() {
+            List<ConfigurationTO> list = null;
 
-        private static final long serialVersionUID = -276043813563988590L;
-
-        private SortableDataProviderComparator<NotificationTO> comparator;
-
-        public NotificationProvider() {
-            //Default sorting
-            setSort("id", SortOrder.ASCENDING);
-            comparator =
-                    new SortableDataProviderComparator<NotificationTO>(this);
-        }
-
-        @Override
-        public Iterator<NotificationTO> iterator(final int first,
-                final int count) {
-
-            List<NotificationTO> list =
-                    notificationRestClient.getAllNotifications();
-
-            Collections.sort(list, comparator);
-
-            return list.subList(first, first + count).iterator();
-        }
-
-        @Override
-        public int size() {
-            return notificationRestClient.getAllNotifications().size();
-        }
-
-        @Override
-        public IModel<NotificationTO> model(
-                final NotificationTO notification) {
-
-            return new AbstractReadOnlyModel<NotificationTO>() {
-
-                private static final long serialVersionUID =
-                        774694801558497248L;
-
-                @Override
-                public NotificationTO getObject() {
-                    return notification;
-                }
-            };
+            try {
+                list = restClient.getAllConfigurations();
+            } catch (RestClientException rce) {
+                throw rce;
+            }
+            return list;
         }
     }
 
     enum LoggerLevel {
 
-        OFF,
-        ERROR,
-        WARN,
-        INFO,
-        DEBUG,
-        TRACE,
-        ALL
+        OFF, ERROR, WARN, INFO, DEBUG, TRACE, ALL
 
     }
 
     private class LoggerPropertyList extends PropertyListView<LoggerTO> {
-
-        private static final long serialVersionUID = 5911412425994616111L;
 
         private final ConsoleLoggerController consoleLoggerController;
 
@@ -749,9 +406,6 @@ public class Configuration extends BasePage {
             DropDownChoice<LoggerLevel> level =
                     new DropDownChoice<LoggerLevel>("level");
             level.setModel(new IModel<LoggerLevel>() {
-
-                private static final long serialVersionUID =
-                        -2350428186089596562L;
 
                 @Override
                 public LoggerLevel getObject() {
@@ -773,13 +427,10 @@ public class Configuration extends BasePage {
             level.add(new AjaxFormComponentUpdatingBehavior(
                     "onchange") {
 
-                private static final long serialVersionUID =
-                        -1107858522700306810L;
-
                 @Override
                 protected void onUpdate(final AjaxRequestTarget target) {
                     boolean result = getId().equals("corelogger")
-                            ? confRestClient.setLoggerLevel(
+                            ? restClient.setLoggerLevel(
                             item.getModelObject().getName(),
                             item.getModelObject().getLevel())
                             : consoleLoggerController.setLoggerLevel(
@@ -793,7 +444,7 @@ public class Configuration extends BasePage {
 
                     }
 
-                    target.add(feedbackPanel);
+                    target.addComponent(feedbackPanel);
                 }
             });
 
@@ -804,8 +455,6 @@ public class Configuration extends BasePage {
     }
 
     private class ConsoleLoggerController implements Serializable {
-
-        private static final long serialVersionUID = -1550459341476431714L;
 
         public List<LoggerTO> getLoggers() {
             LoggerContext lc =

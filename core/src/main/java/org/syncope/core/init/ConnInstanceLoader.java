@@ -13,141 +13,151 @@
  */
 package org.syncope.core.init;
 
-import org.syncope.core.util.ConnBundleManager;
-import java.util.HashSet;
+import java.io.File;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
-import java.util.Set;
 import javassist.NotFoundException;
+import org.identityconnectors.common.IOUtil;
 import org.identityconnectors.common.l10n.CurrentLocale;
+import org.identityconnectors.framework.api.ConnectorInfoManager;
+import org.identityconnectors.framework.api.ConnectorInfoManagerFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.support.DefaultListableBeanFactory;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.syncope.core.persistence.beans.ConnInstance;
-import org.syncope.core.persistence.beans.ExternalResource;
-import org.syncope.core.persistence.dao.ResourceDAO;
-import org.syncope.core.propagation.ConnectorFacadeProxy;
-import org.syncope.types.ConnConfProperty;
+import org.syncope.core.persistence.beans.SyncopeConf;
+import org.syncope.core.persistence.dao.ConfDAO;
+import org.syncope.core.persistence.dao.ConnInstanceDAO;
+import org.syncope.core.persistence.dao.MissingConfKeyException;
+import org.syncope.core.persistence.propagation.ConnectorFacadeProxy;
+import org.syncope.core.util.ApplicationContextManager;
 
 /**
- * Load ConnId connector instances.
+ * Load ConnId connectos instances.
  */
 @Component
-public class ConnInstanceLoader extends AbstractLoader {
+public class ConnInstanceLoader {
 
+    /**
+     * Logger.
+     */
     private static final Logger LOG = LoggerFactory.getLogger(
             ConnInstanceLoader.class);
 
     @Autowired
-    private ResourceDAO resourceDAO;
+    private ConnInstanceDAO connInstanceDAO;
 
     @Autowired
-    private ConnBundleManager connBundleManager;
+    private ConfDAO confDAO;
 
-    private String getBeanName(final ExternalResource resource) {
-        return String.format("connInstance-%d-%s",
-                resource.getConnector().getId(), resource.getName());
+    private DefaultListableBeanFactory getBeanFactory() {
+        ConfigurableApplicationContext context =
+                ApplicationContextManager.getApplicationContext();
+
+        return (DefaultListableBeanFactory) context.getBeanFactory();
     }
 
-    /**
-     * Get a live connector bean that is registered with the given resource.
-     * 
-     * @param resource the resource.
-     * @return live connector bran for given resource
-     * @throws BeansException in case the connector is not registered in the
-     * context
-     */
-    public ConnectorFacadeProxy getConnector(final ExternalResource resource)
-            throws BeansException, NotFoundException {
-
-        // Try to re-create connector bean from underlying resource
-        // (useful for managing failover scenarios)
-        if (!getBeanFactory().containsBean(getBeanName(resource))) {
-            registerConnector(resource);
-        }
-
-        return (ConnectorFacadeProxy) getBeanFactory().getBean(
-                getBeanName(resource));
-    }
-
-    public ConnectorFacadeProxy createConnectorBean(
-            final ExternalResource resource)
+    public ConnectorInfoManager getConnectorManager()
             throws NotFoundException {
 
-        final ConnInstance connInstanceClone =
-                new ConnInstance(resource.getConnector());
-
-        final Set<ConnConfProperty> configuration =
-                new HashSet<ConnConfProperty>();
-
-        final Set<String> propertyNames = new HashSet<String>();
-
-        for (ConnConfProperty prop : resource.getConfiguration()) {
-            if (!propertyNames.contains(prop.getSchema().getName())) {
-                configuration.add(prop);
-                propertyNames.add(prop.getSchema().getName());
-            }
+        // 1. Bundles directory
+        SyncopeConf connectorBundleDir = null;
+        try {
+            connectorBundleDir = confDAO.find(
+                    "connid.bundles.directory");
+        } catch (MissingConfKeyException e) {
+            LOG.error("Missing configuration", e);
         }
 
-        for (ConnConfProperty prop : connInstanceClone.getConfiguration()) {
-            if (!propertyNames.contains(prop.getSchema().getName())) {
-                configuration.add(prop);
-                propertyNames.add(prop.getSchema().getName());
-            }
+        // 2. Find bundles inside that directory
+        File bundleDirectory = new File(connectorBundleDir.getValue());
+        String[] bundleFiles = bundleDirectory.list();
+        if (bundleFiles == null) {
+            throw new NotFoundException("Bundles from dir "
+                    + connectorBundleDir.getValue());
         }
 
-        connInstanceClone.setConfiguration(configuration);
+        List<URL> bundleFileURLs = new ArrayList<URL>();
+        for (String file : bundleFiles) {
+            try {
+                bundleFileURLs.add(IOUtil.makeURL(bundleDirectory, file));
+            } catch (Exception ignore) {
+                // ignore exception and don't add bundle
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug(bundleDirectory.toString() + "/" + file + "\""
+                            + " is not a valid connector bundle.", ignore);
+                }
+            }
+        }
+        if (bundleFileURLs.isEmpty()) {
+            throw new NotFoundException("Bundles from dir "
+                    + connectorBundleDir.getValue());
+        }
+        LOG.debug("Bundle file URLs: {}", bundleFileURLs);
 
-        return new ConnectorFacadeProxy(connInstanceClone, connBundleManager);
+        // 3. Get connector info manager
+        ConnectorInfoManager manager =
+                ConnectorInfoManagerFactory.getInstance().getLocalManager(
+                bundleFileURLs.toArray(new URL[0]));
+        if (manager == null) {
+            throw new NotFoundException("Connector Info Manager");
+        }
+
+        return manager;
     }
 
-    public void registerConnector(final ExternalResource resource)
+    public ConnectorFacadeProxy getConnector(final String id)
+            throws BeansException {
+
+        return (ConnectorFacadeProxy) getBeanFactory().getBean(id);
+    }
+
+    public void registerConnector(final ConnInstance instance)
             throws NotFoundException {
 
-        final ConnectorFacadeProxy connector = createConnectorBean(resource);
+        if (getBeanFactory().containsSingleton(instance.getId().toString())) {
+            unregisterConnector(instance.getId().toString());
+        }
+
+        ConnectorFacadeProxy connector =
+                new ConnectorFacadeProxy(instance, this);
         LOG.debug("Connector to be registered: {}", connector);
 
-        final String beanName = getBeanName(resource);
-
-        if (getBeanFactory().containsSingleton(beanName)) {
-            unregisterConnector(beanName);
-        }
-
-        getBeanFactory().registerSingleton(beanName, connector);
-        LOG.debug("Successfully registered bean {}", beanName);
+        getBeanFactory().registerSingleton(
+                instance.getId().toString(), connector);
+        LOG.debug("Successfully registered bean {}",
+                instance.getId().toString());
     }
 
     public void unregisterConnector(final String id) {
         getBeanFactory().destroySingleton(id);
     }
 
-    @Override
     @Transactional(readOnly = true)
-    public void load() {
+    public void loadAllConnInstances() {
         // This is needed to avoid encoding problems when sending error
         // messages via REST
         CurrentLocale.set(Locale.ENGLISH);
 
-        // Next load all resource-specific connectors.
-        for (ExternalResource resource : resourceDAO.findAll()) {
+        List<ConnInstance> instances = connInstanceDAO.findAll();
+        for (ConnInstance instance : instances) {
             try {
-                LOG.info("Registering resource-connector pair {}-{}",
-                        resource, resource.getConnector());
-                registerConnector(resource);
+                LOG.info("Registering connector {}", instance);
+                registerConnector(instance);
             } catch (NotFoundException e) {
-                LOG.error(String.format(
-                        "While registering resource-connector pair %s-%s",
-                        resource, resource.getConnector()), e);
+                LOG.error("While loading connector bundle for instance "
+                        + instance, e);
             } catch (RuntimeException e) {
-                LOG.error(String.format(
-                        "While registering resource-connector pair %s-%s",
-                        resource, resource.getConnector()), e);
+                LOG.error("While validating connector bundle for instance "
+                        + instance, e);
             }
         }
-
-        LOG.info("Done loading {} connectors.", getBeanFactory().getBeansOfType(
-                ConnectorFacadeProxy.class).size());
     }
 }

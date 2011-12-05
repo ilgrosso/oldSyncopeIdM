@@ -15,81 +15,52 @@
 package org.syncope.core.persistence.dao.impl;
 
 import java.util.List;
-
-import javassist.NotFoundException;
-
 import javax.persistence.CacheRetrieveMode;
 import javax.persistence.NoResultException;
 import javax.persistence.Query;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
-import org.syncope.core.init.ConnInstanceLoader;
-import org.syncope.core.persistence.beans.PropagationTask;
-import org.syncope.core.persistence.beans.ExternalResource;
+import org.syncope.core.persistence.beans.TargetResource;
 import org.syncope.core.persistence.beans.SchemaMapping;
-import org.syncope.core.persistence.beans.SyncTask;
 import org.syncope.core.persistence.beans.role.SyncopeRole;
 import org.syncope.core.persistence.beans.user.SyncopeUser;
 import org.syncope.core.persistence.dao.ResourceDAO;
-import org.syncope.core.persistence.dao.TaskDAO;
-import org.syncope.types.IntMappingType;
+import org.syncope.types.SourceMappingType;
 
 @Repository
 public class ResourceDAOImpl extends AbstractDAOImpl
         implements ResourceDAO {
 
-    @Autowired
-    private TaskDAO taskDAO;
-
-    @Autowired
-    private ConnInstanceLoader connInstanceLoader;
-
     @Override
-    public ExternalResource find(final String name) {
-        Query query = entityManager.createQuery("SELECT e "
-                + "FROM " + ExternalResource.class.getSimpleName() + " e "
-                + "WHERE e.name = :name");
+    public TargetResource find(final String name) {
+        Query query = entityManager.createQuery(
+                "SELECT e FROM TargetResource e WHERE e.name = :name");
         query.setHint("javax.persistence.cache.retrieveMode",
                 CacheRetrieveMode.USE);
         query.setParameter("name", name);
 
         try {
-            return (ExternalResource) query.getSingleResult();
+            return (TargetResource) query.getSingleResult();
         } catch (NoResultException e) {
             return null;
         }
     }
 
     @Override
-    public List<ExternalResource> findAll() {
-        Query query = entityManager.createQuery("SELECT e "
-                + "FROM  " + ExternalResource.class.getSimpleName() + " e");
+    public List<TargetResource> findAll() {
+        Query query = entityManager.createQuery(
+                "SELECT e FROM TargetResource e");
         return query.getResultList();
     }
 
     @Override
-    public List<ExternalResource> findAllByPriority() {
-        Query query = entityManager.createQuery("SELECT e "
-                + "FROM  " + ExternalResource.class.getSimpleName() + " e "
-                + "ORDER BY e.propagationPriority");
-        return query.getResultList();
-    }
-
-    @Override
-    public ExternalResource save(final ExternalResource resource) {
-        ExternalResource merged = entityManager.merge(resource);
-        try {
-            connInstanceLoader.registerConnector(merged);
-        } catch (NotFoundException e) {
-            LOG.error("While registering connector for resource", e);
-        }
-        return merged;
+    public TargetResource save(final TargetResource resource) {
+        return entityManager.merge(resource);
     }
 
     @Override
     public List<SchemaMapping> findAllMappings() {
-        Query query = entityManager.createQuery("SELECT e FROM "
-                + SchemaMapping.class.getSimpleName() + " e");
+        Query query = entityManager.createQuery(
+                "SELECT e FROM SchemaMapping e");
         query.setHint("javax.persistence.cache.retrieveMode",
                 CacheRetrieveMode.USE);
 
@@ -100,8 +71,8 @@ public class ResourceDAOImpl extends AbstractDAOImpl
     public SchemaMapping getMappingForAccountId(
             final String resourceName) {
 
-        Query query = entityManager.createQuery("SELECT m FROM "
-                + SchemaMapping.class.getSimpleName() + " m "
+        Query query = entityManager.createQuery(
+                "SELECT m FROM SchemaMapping m "
                 + "WHERE m.resource.name=:resourceName "
                 + "AND m.accountid = 1");
         query.setParameter("resourceName", resourceName);
@@ -110,22 +81,21 @@ public class ResourceDAOImpl extends AbstractDAOImpl
     }
 
     @Override
-    public void deleteMappings(final String intAttrName,
-            final IntMappingType intMappingType) {
+    public void deleteMappings(final String sourceAttrName,
+            final SourceMappingType sourceMappingType) {
 
-        if (intMappingType == IntMappingType.SyncopeUserId
-                || intMappingType == IntMappingType.Password
-                || intMappingType == IntMappingType.Username) {
+        if (sourceMappingType == SourceMappingType.SyncopeUserId
+                || sourceMappingType == SourceMappingType.Password) {
 
             return;
         }
 
         Query query = entityManager.createQuery("DELETE FROM "
                 + SchemaMapping.class.getSimpleName()
-                + " m WHERE m.intAttrName=:intAttrName "
-                + "AND m.intMappingType=:intMappingType");
-        query.setParameter("intAttrName", intAttrName);
-        query.setParameter("intMappingType", intMappingType);
+                + " m WHERE m.sourceAttrName=:sourceAttrName "
+                + "AND m.sourceMappingType=:sourceMappingType");
+        query.setParameter("sourceAttrName", sourceAttrName);
+        query.setParameter("sourceMappingType", sourceMappingType);
 
         int items = query.executeUpdate();
         LOG.debug("Removed {} schema mappings", items);
@@ -136,22 +106,40 @@ public class ResourceDAOImpl extends AbstractDAOImpl
     }
 
     @Override
+    public void deleteAllMappings(final TargetResource resource) {
+        Query query = entityManager.createQuery("DELETE FROM "
+                + SchemaMapping.class.getSimpleName()
+                + " m WHERE m.resource=:resource");
+        query.setParameter("resource", resource);
+
+        int items = query.executeUpdate();
+        LOG.debug("Removed {} schema mappings", items);
+
+        resource.getMappings().clear();
+
+        // Make empty SchemaMapping query cache
+        entityManager.getEntityManagerFactory().getCache().
+                evict(SchemaMapping.class);
+    }
+
+    @Override
     public void delete(final String name) {
-        ExternalResource resource = find(name);
+        TargetResource resource = find(name);
         if (resource == null) {
             return;
         }
 
-        taskDAO.deleteAll(resource, PropagationTask.class);
-        taskDAO.deleteAll(resource, SyncTask.class);
+        deleteAllMappings(resource);
+
+        resource.getTasks().clear();
 
         for (SyncopeUser user : resource.getUsers()) {
-            user.removeExternalResource(resource);
+            user.removeTargetResource(resource);
         }
         resource.getUsers().clear();
 
         for (SyncopeRole role : resource.getRoles()) {
-            role.removeExternalResource(resource);
+            role.removeTargetResource(resource);
         }
         resource.getRoles().clear();
 

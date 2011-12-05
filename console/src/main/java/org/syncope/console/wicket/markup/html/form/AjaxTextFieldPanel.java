@@ -14,77 +14,42 @@
  */
 package org.syncope.console.wicket.markup.html.form;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.regex.Pattern;
-import org.apache.wicket.ajax.AjaxRequestTarget;
-import org.apache.wicket.ajax.form.AjaxFormComponentUpdatingBehavior;
-import org.apache.wicket.extensions.ajax.markup.html.autocomplete.AutoCompleteTextField;
+import org.apache.wicket.markup.html.basic.Label;
+import org.apache.wicket.markup.html.form.TextField;
+import org.apache.wicket.markup.html.panel.Panel;
 import org.apache.wicket.model.IModel;
 import org.apache.wicket.model.Model;
-import org.apache.wicket.validation.IValidator;
 
-public class AjaxTextFieldPanel extends FieldPanel<String> {
+public class AjaxTextFieldPanel extends Panel {
 
-    private static final long serialVersionUID = 238940918106696068L;
+    public AjaxTextFieldPanel(final String id, final String name,
+            final IModel model, final boolean required) {
 
-    private List<String> choices = Collections.EMPTY_LIST;
+        super(id, model);
 
-    public AjaxTextFieldPanel(
-            final String id,
-            final String name,
-            final IModel<String> model,
-            final boolean active) {
-
-        super(id, name, model, active);
-
-        field = new AutoCompleteTextField<String>("textField", model) {
-
-            private static final long serialVersionUID = -6648767303091874219L;
-
-            @Override
-            protected Iterator<String> getChoices(String input) {
-                final Pattern pattern = Pattern.compile(
-                        Pattern.quote(input) + ".*",
-                        Pattern.CASE_INSENSITIVE);
-
-                final List<String> result = new ArrayList<String>();
-
-                for (String choice : choices) {
-                    if (pattern.matcher(choice).matches()) {
-                        result.add(choice);
-                    }
-                }
-
-                return result.iterator();
-            }
-        };
-
-        add(field.setLabel(new Model(name)).setOutputMarkupId(true));
-
-        if (active) {
-            field.add(new AjaxFormComponentUpdatingBehavior("onchange") {
-
-                private static final long serialVersionUID =
-                        -1107858522700306810L;
-
-                @Override
-                protected void onUpdate(AjaxRequestTarget art) {
-                    // nothing to do
-                }
-            });
+        if (required) {
+            add(new Label("required", "*"));
+        } else {
+            add(new Label("required", ""));
         }
+
+        add(new TextField("textField", model).setRequired(required).
+                setLabel(new Model(name)));
     }
 
-    public void addValidator(final IValidator validator) {
-        this.field.add(validator);
-    }
+    public AjaxTextFieldPanel(final String id, final String name,
+            final IModel model,
+            final boolean required, final boolean readonly) {
 
-    public void setChoices(final List<String> choices) {
-        if (choices != null) {
-            this.choices = choices;
+        super(id, model);
+
+        if (required) {
+            add(new Label("required", "*"));
+        } else {
+            add(new Label("required", ""));
         }
+
+        add(new TextField("textField", model).setRequired(required).
+                setLabel(new Model(name)).setEnabled(!readonly));
     }
 }

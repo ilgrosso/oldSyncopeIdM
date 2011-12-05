@@ -44,7 +44,8 @@ public class RoleDAOImpl extends AbstractDAOImpl implements RoleDAO {
 
         try {
             return (SyncopeRole) query.getSingleResult();
-        } catch (NoResultException e) {
+        }
+        catch (NoResultException e) {
             return null;
         }
     }
@@ -88,6 +89,18 @@ public class RoleDAOImpl extends AbstractDAOImpl implements RoleDAO {
         return query.getResultList();
     }
 
+    private List<Long> getAncestors(final SyncopeRole role,
+            final List<Long> ancestors) {
+
+        ancestors.add(role.getId());
+
+        if (role.getParent() != null && role.isInheritAttributes()) {
+            return getAncestors(role.getParent(), ancestors);
+        }
+
+        return ancestors;
+    }
+
     @Override
     public List<SyncopeRole> findAll() {
         Query query = entityManager.createQuery("SELECT e FROM SyncopeRole e");
@@ -95,7 +108,7 @@ public class RoleDAOImpl extends AbstractDAOImpl implements RoleDAO {
     }
 
     @Override
-    public List<Membership> findMemberships(final SyncopeRole role) {
+    public List<Membership> getMemberships(final SyncopeRole role) {
         Query query = entityManager.createQuery(
                 "SELECT e FROM " + Membership.class.getSimpleName() + " e"
                 + " WHERE e.syncopeRole=:role");
@@ -106,16 +119,6 @@ public class RoleDAOImpl extends AbstractDAOImpl implements RoleDAO {
 
     @Override
     public SyncopeRole save(final SyncopeRole role) {
-        // reset account policy in case of inheritance
-        if (role.isInheritAccountPolicy()) {
-            role.setAccountPolicy(null);
-        }
-
-        // reset password policy in case of inheritance
-        if (role.isInheritPasswordPolicy()) {
-            role.setPasswordPolicy(null);
-        }
-
         final SyncopeRole savedRole = entityManager.merge(role);
         entitlementDAO.save(savedRole);
 
@@ -138,7 +141,7 @@ public class RoleDAOImpl extends AbstractDAOImpl implements RoleDAO {
             delete(child.getId());
         }
 
-        for (Membership membership : findMemberships(role)) {
+        for (Membership membership : getMemberships(role)) {
             membership.setSyncopeRole(null);
             membership.getSyncopeUser().removeMembership(membership);
             membership.setSyncopeUser(null);

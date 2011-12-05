@@ -65,11 +65,18 @@ public class SyncopeUserDetailsService implements UserDetailsService {
                         new GrantedAuthorityImpl(entitlement.getName()));
             }
         } else {
-            final SyncopeUser user = userDAO.find(username);
+            Long id;
+            try {
+                id = Long.valueOf(username);
+            } catch (NumberFormatException e) {
+                throw new UsernameNotFoundException(
+                        "Invalid user id: " + username, e);
+            }
 
+            SyncopeUser user = userDAO.find(id);
             if (user == null) {
                 throw new UsernameNotFoundException(
-                        "Could not find any user with id " + username);
+                        "Could not find any user with id " + id);
             }
 
             // Give entitlements based on roles owned by user,

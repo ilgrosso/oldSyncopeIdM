@@ -29,9 +29,8 @@
         <link rel="stylesheet" type="text/css" href="css/jquery.ui.resizable.css" />
         <link rel="stylesheet" type="text/css" href="css/jquery.ui.tabs.css" />
         <link rel="stylesheet" type="text/css" href="css/jquery.ui.theme.css" />
-
-        <link rel="stylesheet" type="text/css" href="css/style.css" media="all"/>
-        <link rel="stylesheet" type="text/css" href="css/fieldstyle.css" />
+        <link rel="stylesheet" type="text/css" href="css/ui.tabs.css" media="all"/>
+        <link rel="stylesheet" type="text/css" href="css/stile_sy.css" media="all"/>
 
         <script type="text/javascript" src="scripts/jquery-1.4.2.min.js"></script>
         <script type="text/javascript" src="scripts/jquery-ui-1.8.5.custom.min.js"></script>
@@ -43,7 +42,7 @@
                 $("#role").tabs();
                 $("#membership").tabs();
             });
-                
+
             /** Add rollover effect to tables supporting Ajax events (live)*/
             $('table.ui-widget.ui-widget-content.table-hover tbody tr')
             .live('mouseover mouseout', function(event) {
@@ -53,14 +52,50 @@
                     $(this).removeClass('selectedRow');
                 }
             });
-            
-            $(document).ready(function() {
-                $("#editProfile").hide();
-                $("#username").click(function() {
-                    $("#editProfile").toggle();
-                });
-            });
         </script>
+
+        <style type="text/css">
+            .feedbackPanelERROR {
+                color: black;
+                font-weight: bold;
+                margin: 0px;
+                list-style-type: none;
+                background:url("css/images/ui-bg_highlight-soft_75_cccccc_1x100_red.png") repeat-x scroll 50% 50% #CCCCCC;
+                -moz-border-radius: 3px;
+                -webkit-border-radius: 3px;
+                border: 1px solid gray;
+                border-radius: 3px;
+                padding: 5px;
+            }
+
+            .feedbackPanelERROR span {
+                background: url("css/images/warning.png") no-repeat left;
+                border:0 none;
+                font-size:12px;
+                padding-left: 24px;
+            }
+
+            .selectedRow {
+                background-color: #eef1f1; /* alternative: LemonChiffon */
+            }
+
+            /* WICKET DATATABLE HEADERS */
+            .headers {
+                border: 1px solid #aaaaaa;
+                background: #cccccc url(css/images/ui-bg_highlight-soft_75_cccccc_1x100.png)
+                    50% 50% repeat-x;
+            }
+
+            em {
+                font-size: inherit;
+                color: gray;
+            }
+
+            em img {
+                opacity:0.4;
+                filter:alpha(opacity=40);
+            }
+        </style>
     </head>
     <body>
         <div id="navigationPane">
@@ -73,25 +108,19 @@
                     </span>
                 </li>
                 <li><span>
-                        <a href="#" wicket:id="todo"><img src="img/menu/notsel/todo.png" alt="TODO" width="80" height="80" /><br />
-                            <wicket:message key="todo"/>
-                        </a>
-                    </span>
-                </li>
-                <li><span>
-                        <a href="#" wicket:id="schema"><img src="img/menu/notsel/schema.png" alt="Schema" width="80" height="80" /><br />
+                        <a href=#" wicket:id="schema"><img src="img/menu/notsel/schema.png" alt="Schema" width="80" height="80" /><br />
                             <wicket:message key="schema"/>
                         </a>
                     </span>
                 </li>
                 <li><span>
-                        <a href="#" wicket:id="users"><img src="img/menu/users.png" alt="Users" width="80" height="80" /><br />
+                        <a href=#" wicket:id="users"><img src="img/menu/users.png" alt="Users" width="80" height="80" /><br />
                             <wicket:message key="users"/>
                         </a>
                     </span>
                 </li>
                 <li><span>
-                        <a href="#" wicket:id="roles"><img src="img/menu/notsel/roles.png" alt="Roles" width="80" height="80" /><br />
+                        <a href=#" wicket:id="roles"><img src="img/menu/notsel/roles.png" alt="Roles" width="80" height="80" /><br />
                             <wicket:message key="roles"/>
                         </a>
                     </span>
@@ -103,8 +132,8 @@
                     </span>
                 </li>
                 <li><span>
-                        <a href="#" wicket:id="tasks"><img src="img/menu/notsel/task.png" alt="Tasks" width="80" height="80" /><br />
-                            <wicket:message key="tasks"/>
+                        <a href="#" wicket:id="connectors"><img src="img/menu/notsel/connectors.png" alt="Connectors" width="80" height="80" /><br />
+                            <wicket:message key="connectors"/>
                         </a>
                     </span>
                 </li>
@@ -119,22 +148,18 @@
                             <wicket:message key="configuration"/>
                         </a></span>
                 </li>
-                <li style="float:right;width:auto;text-align:right;">
-                    <a href="#" wicket:id="logout"><img src="img/menu/notsel/logout.png" alt="Logout" width="80" height="80" /><br /></a>
-                    <div>
-                        <span id="username" wicket:id="username" style="padding-right: 9px;cursor: pointer;"/>
-                        <span wicket:id="editProfile"/>
-
-                        <wicket:fragment wicket:id="adminEmptyFrag"/>
-                        <wicket:fragment wicket:id="editProfileFrag">
-                            <br/>
-                            <span id="editProfile" wicket:id="editProfile" 
-                                  style="cursor: pointer;background-color: #446633;padding-left: 9px;padding-right: 9px;"/>
-                        </wicket:fragment>
-                    </div>
+                <li><span>
+                        <a href="#" wicket:id="tasks"><img src="img/menu/notsel/task.png" alt="Tasks" width="80" height="80" /><br />
+                            <wicket:message key="tasks"/>
+                        </a>
+                    </span>
+                </li>
+                <li style="float:right">
+                    <a href="#" wicket:id="logout"><img src="img/menu/notsel/logout.png" alt="Logout" width="80" height="80" /><br />
+                        <wicket:message key="logout"/>
+                    </a>
                 </li>
             </ul>
-            <div wicket:id="editProfileModal" ></div>
         </div>
 
         <div wicket:id="feedback"/>

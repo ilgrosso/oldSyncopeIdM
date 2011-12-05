@@ -27,7 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.syncope.client.to.ResourceTO;
 import org.syncope.client.to.SchemaMappingTO;
 import org.syncope.core.persistence.beans.ConnInstance;
-import org.syncope.core.persistence.beans.ExternalResource;
+import org.syncope.core.persistence.beans.TargetResource;
 import org.syncope.core.persistence.beans.SchemaMapping;
 import org.syncope.core.persistence.beans.user.SyncopeUser;
 import org.syncope.core.persistence.beans.user.USchema;
@@ -36,15 +36,13 @@ import org.syncope.core.persistence.dao.ResourceDAO;
 import org.syncope.core.persistence.dao.SchemaDAO;
 import org.syncope.core.persistence.dao.UserDAO;
 import org.syncope.core.rest.data.ResourceDataBinder;
-import org.syncope.core.AbstractTest;
-import org.syncope.core.persistence.beans.PasswordPolicy;
-import org.syncope.core.persistence.beans.PropagationTask;
+import org.syncope.core.persistence.AbstractTest;
+import org.syncope.core.persistence.beans.Task;
 import org.syncope.core.persistence.beans.user.UDerSchema;
 import org.syncope.core.persistence.dao.DerSchemaDAO;
-import org.syncope.core.persistence.dao.PolicyDAO;
 import org.syncope.core.persistence.dao.TaskDAO;
 import org.syncope.types.PropagationMode;
-import org.syncope.types.IntMappingType;
+import org.syncope.types.SourceMappingType;
 
 @Transactional
 public class ResourceTest extends AbstractTest {
@@ -70,30 +68,6 @@ public class ResourceTest extends AbstractTest {
     @Autowired
     private ResourceDataBinder resourceDataBinder;
 
-    @Autowired
-    private PolicyDAO policyDAO;
-
-    public final void createWithPasswordPolicy() {
-        final String RESOURCE_NAME = "resourceWithPasswordPolicy";
-
-        PasswordPolicy policy = (PasswordPolicy) policyDAO.find(4L);
-        ExternalResource resource = new ExternalResource();
-        resource.setName(RESOURCE_NAME);
-        resource.setPasswordPolicy(policy);
-
-        ExternalResource actual = resourceDAO.save(resource);
-        assertNotNull(actual);
-
-        actual = resourceDAO.find(actual.getName());
-        assertNotNull(actual);
-        assertNotNull(actual.getPasswordPolicy());
-
-        resourceDAO.delete(RESOURCE_NAME);
-        assertNull(resourceDAO.find(RESOURCE_NAME));
-
-        assertNotNull(policyDAO.find(4L));
-    }
-
     /**
      * @see http://code.google.com/p/syncope/issues/detail?id=42
      */
@@ -103,18 +77,18 @@ public class ResourceTest extends AbstractTest {
 
         Set<SchemaMapping> beforeUserIdMappings = new HashSet<SchemaMapping>();
         for (SchemaMapping mapping : resourceDAO.findAllMappings()) {
-            if (userId.getName().equals(mapping.getIntAttrName())
-                    && mapping.getIntMappingType()
-                    == IntMappingType.UserSchema) {
+            if (mapping.getSourceAttrName().equals(userId.getName())
+                    && mapping.getSourceMappingType()
+                    == SourceMappingType.UserSchema) {
 
                 beforeUserIdMappings.add(mapping);
             }
         }
 
         SchemaMappingTO schemaMappingTO = new SchemaMappingTO();
-        schemaMappingTO.setIntAttrName("userId");
-        schemaMappingTO.setIntMappingType(IntMappingType.UserSchema);
-        schemaMappingTO.setExtAttrName("campo1");
+        schemaMappingTO.setSourceAttrName("userId");
+        schemaMappingTO.setSourceMappingType(SourceMappingType.UserSchema);
+        schemaMappingTO.setDestAttrName("campo1");
         schemaMappingTO.setAccountid(true);
         schemaMappingTO.setPassword(false);
         schemaMappingTO.setMandatoryCondition("false");
@@ -127,23 +101,23 @@ public class ResourceTest extends AbstractTest {
         resourceTO.setName("resource-issue42");
         resourceTO.setConnectorId(100L);
         resourceTO.setMappings(schemaMappingTOs);
-        resourceTO.setPropagationMode(PropagationMode.SYNC);
+        resourceTO.setOptionalPropagationMode(PropagationMode.SYNC);
         resourceTO.setForceMandatoryConstraint(true);
 
-        ExternalResource resource = resourceDataBinder.getResource(resourceTO);
+        TargetResource resource = resourceDataBinder.getResource(resourceTO);
         resource = resourceDAO.save(resource);
         resourceDAO.flush();
 
-        ExternalResource actual = resourceDAO.find("resource-issue42");
+        TargetResource actual = resourceDAO.find("resource-issue42");
         assertEquals(resource, actual);
 
         userId = schemaDAO.find("userId", USchema.class);
 
         Set<SchemaMapping> afterUserIdMappings = new HashSet<SchemaMapping>();
         for (SchemaMapping mapping : resourceDAO.findAllMappings()) {
-            if (userId.getName().equals(mapping.getIntAttrName())
-                    && mapping.getIntMappingType()
-                    == IntMappingType.UserSchema) {
+            if (mapping.getSourceAttrName().equals(userId.getName())
+                    && mapping.getSourceMappingType()
+                    == SourceMappingType.UserSchema) {
 
                 afterUserIdMappings.add(mapping);
             }
@@ -156,7 +130,7 @@ public class ResourceTest extends AbstractTest {
     @Test
     public final void save()
             throws ClassNotFoundException {
-        ExternalResource resource = new ExternalResource();
+        TargetResource resource = new TargetResource();
         resource.setName("ws-target-resource-save");
 
         // specify the connector
@@ -168,16 +142,17 @@ public class ResourceTest extends AbstractTest {
         connector.addResource(resource);
 
         // search for the user schema
-        final USchema userSchema = schemaDAO.find("fullname", USchema.class);
+        USchema userSchema =
+                schemaDAO.find("username", USchema.class);
 
         SchemaMapping mapping = null;
 
         for (int i = 0; i < 3; i++) {
             mapping = new SchemaMapping();
-            mapping.setExtAttrName("test" + i);
+            mapping.setDestAttrName("test" + i);
 
-            mapping.setIntAttrName(userSchema.getName());
-            mapping.setIntMappingType(IntMappingType.UserSchema);
+            mapping.setSourceAttrName(userSchema.getName());
+            mapping.setSourceMappingType(SourceMappingType.UserSchema);
             mapping.setMandatoryCondition("false");
 
             resource.addMapping(mapping);
@@ -185,9 +160,9 @@ public class ResourceTest extends AbstractTest {
         SchemaMapping accountId = new SchemaMapping();
         accountId.setResource(resource);
         accountId.setAccountid(true);
-        accountId.setExtAttrName("username");
-        accountId.setIntAttrName(userSchema.getName());
-        accountId.setIntMappingType(IntMappingType.SyncopeUserId);
+        accountId.setDestAttrName("username");
+        accountId.setSourceAttrName(userSchema.getName());
+        accountId.setSourceMappingType(SourceMappingType.SyncopeUserId);
 
         resource.addMapping(accountId);
 
@@ -201,9 +176,9 @@ public class ResourceTest extends AbstractTest {
         SchemaMapping derived = new SchemaMapping();
         derived.setResource(resource);
         derived.setAccountid(false);
-        derived.setExtAttrName("fullname");
-        derived.setIntAttrName(derivedSchema.getName());
-        derived.setIntMappingType(IntMappingType.UserSchema);
+        derived.setDestAttrName("fullname");
+        derived.setSourceAttrName(derivedSchema.getName());
+        derived.setSourceMappingType(SourceMappingType.UserSchema);
 
         resource.addMapping(derived);
 
@@ -213,10 +188,10 @@ public class ResourceTest extends AbstractTest {
         assertNotNull("user not found", user);
 
         resource.addUser(user);
-        user.addExternalResource(resource);
+        user.addTargetResource(resource);
 
         // save the resource
-        ExternalResource actual = resourceDAO.save(resource);
+        TargetResource actual = resourceDAO.save(resource);
 
         assertNotNull(actual);
 
@@ -232,7 +207,7 @@ public class ResourceTest extends AbstractTest {
 
         assertNotNull(connector);
 
-        List<ExternalResource> resources = connector.getResources();
+        List<TargetResource> resources = connector.getResources();
 
         assertNotNull(resources);
 
@@ -251,7 +226,7 @@ public class ResourceTest extends AbstractTest {
 
     @Test
     public final void delete() {
-        ExternalResource resource = resourceDAO.find("ws-target-resource-2");
+        TargetResource resource = resourceDAO.find("ws-target-resource-2");
 
         assertNotNull("find to delete did not work", resource);
 
@@ -266,7 +241,7 @@ public class ResourceTest extends AbstractTest {
         // -------------------------------------
 
         // -------------------------------------
-        // Get originally associated users
+        // Get originally assoicated users
         // -------------------------------------
         Set<SyncopeUser> users = resource.getUsers();
 
@@ -279,9 +254,7 @@ public class ResourceTest extends AbstractTest {
         // -------------------------------------
 
         // Get tasks
-        List<PropagationTask> propagationTasks = taskDAO.findAll(resource,
-                PropagationTask.class);
-        assertFalse(propagationTasks.isEmpty());
+        List<Task> tasks = resource.getTasks();
 
         // delete resource
         resourceDAO.delete(resource.getName());
@@ -290,17 +263,17 @@ public class ResourceTest extends AbstractTest {
         resourceDAO.flush();
 
         // resource must be removed
-        ExternalResource actual = resourceDAO.find("ws-target-resource-2");
+        TargetResource actual = resourceDAO.find("ws-target-resource-2");
         assertNull("delete did not work", actual);
 
         // resource must be not referenced any more from users
         SyncopeUser actualUser;
-        Collection<ExternalResource> resources;
+        Collection<TargetResource> resources;
         for (Long id : userIds) {
             actualUser = userDAO.find(id);
             assertNotNull(actualUser);
-            resources = actualUser.getExternalResources();
-            for (ExternalResource res : resources) {
+            resources = actualUser.getTargetResources();
+            for (TargetResource res : resources) {
                 assertFalse(res.getName().equalsIgnoreCase(resource.getName()));
             }
         }
@@ -310,12 +283,12 @@ public class ResourceTest extends AbstractTest {
                 connectorInstanceDAO.find(connectorId);
         assertNotNull(actualConnector);
         resources = actualConnector.getResources();
-        for (ExternalResource res : resources) {
+        for (TargetResource res : resources) {
             assertFalse(res.getName().equalsIgnoreCase(resource.getName()));
         }
 
         // there must be no tasks
-        for (PropagationTask task : propagationTasks) {
+        for (Task task : tasks) {
             assertNull(taskDAO.find(task.getId()));
         }
     }

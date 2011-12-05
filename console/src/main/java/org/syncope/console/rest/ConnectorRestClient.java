@@ -19,10 +19,7 @@ import java.util.List;
 import org.springframework.stereotype.Component;
 import org.syncope.client.to.ConnBundleTO;
 import org.syncope.client.to.ConnInstanceTO;
-import org.syncope.client.to.ResourceTO;
 import org.syncope.client.validation.SyncopeClientCompositeErrorException;
-import org.syncope.console.SyncopeSession;
-import org.syncope.types.ConnConfProperty;
 
 /**
  * Console client for invoking Rest Connectors services.
@@ -36,8 +33,8 @@ public class ConnectorRestClient extends AbstractBaseRestClient {
      */
     public List<ConnInstanceTO> getAllConnectors() {
         return Arrays.asList(restTemplate.getForObject(
-                baseURL + "connector/list.json?lang=" + SyncopeSession.get().
-                getLocale(), ConnInstanceTO[].class));
+                baseURL + "connector/list.json",
+                ConnInstanceTO[].class));
     }
 
     /**
@@ -46,33 +43,45 @@ public class ConnectorRestClient extends AbstractBaseRestClient {
      */
     public void create(ConnInstanceTO connectorTO) {
         restTemplate.postForObject(baseURL
-                + "connector/create.json", connectorTO, ConnInstanceTO.class);
+                + "connector/create.json", connectorTO,
+                ConnInstanceTO.class);
     }
 
     /**
      * Load an already existent connector by its name.
-     * @param connectorInstanceId the id
-     * @return ConnInstanceTO
+     * @param name (e.g.:surname)
+     * @return schemaTO
      */
-    public ConnInstanceTO read(final Long connectorInstanceId) {
-        ConnInstanceTO connectorTO = null;
+    public ConnInstanceTO read(String name) {
+        ConnInstanceTO schema = null;
 
         try {
-            connectorTO = restTemplate.getForObject(
-                    baseURL + "connector/read/" + connectorInstanceId,
+            schema = restTemplate.getForObject(
+                    baseURL + "connector/read/" + name + ".json",
                     ConnInstanceTO.class);
         } catch (SyncopeClientCompositeErrorException e) {
             LOG.error("While reading a connector", e);
         }
 
-        return connectorTO;
+        return schema;
     }
 
+    /**
+     * Update an already existent connector.
+     * @param schemaTO updated
+     */
     public void update(ConnInstanceTO connectorTO) {
-        restTemplate.postForObject(baseURL + "connector/update.json",
-                connectorTO, ConnInstanceTO.class);
+        restTemplate.postForObject(
+                baseURL + "connector/update.json",
+                connectorTO,
+                ConnInstanceTO.class);
     }
 
+    /**
+     * Delete an already existent connector by its name.
+     * @param name (e.g.:surname)
+     * @return schemaTO
+     */
     public void delete(Long id) {
         restTemplate.delete(baseURL
                 + "connector/delete/{connectorId}.json", id.toString());
@@ -83,46 +92,12 @@ public class ConnectorRestClient extends AbstractBaseRestClient {
 
         try {
             bundles = Arrays.asList(restTemplate.getForObject(
-                    baseURL + "connector/bundle/list?lang="
-                    + SyncopeSession.get().getLocale(),
+                    baseURL + "connector/bundle/list",
                     ConnBundleTO[].class));
         } catch (SyncopeClientCompositeErrorException e) {
             LOG.error("While getting connector bundles", e);
         }
 
         return bundles;
-    }
-
-    public List<String> getSchemaNames(final ResourceTO resourceTO) {
-        List<String> schemaNames = null;
-
-        try {
-            schemaNames = Arrays.asList(restTemplate.postForObject(
-                    baseURL + "connector/schema/list",
-                    resourceTO, String[].class));
-        } catch (SyncopeClientCompositeErrorException e) {
-            LOG.error("While getting resource schema names", e);
-        }
-
-        return schemaNames;
-    }
-
-    /**
-     * Get all configuration properties for the given connector instance.
-     * @param connectorId the connector id
-     * @return List of ConnConfProperty, or an empty list in case none found
-     */
-    public List<ConnConfProperty> getConnectorProperties(
-            final Long connectorId) {
-        List<ConnConfProperty> properties = null;
-        try {
-            properties = Arrays.asList(restTemplate.getForObject(baseURL
-                    + "connector/{connectorId}/configurationProperty/list",
-                    ConnConfProperty[].class, connectorId));
-        } catch (SyncopeClientCompositeErrorException e) {
-            LOG.error("While getting connector configuration properties", e);
-        }
-
-        return properties;
     }
 }

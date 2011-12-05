@@ -23,7 +23,7 @@ import org.syncope.core.persistence.beans.membership.Membership;
 import org.syncope.core.persistence.beans.role.SyncopeRole;
 import org.syncope.core.persistence.beans.user.SyncopeUser;
 import org.syncope.core.persistence.dao.MembershipDAO;
-import org.syncope.core.AbstractTest;
+import org.syncope.core.persistence.AbstractTest;
 import org.syncope.core.persistence.dao.RoleDAO;
 
 @Transactional
@@ -48,7 +48,7 @@ public class MembershipTest extends AbstractTest {
         for (Membership m : user.getMemberships()) {
             assertTrue(m.getId() != 4L);
         }
-        for (Membership m : syncopeRoleDAO.findMemberships(role)) {
+        for (Membership m : syncopeRoleDAO.getMemberships(role)) {
             assertTrue(m.getId() != 4L);
         }
     }

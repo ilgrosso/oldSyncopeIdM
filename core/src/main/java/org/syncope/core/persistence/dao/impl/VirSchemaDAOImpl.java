@@ -87,7 +87,7 @@ public class VirSchemaDAOImpl extends AbstractDAOImpl implements VirSchemaDAO {
         }
 
         resourceDAO.deleteMappings(
-                name, attributableUtil.virtualIntMappingType());
+                name, attributableUtil.virtualSourceMappingType());
 
         entityManager.remove(virtualSchema);
     }

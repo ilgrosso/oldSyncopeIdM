@@ -14,26 +14,21 @@
  */
 package org.syncope.core.persistence.beans.user;
 
-import java.util.ArrayList;
-import java.util.List;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
 import javax.persistence.ManyToOne;
 import org.syncope.core.persistence.beans.AbstractAttributable;
 import org.syncope.core.persistence.beans.AbstractVirAttr;
 import org.syncope.core.persistence.beans.AbstractVirSchema;
-import org.syncope.types.IntMappingType;
 
 @Entity
 public class UVirAttr extends AbstractVirAttr {
-
-    private static final long serialVersionUID = 2943450934283989741L;
 
     @ManyToOne
     private SyncopeUser owner;
 
     @ManyToOne(fetch = FetchType.EAGER)
-    private UVirSchema virtualSchema;
+    UVirSchema virtualSchema;
 
     @Override
     public <T extends AbstractAttributable> T getOwner() {
@@ -55,31 +50,5 @@ public class UVirAttr extends AbstractVirAttr {
             T virtualSchema) {
 
         this.virtualSchema = (UVirSchema) virtualSchema;
-    }
-
-    @Override
-    public List<String> getValues() {
-        LOG.debug("{}: retrieve value for attribute {}",
-                new Object[]{getOwner(), getVirtualSchema().getName()});
-
-        if (values != null) {
-            return values;
-        }
-
-        final List<Object> retrievedValues =
-                retrieveValues(getOwner(),
-                getVirtualSchema().getName(),
-                IntMappingType.UserVirtualSchema);
-
-        LOG.debug("Retrieved external values {}", retrievedValues);
-
-        List<String> stringValues = new ArrayList<String>();
-        for (Object value : retrievedValues) {
-            if (value != null) {
-                stringValues.add(value.toString());
-            }
-        }
-
-        return stringValues;
     }
 }
