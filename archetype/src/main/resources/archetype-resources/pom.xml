@@ -13,7 +13,7 @@
     <packaging>pom</packaging>
 
     <properties>
-        <syncope.version>0.8-SNAPSHOT</syncope.version>
+        <syncope.version>0.7RC2</syncope.version>
 
         <connid.soap.version>1.1</connid.soap.version>
         <connid.db.table.version>2.0</connid.db.table.version>
@@ -40,6 +40,7 @@
 
         <junit.version>4.9</junit.version>
 
+        <cargo.version>1.1.2</cargo.version>
         <tomcat.version>7.0.23</tomcat.version>
 
         <bundles.directory>${project.build.directory}/bundles</bundles.directory>
@@ -387,20 +388,7 @@
                 <plugin>
                     <groupId>org.codehaus.cargo</groupId>
                     <artifactId>cargo-maven2-plugin</artifactId>
-                    <version>1.1.4</version>
-                    <configuration>
-                        <container>
-                            <containerId>tomcat7x</containerId>
-                            <home>${java.io.tmpdir}/apache-tomcat-${tomcat.version}</home>
-                            <zipUrlInstaller>
-                                <url>http://archive.apache.org/dist/tomcat/tomcat-7/v${tomcat.version}/bin/apache-tomcat-${tomcat.version}.zip</url>
-                                <downloadDir>${settings.localRepository}/org/codehaus/cargo/cargo-container-archives</downloadDir>
-                                <extractDir>${java.io.tmpdir}</extractDir>
-                            </zipUrlInstaller>
-                            <log>${cargo.log}</log>
-                            <output>${cargo.output}</output>    
-                        </container>    
-                    </configuration>
+                    <version>${cargo.version}</version>
                 </plugin>
                 <plugin>
                     <groupId>org.codehaus.mojo</groupId>
