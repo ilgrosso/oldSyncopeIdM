@@ -16,661 +16,44 @@
 
     <modelVersion>4.0.0</modelVersion>
 
-    <name>Syncope</name>
-    <description>Syncope</description>
-    <groupId>org.syncope</groupId>
-    <artifactId>syncope</artifactId>
-    <version>0.8-SNAPSHOT</version>
-    <packaging>pom</packaging>
-
-    <!-- maven repository on sonatype -->
     <parent>
-        <groupId>org.sonatype.oss</groupId>
-        <artifactId>oss-parent</artifactId>
-        <version>7</version>
+        <groupId>org.syncope</groupId>
+        <artifactId>syncope</artifactId>
+        <version>0.7</version>
     </parent>
 
-    <url>http://www.syncope-idm.org/</url>
-    <prerequisites>
-        <maven>[3.0.3,)</maven>
-    </prerequisites>
-
-    <licenses>
-        <license>
-            <name>The Apache Software License, Version 2.0</name>
-            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
-            <distribution>repo</distribution>
-        </license>
-    </licenses>
-
-    <scm>
-        <connection>scm:svn:http://syncope.googlecode.com/svn/trunk</connection>
-        <developerConnection>scm:svn:https://syncope.googlecode.com/svn/trunk</developerConnection>
-        <url>http://syncope.googlecode.com/svn/trunk</url>
-    </scm>
-
-    <issueManagement>
-        <system>Google Code</system>
-        <url>http://code.google.com/p/syncope/issues/</url>
-    </issueManagement>
-
-    <mailingLists>
-        <mailingList>
-            <name>syncope-dev</name>
-            <post>syncope-dev@googlegroups.com</post>
-            <archive>http://groups.google.com/group/syncope-dev</archive>
-        </mailingList>
-        <mailingList>
-            <name>syncope-users</name>
-            <post>syncope-users@googlegroups.com</post>
-            <archive>http://groups.google.com/group/syncope-users</archive>
-        </mailingList>
-    </mailingLists>
+    <name>Syncope archetype</name>
+    <description>Syncope archetype</description>
+    <groupId>org.syncope</groupId>
+    <artifactId>syncope-archetype</artifactId>
+    <version>0.7.1</version>
+    <packaging>maven-archetype</packaging>
 
     <properties>
-        <targetJdk>1.6</targetJdk>
-        <maven.version>3.0.3</maven.version>
-        
-        <servlet-api.version>2.5</servlet-api.version>
-        <jsp-api.version>2.1</jsp-api.version>
-        <jstl.version>1.2</jstl.version>
-        
-        <connid.version>1.3.1</connid.version>
-        <connid.soap.version>1.1</connid.soap.version>
-        <connid.db.table.version>2.0</connid.db.table.version>
-        <connid.csvdir.version>0.1</connid.csvdir.version>
-        <connid.ldap.version>1.2</connid.ldap.version>
-
-        <commons-jexl.version>2.1.1</commons-jexl.version>
-        <commons-lang.version>2.6</commons-lang.version>
-        <commons-httpclient.version>3.1</commons-httpclient.version>
-
-        <javamail-specs.version>1.6</javamail-specs.version>
-        <javamail-provider.version>1.8.2</javamail-provider.version>
-
-        <cxf.version>2.4.4</cxf.version>
-
-        <activiti.version>5.8</activiti.version>
-
-        <spring.version>3.0.7.RELEASE</spring.version>
-        <jackson.version>1.9.3</jackson.version>
-        <xstream.version>1.4.2</xstream.version>
-        <velocity.version>1.7</velocity.version>
-        <quartz.version>1.8.5</quartz.version>
-
-        <hibernate.version>3.6.8.Final</hibernate.version>
-        <hibernate-validator.version>4.2.0.Final</hibernate-validator.version>
-        <ehcache.version>2.4.6</ehcache.version>
-
-        <wicket.version>1.5.3</wicket.version>
-
-        <groovy.version>1.8.4</groovy.version>
-
-        <h2.version>1.3.162</h2.version>
-
-        <reflections.version>0.9.5</reflections.version>
-
-        <logback.version>1.0.0</logback.version>
-        <slf4j.version>1.6.4</slf4j.version>
-
-        <junit.version>4.9</junit.version>
-        <selenium-java-client-driver.version>1.0.2</selenium-java-client-driver.version>
-        <dbunit.version>2.4.8</dbunit.version>
-
-        <apacheds.version>1.5.7</apacheds.version>
-
-        <tomcat.version>7.0.23</tomcat.version>
- 
-        <bundles.directory>${project.build.directory}/bundles</bundles.directory>
-        <log.directory>${project.build.directory}/log</log.directory>
-                
-        <cargo.servlet.port>9080</cargo.servlet.port>
-        <cargo.run.dir>${project.build.directory}/syncope-core-test</cargo.run.dir>
-        <cargo.log>${log.directory}/cargo.log</cargo.log>
-        <cargo.output>${log.directory}/cargo-output.log</cargo.output>
-
-        <testds.port>1389</testds.port>
-        <testdb.webport>9082</testdb.webport>
-
-        <testdb.driver>org.h2.Driver</testdb.driver>
-        <testdb.url>jdbc:h2:tcp://localhost:9092/testdb</testdb.url>
-        <testdb.username>sa</testdb.username>
-        <testdb.password>sa</testdb.password>
-        
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+      <SVNRepoURL>http://syncope.googlecode.com/svn/branches/0_7_X</SVNRepoURL>
     </properties>
 
-    <dependencyManagement>
-
-        <dependencies>
-
-            <dependency>
-                <groupId>org.apache.maven</groupId>
-                <artifactId>maven-plugin-api</artifactId>
-                <version>${maven.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.maven</groupId>
-                <artifactId>maven-core</artifactId>
-                <version>${maven.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>javax.servlet</groupId>
-                <artifactId>servlet-api</artifactId>
-                <version>${servlet-api.version}</version>
-                <scope>provided</scope>
-            </dependency>
-
-            <dependency>
-                <groupId>javax.servlet.jsp</groupId>
-                <artifactId>jsp-api</artifactId>
-                <version>${jsp-api.version}</version>
-                <scope>provided</scope>
-            </dependency>
-
-            <dependency>
-                <groupId>javax.servlet</groupId>
-                <artifactId>jstl</artifactId>
-                <version>${jstl.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.apache.geronimo.specs</groupId>
-                <artifactId>geronimo-javamail_1.4_spec</artifactId>
-                <version>${javamail-specs.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.geronimo.javamail</groupId>
-                <artifactId>geronimo-javamail_1.4_provider</artifactId>
-                <version>${javamail-provider.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.apache.commons</groupId>
-                <artifactId>commons-jexl</artifactId>
-                <version>${commons-jexl.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>commons-lang</groupId>
-                <artifactId>commons-lang</artifactId>
-                <version>${commons-lang.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>commons-httpclient</groupId>
-                <artifactId>commons-httpclient</artifactId>
-                <version>${commons-httpclient.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.connid</groupId>
-                <artifactId>framework</artifactId>
-                <version>${connid.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.connid</groupId>
-                <artifactId>framework-internal</artifactId>
-                <version>${connid.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.activiti</groupId>
-                <artifactId>activiti-engine</artifactId>
-                <version>${activiti.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.activiti</groupId>
-                <artifactId>activiti-spring</artifactId>            
-                <version>${activiti.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.hibernate</groupId>
-                <artifactId>hibernate-entitymanager</artifactId>
-                <version>${hibernate.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.hibernate</groupId>
-                <artifactId>hibernate-validator</artifactId>
-                <version>${hibernate-validator.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>net.sf.ehcache</groupId>
-                <artifactId>ehcache-core</artifactId>
-                <version>${ehcache.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.dbunit</groupId>
-                <artifactId>dbunit</artifactId>
-                <version>${dbunit.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.apache.velocity</groupId>
-                <artifactId>velocity</artifactId>
-                <version>${velocity.version}</version>
-            </dependency>
-
-            <!-- Spring -->
-            <dependency>
-                <groupId>org.springframework</groupId>
-                <artifactId>spring-core</artifactId>
-                <version>${spring.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.springframework</groupId>
-                <artifactId>spring-beans</artifactId>
-                <version>${spring.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.springframework</groupId>
-                <artifactId>spring-context</artifactId>
-                <version>${spring.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.springframework</groupId>
-                <artifactId>spring-jdbc</artifactId>
-                <version>${spring.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.springframework</groupId>
-                <artifactId>spring-orm</artifactId>
-                <version>${spring.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.springframework</groupId>
-                <artifactId>spring-webmvc</artifactId>
-                <version>${spring.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.springframework</groupId>
-                <artifactId>spring-oxm</artifactId>
-                <version>${spring.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.springframework</groupId>
-                <artifactId>spring-tx</artifactId>
-                <version>${spring.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.springframework</groupId>
-                <artifactId>spring-web</artifactId>
-                <version>${spring.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.springframework.security</groupId>
-                <artifactId>spring-security-web</artifactId>
-                <version>${spring.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.springframework.security</groupId>
-                <artifactId>spring-security-config</artifactId>
-                <version>${spring.version}</version>
-            </dependency>
-            <!-- /Spring -->
-
-            <dependency>
-                <groupId>org.codehaus.jackson</groupId>
-                <artifactId>jackson-mapper-asl</artifactId>
-                <version>${jackson.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>com.thoughtworks.xstream</groupId>
-                <artifactId>xstream</artifactId>
-                <version>${xstream.version}</version>
-            </dependency>
-            
-            <dependency>
-                <groupId>org.quartz-scheduler</groupId>
-                <artifactId>quartz</artifactId>
-                <version>${quartz.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.quartz-scheduler</groupId>
-                <artifactId>quartz-oracle</artifactId>
-                <version>${quartz.version}</version>
-            </dependency>
-
-            <!-- Wicket -->
-            <dependency>
-                <groupId>org.apache.wicket</groupId>
-                <artifactId>wicket</artifactId>
-                <version>${wicket.version}</version>
-                <type>pom</type>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.wicket</groupId>
-                <artifactId>wicket-extensions</artifactId>
-                <version>${wicket.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.wicket</groupId>
-                <artifactId>wicket-datetime</artifactId>
-                <version>${wicket.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.wicket</groupId>
-                <artifactId>wicket-spring</artifactId>
-                <version>${wicket.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.wicket</groupId>
-                <artifactId>wicket-auth-roles</artifactId>
-                <version>${wicket.version}</version>
-            </dependency>
-            <!-- /Wicket -->
-
-            <dependency>
-                <groupId>org.codehaus.groovy</groupId>
-                <artifactId>groovy-all</artifactId>
-                <version>${groovy.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>com.h2database</groupId>
-                <artifactId>h2</artifactId>
-                <version>${h2.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.reflections</groupId>
-                <artifactId>reflections</artifactId>
-                <version>${reflections.version}</version>
-            </dependency>
-            
-            <dependency>
-                <groupId>org.apache.directory.server</groupId>
-                <artifactId>apacheds-all</artifactId>
-                <version>${apacheds.version}</version>
-                <exclusions>
-                    <!-- shared-ldap-schema module needs to be excluded to avoid
-                         multiple schema resources on the classpath-->
-                    <exclusion>
-                        <groupId>org.apache.directory.shared</groupId>
-                        <artifactId>shared-ldap-schema</artifactId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
-
-            <dependency>
-                <groupId>org.slf4j</groupId>
-                <artifactId>slf4j-api</artifactId>
-                <version>${slf4j.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>ch.qos.logback</groupId>
-                <artifactId>logback-core</artifactId>
-                <version>${logback.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>ch.qos.logback</groupId>
-                <artifactId>logback-classic</artifactId>
-                <version>${logback.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>commons-logging</groupId>
-                <artifactId>commons-logging</artifactId>
-                <version>1.1.1</version>
-                <scope>provided</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.slf4j</groupId>
-                <artifactId>jcl-over-slf4j</artifactId>
-                <version>${slf4j.version}</version>
-            </dependency>
-
-            <!-- CXF: needed by soap connector -->
-            <dependency>
-                <groupId>org.apache.cxf</groupId>
-                <artifactId>cxf-rt-frontend-jaxws</artifactId>
-                <version>${cxf.version}</version>
-                <scope>runtime</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.cxf</groupId>
-                <artifactId>cxf-rt-transports-http</artifactId>
-                <version>${cxf.version}</version>
-                <scope>runtime</scope>
-            </dependency>
-        
-            <!-- TEST -->
-            <dependency>
-                <groupId>junit</groupId>
-                <artifactId>junit</artifactId>
-                <version>${junit.version}</version>
-                <scope>test</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.seleniumhq.selenium.client-drivers</groupId>
-                <artifactId>selenium-java-client-driver</artifactId>
-                <version>${selenium-java-client-driver.version}</version>
-                <scope>test</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.springframework</groupId>
-                <artifactId>spring-test</artifactId>
-                <version>${spring.version}</version>
-                <scope>test</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.connid.bundles.soap</groupId>
-                <artifactId>org.connid.bundles.soap</artifactId>
-                <version>${connid.soap.version}</version>
-                <scope>test</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.connid.bundles.soap</groupId>
-                <artifactId>wssample</artifactId>
-                <version>${connid.soap.version}</version>
-                <type>war</type>
-                <scope>test</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.connid.bundles.db</groupId>
-                <artifactId>org.connid.bundles.db.table</artifactId>
-                <version>${connid.db.table.version}</version>
-                <scope>test</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.connid.bundles</groupId>
-                <artifactId>org.connid.bundles.csvdir</artifactId>
-                <version>${connid.csvdir.version}</version>
-                <scope>test</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.connid.bundles</groupId>
-                <artifactId>org.connid.bundles.ldap</artifactId>
-                <version>${connid.ldap.version}</version>
-                <scope>test</scope>
-            </dependency>
-            <!-- /TEST -->
-
-        </dependencies>
-
-    </dependencyManagement>
-
-    <repositories>
-
-        <repository>
-            <id>main</id>
-            <url>http://repo1.maven.org/maven2/</url>
-        </repository>
-
-        <repository>
-            <id>jboss</id>
-            <url>http://repository.jboss.org/nexus/content/groups/public-jboss/</url>
-        </repository>
-
-        <repository>
-            <id>activiti</id>
-            <url>http://maven.alfresco.com/nexus/content/repositories/activiti</url>
-        </repository>
-
-    </repositories>
-    
-    <pluginRepositories>
-
-        <pluginRepository>
-            <id>main</id>
-            <url>http://repo1.maven.org/maven2/</url>
-        </pluginRepository>
-
-        <pluginRepository>
-            <id>sonatype-public</id>
-            <name>Sonatype public repository</name>
-            <url>http://oss.sonatype.org/content/groups/public</url>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-        </pluginRepository>
-
-    </pluginRepositories>
+    <scm>
+        <connection>scm:svn:http://syncope.googlecode.com/svn/tags/syncope-archetype-0.7.1</connection>
+        <developerConnection>scm:svn:https://syncope.googlecode.com/svn/tags/syncope-archetype-0.7.1</developerConnection>
+        <url>http://syncope.googlecode.com/svn/tags/syncope-archetype-0.7.1</url>
+    </scm>
 
     <build>
-        <defaultGoal>package</defaultGoal>
+        <extensions>
+            <extension>
+                <groupId>org.apache.maven.archetype</groupId>
+                <artifactId>archetype-packaging</artifactId>
+                <version>2.2</version>
+            </extension>
+        </extensions>
 
         <pluginManagement>
             <plugins>
                 <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-compiler-plugin</artifactId>
-                    <configuration>
-                        <source>${targetJdk}</source>
-                        <target>${targetJdk}</target>
-                    </configuration>
-                </plugin>
-                <plugin>
-                    <groupId>org.codehaus.groovy.maven</groupId>
-                    <artifactId>gmaven-plugin</artifactId>
-                    <version>1.0</version>
-                </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-resources-plugin</artifactId>
-                    <version>2.5</version>
-                </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-surefire-plugin</artifactId>
-                    <version>2.11</version>
-                    <configuration>
-                        <redirectTestOutputToFile>true</redirectTestOutputToFile>
-                    </configuration>
-                </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-war-plugin</artifactId>
-                    <version>2.1.1</version>
-                    <configuration>
-                        <attachClasses>true</attachClasses>
-                        <webResources>
-                            <resource>
-                                <directory>src/main/webapp</directory>
-                                <includes>
-                                    <include>**/*.jsp</include>
-                                </includes>
-                                <filtering>true</filtering>
-                            </resource>
-                        </webResources>
-                    </configuration>
-                </plugin>
-                <plugin>
-                    <groupId>org.codehaus.mojo</groupId>
-                    <artifactId>exec-maven-plugin</artifactId>
-                    <version>1.2.1</version>
-                </plugin>
-                <plugin>
-                    <groupId>org.codehaus.mojo</groupId>
-                    <artifactId>selenium-maven-plugin</artifactId>
-                    <version>2.1</version>
-                </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-failsafe-plugin</artifactId>
-                    <version>2.11</version>
-                    <configuration>
-                        <redirectTestOutputToFile>true</redirectTestOutputToFile>
-                        <encoding>utf-8</encoding>
-                        <runOrder>alphabetical</runOrder>
-                    </configuration>
-                    <executions>
-                        <execution>
-                            <goals>
-                                <goal>integration-test</goal>
-                                <goal>verify</goal>
-                            </goals>
-                        </execution>
-                    </executions>
-                </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-antrun-plugin</artifactId>
-                    <version>1.7</version>
-                </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-dependency-plugin</artifactId>
-                    <version>2.3</version>
-                    <configuration>
-                        <artifactItems>
-                            <artifactItem>
-                                <groupId>org.connid.bundles.soap</groupId>
-                                <artifactId>org.connid.bundles.soap</artifactId>
-                                <version>${connid.soap.version}</version>
-                                <outputDirectory>${bundles.directory}</outputDirectory>
-                            </artifactItem>
-                            <artifactItem>
-                                <groupId>org.connid.bundles.db</groupId>
-                                <artifactId>org.connid.bundles.db.table</artifactId>
-                                <version>${connid.db.table.version}</version>
-                                <outputDirectory>${bundles.directory}</outputDirectory>
-                            </artifactItem>
-                            <artifactItem>
-                                <groupId>org.connid.bundles</groupId>
-                                <artifactId>org.connid.bundles.csvdir</artifactId>
-                                <version>${connid.csvdir.version}</version>
-                                <outputDirectory>${bundles.directory}</outputDirectory>
-                            </artifactItem>
-                            <artifactItem>
-                                <groupId>org.connid.bundles</groupId>
-                                <artifactId>org.connid.bundles.ldap</artifactId>
-                                <version>${connid.ldap.version}</version>
-                                <outputDirectory>${bundles.directory}</outputDirectory>
-                            </artifactItem>
-                        </artifactItems>
-                    </configuration>
-                </plugin>
-                <plugin>
-                    <groupId>org.codehaus.cargo</groupId>
-                    <artifactId>cargo-maven2-plugin</artifactId>
-                    <version>1.1.4</version>
-                    <configuration>
-                        <container>
-                            <containerId>tomcat7x</containerId>
-                            <home>${java.io.tmpdir}/apache-tomcat-${tomcat.version}</home>
-                            <zipUrlInstaller>
-                                <url>http://archive.apache.org/dist/tomcat/tomcat-7/v${tomcat.version}/bin/apache-tomcat-${tomcat.version}.zip</url>
-                                <downloadDir>${settings.localRepository}/org/codehaus/cargo/cargo-container-archives</downloadDir>
-                                <extractDir>${java.io.tmpdir}</extractDir>
-                            </zipUrlInstaller>
-                            <log>${cargo.log}</log>
-                            <output>${cargo.output}</output>    
-                        </container>    
-                    </configuration>
-                </plugin>
-                <plugin>
-                    <groupId>org.codehaus.mojo</groupId>
-                    <artifactId>build-helper-maven-plugin</artifactId>
-                    <version>1.7</version>
-                </plugin>
-                <plugin>
-                    <groupId>org.zeroturnaround</groupId>
-                    <artifactId>jrebel-maven-plugin</artifactId>
-                    <version>1.1.2</version>
+                    <artifactId>maven-archetype-plugin</artifactId>
+                    <version>2.2</version>
+                    <extensions>true</extensions>
                 </plugin>
             </plugins>
         </pluginManagement>
@@ -678,149 +61,93 @@
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-enforcer-plugin</artifactId>
-                <version>1.0.1</version>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <inherited>true</inherited>
                 <executions>
                     <execution>
-                        <id>enforce-java</id>
-                        <goals>
-                            <goal>enforce</goal>
-                        </goals>
+                        <id>setupResources</id>
+                        <phase>validate</phase>
                         <configuration>
-                            <rules>
-                                <requireJavaVersion>
-                                    <version>[1.6.0-26,)</version>
-                                </requireJavaVersion>
-                            </rules>    
-                        </configuration>
+                            <target>
+			        <taskdef resource="net/sf/antcontrib/antcontrib.properties" classpathref="maven.plugin.classpath" />
+                                <if>
+				    <available file="${basedir}/../core/pom.xml" />
+                                    <then>
+				      <copy file="${basedir}/../core/src/test/resources/persistence.properties" todir="${basedir}/src/main/resources/archetype-resources/core/src/test/resources" overwrite="true" />
+				      <copy file="${basedir}/../core/src/test/resources/workflow.properties" todir="${basedir}/src/main/resources/archetype-resources/core/src/test/resources" overwrite="true" />
+				      <copy file="${basedir}/../core/src/test/resources/content.xml" todir="${basedir}/src/main/resources/archetype-resources/core/src/test/resources" overwrite="true" />
+				      <copy file="${basedir}/../core/src/test/resources/test.csv" todir="${basedir}/src/main/resources/archetype-resources/core/src/test/resources" overwrite="true" />
+                                      
+				      <copy file="${basedir}/../core/src/main/resources/persistence.properties" todir="${basedir}/src/main/resources/archetype-resources/core/src/main/resources" overwrite="true" />
+				      <copy file="${basedir}/../core/src/main/resources/workflow.properties" todir="${basedir}/src/main/resources/archetype-resources/core/src/main/resources" overwrite="true" />
+				      <copy file="${basedir}/../core/src/main/resources/content.xml" todir="${basedir}/src/main/resources/archetype-resources/core/src/main/resources" overwrite="true" />
+				      <copy file="${basedir}/../core/src/main/resources/logback.xml" todir="${basedir}/src/main/resources/archetype-resources/core/src/main/resources" overwrite="true" />
+				      <copy file="${basedir}/../core/src/main/webapp/WEB-INF/web.xml" todir="${basedir}/src/main/resources/archetype-resources/core/src/main/webapp/WEB-INF" overwrite="true" />
+                                      
+				      <copy file="${basedir}/../console/src/main/resources/configuration.properties" todir="${basedir}/src/main/resources/archetype-resources/console/src/main/resources" overwrite="true" />
+				      <copy file="${basedir}/../console/src/main/resources/logback.xml" todir="${basedir}/src/main/resources/archetype-resources/console/src/main/resources" overwrite="true" />
+                                    </then>
+                                    <else>
+				      <get src="${SVNRepoURL}/core/src/test/resources/persistence.properties" dest="${basedir}/src/main/resources/archetype-resources/core/src/test/resources/persistence.properties" />
+				      <get src="${SVNRepoURL}/core/src/test/resources/workflow.properties" dest="${basedir}/src/main/resources/archetype-resources/core/src/test/resources/workflow.properties" />
+				      <get src="${SVNRepoURL}/core/src/test/resources/content.xml" dest="${basedir}/src/main/resources/archetype-resources/core/src/test/resources/content.xml" />
+				      <get src="${SVNRepoURL}/core/src/test/resources/test.csv" dest="${basedir}/src/main/resources/archetype-resources/core/src/test/resources/test.csv" />
+                                      
+				      <get src="${SVNRepoURL}/core/src/main/resources/persistence.properties" dest="${basedir}/src/main/resources/archetype-resources/core/src/main/resources/persistence.properties" />
+				      <get src="${SVNRepoURL}/core/src/main/resources/workflow.properties" dest="${basedir}/src/main/resources/archetype-resources/core/src/main/resources/workflow.properties" />
+				      <get src="${SVNRepoURL}/core/src/main/resources/content.xml" dest="${basedir}/src/main/resources/archetype-resources/core/src/main/resources/content.xml" />
+				      <get src="${SVNRepoURL}/core/src/main/resources/logback.xml" dest="${basedir}/src/main/resources/archetype-resources/core/src/main/resources/logback.xml" />
+				      <get src="${SVNRepoURL}/core/src/main/webapp/WEB-INF/web.xml" dest="${basedir}/src/main/resources/archetype-resources/core/src/main/webapp/WEB-INF/web.xml" />
+                                      
+				      <get src="${SVNRepoURL}/console/src/main/resources/configuration.properties" dest="${basedir}/src/main/resources/archetype-resources/console/src/main/resources/configuration.properties" />
+				      <get src="${SVNRepoURL}/console/src/main/resources/logback.xml" dest="${basedir}/src/main/resources/archetype-resources/console/src/main/resources/logback.xml" />
+                                    </else>
+				  </if>
+				</target>    
+			</configuration>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
                     </execution>
                 </executions>
-            </plugin>
+		<dependencies>
+		  <dependency>
+		    <groupId>ant-contrib</groupId>
+		    <artifactId>ant-contrib</artifactId>
+		    <version>20020829</version>
+		  </dependency>
+		</dependencies>
+            </plugin>    
+        </plugins>
+    </build>
+
+    <reporting>
+        <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>
                 <version>2.8</version>
-                <dependencies>    
-                    <dependency>
-                        <groupId>org.syncope</groupId>
-                        <artifactId>syncope-build-tools</artifactId>
-                        <version>${project.version}</version>
-                        <classifier>classes</classifier>
-                    </dependency>
-                </dependencies>
+                <configuration>
+                    <configLocation>org/syncope/checkstyle.xml</configLocation>
+                    <targetJdk>${targetJdk}</targetJdk>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-pmd-plugin</artifactId>
                 <version>2.6</version>
-                <dependencies>    
-                    <dependency>
-                        <groupId>org.syncope</groupId>
-                        <artifactId>syncope-build-tools</artifactId>
-                        <version>${project.version}</version>
-                        <classifier>classes</classifier>
-                    </dependency>
-                </dependencies>
+                <configuration>
+                    <rulesets>
+                        <ruleset>org/syncope/pmd.xml</ruleset>
+                    </rulesets>
+                    <targetJdk>${targetJdk}</targetJdk>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jxr-plugin</artifactId>
                 <version>2.3</version>
             </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-site-plugin</artifactId>
-                <version>3.0</version>
-                <configuration>
-                    <locales>en,it</locales>
-                    <reportPlugins>
-                        <plugin>
-                            <groupId>org.apache.maven.plugins</groupId>
-                            <artifactId>maven-checkstyle-plugin</artifactId>
-                            <version>2.8</version>
-                            <configuration>
-                                <configLocation>org/syncope/checkstyle.xml</configLocation>
-                                <targetJdk>${targetJdk}</targetJdk>
-                            </configuration>
-                        </plugin>
-                        <plugin>
-                            <groupId>org.apache.maven.plugins</groupId>
-                            <artifactId>maven-jxr-plugin</artifactId>
-                            <version>2.3</version>
-                        </plugin>
-                        <plugin>
-                            <groupId>org.apache.maven.plugins</groupId>
-                            <artifactId>maven-javadoc-plugin</artifactId>
-                            <version>2.8</version>
-                        </plugin>
-                        <plugin>
-                            <groupId>org.apache.maven.plugins</groupId>
-                            <artifactId>maven-pmd-plugin</artifactId>
-                            <version>2.6</version>
-                            <configuration>
-                                <targetJdk>${targetJdk}</targetJdk>
-                                <rulesets>
-                                    <ruleset>org/syncope/pmd.xml</ruleset>
-                                </rulesets>
-                                <format>xml</format>
-                                <linkXref>true</linkXref>
-                                <sourceEncoding>utf-8</sourceEncoding>
-                                <minimumTokens>100</minimumTokens>
-                            </configuration>
-                        </plugin>
-                        <plugin>
-                            <groupId>org.codehaus.mojo</groupId>
-                            <artifactId>findbugs-maven-plugin</artifactId>
-                            <version>2.3.2</version>
-                            <configuration>
-                                <findbugsXmlOutput>true</findbugsXmlOutput>
-                                <findbugsXmlWithMessages>true</findbugsXmlWithMessages>
-                                <xmlOutput>true</xmlOutput>
-                                <targetJdk>${targetJdk}</targetJdk>
-                            </configuration>
-                        </plugin>
-                    </reportPlugins>
-                </configuration>
-            </plugin>    
         </plugins>
-    </build>
-
-    <profiles>
-        <profile>
-            <id>release-sign-artifacts</id>
-            <activation>
-                <property>
-                    <name>performRelease</name>
-                    <value>true</value>
-                </property>
-            </activation>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-gpg-plugin</artifactId>
-                        <version>1.4</version>
-                        <executions>
-                            <execution>
-                                <id>sign-artifacts</id>
-                                <phase>verify</phase>
-                                <goals>
-                                    <goal>sign</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-    </profiles>
-
-    <modules>
-        <module>build-tools</module>
-        <module>client</module>
-        <module>core</module>
-        <module>console</module>
-        <module>archetype</module>
-    </modules>
-
+    </reporting>
 </project>
