@@ -14,7 +14,7 @@
  */
 package org.syncope.core.rest.data;
 
-import java.util.List;
+import java.util.Iterator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
@@ -25,6 +25,7 @@ import org.syncope.client.to.SchemaTO;
 import org.syncope.client.validation.SyncopeClientCompositeErrorException;
 import org.syncope.client.validation.SyncopeClientException;
 import org.syncope.core.persistence.beans.AbstractAttr;
+import org.syncope.core.persistence.beans.AbstractAttrValue;
 import org.syncope.core.persistence.beans.AbstractDerSchema;
 import org.syncope.core.persistence.beans.AbstractSchema;
 import org.syncope.core.persistence.dao.SchemaDAO;
@@ -50,16 +51,23 @@ public class SchemaDataBinder {
     @Autowired
     private JexlUtil jexlUtil;
 
-    private <T extends AbstractDerSchema> void populate(
+    private <T extends AbstractDerSchema> AbstractSchema populate(
             final AbstractSchema schema,
-            final SchemaTO schemaTO)
+            final SchemaTO schemaTO,
+            final Class<T> derivedReference,
+            final SyncopeClientCompositeErrorException scce)
             throws SyncopeClientCompositeErrorException {
 
-        if (!jexlUtil.isExpressionValid(schemaTO.getMandatoryCondition())) {
-            SyncopeClientCompositeErrorException scce =
-                    new SyncopeClientCompositeErrorException(
-                    HttpStatus.BAD_REQUEST);
+        if (schemaTO.getMandatoryCondition() == null) {
+            SyncopeClientException requiredValuesMissing =
+                    new SyncopeClientException(
+                    SyncopeClientExceptionType.RequiredValuesMissing);
+            requiredValuesMissing.addElement("mandatoryCondition");
 
+            scce.addException(requiredValuesMissing);
+        }
+
+        if (!jexlUtil.isExpressionValid(schemaTO.getMandatoryCondition())) {
             SyncopeClientException invalidMandatoryCondition =
                     new SyncopeClientException(
                     SyncopeClientExceptionType.InvalidValues);
@@ -67,19 +75,31 @@ public class SchemaDataBinder {
                     schemaTO.getMandatoryCondition());
 
             scce.addException(invalidMandatoryCondition);
+        }
+
+        if (scce.hasExceptions()) {
             throw scce;
         }
 
         BeanUtils.copyProperties(schemaTO, schema, IGNORE_SCHEMA_PROPERTIES);
+
+        return schema;
     }
 
-    public void create(final SchemaTO schemaTO, final AbstractSchema schema)
+    public <T extends AbstractDerSchema> AbstractSchema create(
+            final SchemaTO schemaTO,
+            AbstractSchema schema,
+            final Class<T> derivedReference)
             throws SyncopeClientCompositeErrorException {
 
-        populate(schema, schemaTO);
+        return populate(schema, schemaTO, derivedReference,
+                new SyncopeClientCompositeErrorException(
+                HttpStatus.BAD_REQUEST));
     }
 
-    public void update(final SchemaTO schemaTO, final AbstractSchema schema,
+    public <T extends AbstractDerSchema> AbstractSchema update(
+            final SchemaTO schemaTO,
+            AbstractSchema schema,
             final AttributableUtil attributableUtil)
             throws SyncopeClientCompositeErrorException {
 
@@ -87,37 +107,45 @@ public class SchemaDataBinder {
                 new SyncopeClientCompositeErrorException(
                 HttpStatus.BAD_REQUEST);
 
-        List<AbstractAttr> attrs = schemaDAO.getAttributes(
-                schema, attributableUtil.attributeClass());
-        if (!attrs.isEmpty()) {
-            if (schema.getType() != schemaTO.getType()) {
-                SyncopeClientException e = new SyncopeClientException(
-                        SyncopeClientExceptionType.valueOf(
-                        "Invalid" + schema.getClass().getSimpleName()));
-                e.addElement("Cannot change type since " + schema.getName()
-                        + " has attributes");
+        schema = populate(schema, schemaTO,
+                attributableUtil.derivedSchemaClass(), scce);
 
-                scce.addException(e);
-            }
-            if (schema.isUniqueConstraint() != schemaTO.isUniqueConstraint()) {
-                SyncopeClientException e = new SyncopeClientException(
-                        SyncopeClientExceptionType.valueOf(
-                        "Invalid" + schema.getClass().getSimpleName()));
-                e.addElement("Cannot alter unique contraint since "
-                        + schema.getName() + " has attributes");
+        boolean validationExceptionFound = false;
+        AbstractAttr attribute;
+        AbstractAttrValue attributeValue;
+        for (Iterator<? extends AbstractAttr> aItor = schemaDAO.getAttributes(
+                schema, attributableUtil.attributeClass()).iterator();
+                aItor.hasNext() && !validationExceptionFound;) {
 
-                scce.addException(e);
+            attribute = aItor.next();
+            for (Iterator<? extends AbstractAttrValue> avItor =
+                    attribute.getValues().iterator();
+                    avItor.hasNext() && !validationExceptionFound;) {
+
+                attributeValue = avItor.next();
+                try {
+                    schema.getValidator().getValue(
+                            attributeValue.getValueAsString(),
+                            attributeValue);
+                } catch (Exception e) {
+                    validationExceptionFound = true;
+                }
             }
         }
 
-        if (scce.hasExceptions()) {
+        if (validationExceptionFound) {
+            SyncopeClientException e = new SyncopeClientException(
+                    SyncopeClientExceptionType.InvalidUpdate);
+            e.addElement(schema.getName());
+
+            scce.addException(e);
             throw scce;
         }
 
-        populate(schema, schemaTO);
+        return schema;
     }
 
-    public <T extends AbstractSchema> SchemaTO getSchemaTO(final T schema,
+    public <T extends AbstractSchema> SchemaTO getSchemaTO(T schema,
             final AttributableUtil attributableUtil) {
 
         SchemaTO schemaTO = new SchemaTO();

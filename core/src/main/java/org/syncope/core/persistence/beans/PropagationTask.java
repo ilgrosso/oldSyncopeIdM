@@ -14,6 +14,10 @@
  */
 package org.syncope.core.persistence.beans;
 
+import com.thoughtworks.xstream.XStream;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
+import java.util.Collections;
 import java.util.Set;
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
@@ -22,11 +26,11 @@ import javax.persistence.Lob;
 import javax.persistence.ManyToOne;
 import org.hibernate.annotations.Type;
 import org.identityconnectors.framework.common.objects.Attribute;
-import org.syncope.core.persistence.beans.user.SyncopeUser;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.syncope.core.persistence.validation.entity.PropagationTaskCheck;
-import org.syncope.core.util.XMLSerializer;
+import org.syncope.core.util.ApplicationContextManager;
 import org.syncope.types.PropagationMode;
-import org.syncope.types.PropagationOperation;
+import org.syncope.types.ResourceOperationType;
 
 /**
  * Encapsulate all information about a propagation task.
@@ -44,18 +48,18 @@ public class PropagationTask extends Task {
     private PropagationMode propagationMode;
 
     /**
-     * @see PropagationOperation
+     * @see ResourceOperationType
      */
     @Enumerated(EnumType.STRING)
-    private PropagationOperation propagationOperation;
+    private ResourceOperationType resourceOperationType;
 
     /**
-     * The accountId on the external resource.
+     * The accountId on the target resource.
      */
     private String accountId;
 
     /**
-     * The (optional) former accountId on the external resource.
+     * The (optional) former accountId on the target resource.
      */
     private String oldAccountId;
 
@@ -67,16 +71,10 @@ public class PropagationTask extends Task {
     private String xmlAttributes;
 
     /**
-     * User whose data are propagated.
+     * TargetResource to which the propagation happens.
      */
     @ManyToOne
-    private SyncopeUser syncopeUser;
-
-    /**
-     * ExternalResource to which the propagation happens.
-     */
-    @ManyToOne
-    private ExternalResource resource;
+    private TargetResource resource;
 
     public String getAccountId() {
         return accountId;
@@ -95,11 +93,31 @@ public class PropagationTask extends Task {
     }
 
     public Set<Attribute> getAttributes() {
-        return XMLSerializer.<Set<Attribute>>deserialize(xmlAttributes);
+        Set<Attribute> result = Collections.EMPTY_SET;
+
+        ConfigurableApplicationContext context =
+                ApplicationContextManager.getApplicationContext();
+        XStream xStream = context.getBean(XStream.class);
+        try {
+            result = (Set<Attribute>) xStream.fromXML(
+                    URLDecoder.decode(xmlAttributes, "UTF-8"));
+        } catch (Throwable t) {
+            LOG.error("During attribute deserialization", t);
+        }
+
+        return result;
     }
 
     public void setAttributes(final Set<Attribute> attributes) {
-        xmlAttributes = XMLSerializer.serialize(attributes);
+        ConfigurableApplicationContext context =
+                ApplicationContextManager.getApplicationContext();
+        XStream xStream = context.getBean(XStream.class);
+        try {
+            xmlAttributes = URLEncoder.encode(
+                    xStream.toXML(attributes), "UTF-8");
+        } catch (Throwable t) {
+            LOG.error("During attribute serialization", t);
+        }
     }
 
     public PropagationMode getPropagationMode() {
@@ -110,29 +128,21 @@ public class PropagationTask extends Task {
         this.propagationMode = propagationMode;
     }
 
-    public PropagationOperation getPropagationOperation() {
-        return propagationOperation;
+    public ResourceOperationType getResourceOperationType() {
+        return resourceOperationType;
     }
 
-    public void setPropagationOperation(
-            PropagationOperation propagationOperation) {
+    public void setResourceOperationType(
+            final ResourceOperationType resourceOperationType) {
 
-        this.propagationOperation = propagationOperation;
+        this.resourceOperationType = resourceOperationType;
     }
 
-    public ExternalResource getResource() {
+    public TargetResource getResource() {
         return resource;
     }
 
-    public void setResource(ExternalResource resource) {
+    public void setResource(TargetResource resource) {
         this.resource = resource;
-    }
-
-    public SyncopeUser getSyncopeUser() {
-        return syncopeUser;
-    }
-
-    public void setSyncopeUser(SyncopeUser syncopeUser) {
-        this.syncopeUser = syncopeUser;
     }
 }

@@ -16,7 +16,6 @@ package org.syncope.client.mod;
 
 import java.util.ArrayList;
 import java.util.List;
-import org.codehaus.jackson.annotate.JsonIgnore;
 import org.syncope.client.AbstractBaseBean;
 
 public class AttributeMod extends AbstractBaseBean {
@@ -74,11 +73,5 @@ public class AttributeMod extends AbstractBaseBean {
 
     public void setValuesToBeRemoved(List<String> valuesToBeRemoved) {
         this.valuesToBeRemoved = valuesToBeRemoved;
-    }
-
-    @JsonIgnore
-    public boolean isEmpty() {
-        return valuesToBeAdded.isEmpty()
-                && valuesToBeRemoved.isEmpty();
     }
 }

@@ -25,39 +25,33 @@ import javax.persistence.Id;
 import javax.persistence.ManyToOne;
 import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
-import javax.validation.constraints.NotNull;
-import org.syncope.core.persistence.validation.entity.SchemaMappingCheck;
-import org.syncope.types.IntMappingType;
+import org.syncope.types.SourceMappingType;
 
 @Entity
 @Cacheable
-@SchemaMappingCheck
 public class SchemaMapping extends AbstractBaseBean {
-
-    private static final long serialVersionUID = 7383601853619332424L;
 
     @Id
     private Long id;
 
-    @Column(nullable = true)
-    private String intAttrName;
+    @Column(nullable = false)
+    private String sourceAttrName;
 
     @Column(nullable = false)
     @Enumerated(STRING)
-    private IntMappingType intMappingType;
+    private SourceMappingType sourceMappingType;
 
     /**
-     * Resource that has fields to be mapped over user attribute schemas.
+     * Target resource that has fields to be mapped over user attribute schemas.
      */
     @ManyToOne
-    @NotNull
-    private ExternalResource resource;
+    private TargetResource resource;
 
     /**
      * Target resource's field to be mapped.
      */
-    @Column(nullable = true)
-    private String extAttrName;
+    @Column(nullable = false)
+    private String destAttrName;
 
     /**
      * Specify if the mapped target resource's field is the key.
@@ -103,12 +97,12 @@ public class SchemaMapping extends AbstractBaseBean {
         this.accountid = getBooleanAsInteger(accountid);
     }
 
-    public String getExtAttrName() {
-        return extAttrName;
+    public String getDestAttrName() {
+        return destAttrName;
     }
 
-    public void setExtAttrName(String extAttrName) {
-        this.extAttrName = extAttrName;
+    public void setDestAttrName(String destAttrName) {
+        this.destAttrName = destAttrName;
     }
 
     public String getMandatoryCondition() {
@@ -127,27 +121,27 @@ public class SchemaMapping extends AbstractBaseBean {
         this.password = getBooleanAsInteger(password);
     }
 
-    public ExternalResource getResource() {
+    public TargetResource getResource() {
         return resource;
     }
 
-    public void setResource(ExternalResource resource) {
+    public void setResource(TargetResource resource) {
         this.resource = resource;
     }
 
-    public String getIntAttrName() {
-        return intAttrName;
+    public String getSourceAttrName() {
+        return sourceAttrName;
     }
 
-    public void setIntAttrName(String intAttrName) {
-        this.intAttrName = intAttrName;
+    public void setSourceAttrName(String sourceAttrName) {
+        this.sourceAttrName = sourceAttrName;
     }
 
-    public IntMappingType getIntMappingType() {
-        return intMappingType;
+    public SourceMappingType getSourceMappingType() {
+        return sourceMappingType;
     }
 
-    public void setIntMappingType(IntMappingType intMappingType) {
-        this.intMappingType = intMappingType;
+    public void setSourceMappingType(SourceMappingType sourceMappingType) {
+        this.sourceMappingType = sourceMappingType;
     }
 }

@@ -15,10 +15,10 @@
 <configuration>
 
     <appender name="main" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${log.directory}/core.log</file>
+        <file>${logfile}</file>
         <append>true</append>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>${log.directory}/core.log.%d{yyyy-MM-dd}</fileNamePattern>
+            <fileNamePattern>${logfile}.%d{yyyy-MM-dd}</fileNamePattern>
             <maxHistory>30</maxHistory>
         </rollingPolicy>
         <encoder>
@@ -27,10 +27,10 @@
     </appender>
 
     <appender name="persistence" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${log.directory}/core-persistence.log</file>
+        <file>${logfile.persistence}</file>
         <append>true</append>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>${log.directory}/core-persistence.log.%d{yyyy-MM-dd}</fileNamePattern>
+            <fileNamePattern>${logfile.persistence}.%d{yyyy-MM-dd}</fileNamePattern>
             <maxHistory>30</maxHistory>
         </rollingPolicy>
         <encoder>
@@ -39,10 +39,10 @@
     </appender>
 
     <appender name="rest" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${log.directory}/core-rest.log</file>
+        <file>${logfile.rest}</file>
         <append>true</append>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>${log.directory}/core-rest.log.%d{yyyy-MM-dd}</fileNamePattern>
+            <fileNamePattern>${logfile.rest}.%d{yyyy-MM-dd}</fileNamePattern>
             <maxHistory>30</maxHistory>
         </rollingPolicy>
         <encoder>
@@ -51,10 +51,10 @@
     </appender>
 
     <appender name="connid" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${log.directory}/core-connid.log</file>
+        <file>${logfile.connid}</file>
         <append>true</append>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>${log.directory}/core-connid.log.%d{yyyy-MM-dd}</fileNamePattern>
+            <fileNamePattern>${logfile.connid}.%d{yyyy-MM-dd}</fileNamePattern>
             <maxHistory>30</maxHistory>
         </rollingPolicy>
         <encoder>
@@ -63,10 +63,10 @@
     </appender>
 
     <appender name="test" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${log.directory}/core-test.log</file>
+        <file>${logfile.test}</file>
         <append>true</append>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>${log.directory}/core-test.log.%d{yyyy-MM-dd}</fileNamePattern>
+            <fileNamePattern>${logfile.test}.%d{yyyy-MM-dd}</fileNamePattern>
             <maxHistory>30</maxHistory>
         </rollingPolicy>
         <encoder>
@@ -75,10 +75,10 @@
     </appender>
 
     <appender name="monitor" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${log.directory}/core-monitor.log</file>
+        <file>${logfile.monitor}</file>
         <append>true</append>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>${log.directory}/core-monitor.log.%d{yyyy-MM-dd}</fileNamePattern>
+            <fileNamePattern>${logfile.monitor}.%d{yyyy-MM-dd}</fileNamePattern>
             <maxHistory>30</maxHistory>
         </rollingPolicy>
         <encoder>
@@ -95,11 +95,7 @@
         <level value="INFO"/>
         <appender-ref ref="persistence"/>
     </logger>
-    <logger name="org.syncope.core.persistence.propagation.ConnectorFacadeProxy" additivity="false">
-        <level value="INFO"/>
-        <appender-ref ref="persistence"/>
-    </logger>
-    
+
     <logger name="org.syncope.core.security" additivity="false">
         <level value="INFO"/>
         <appender-ref ref="main"/>
@@ -169,6 +165,16 @@
     </logger>
 
     <logger name="org.springframework.web" additivity="false">
+        <level value="INFO"/>
+        <appender-ref ref="rest"/>
+    </logger>
+
+    <logger name="com.opensymphony.workflow" additivity="false">
+        <level value="INFO"/>
+        <appender-ref ref="rest"/>
+    </logger>
+
+    <logger name="org.apache.velocity" additivity="false">
         <level value="INFO"/>
         <appender-ref ref="rest"/>
     </logger>

@@ -17,32 +17,28 @@
 package org.syncope.console.pages;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Arrays;
-import org.apache.wicket.PageReference;
+import org.apache.wicket.Component;
 import org.apache.wicket.ajax.AjaxRequestTarget;
 import org.apache.wicket.ajax.form.AjaxFormComponentUpdatingBehavior;
 import org.apache.wicket.ajax.markup.html.form.AjaxButton;
 import org.apache.wicket.extensions.ajax.markup.html.autocomplete.AutoCompleteTextField;
 import org.apache.wicket.extensions.ajax.markup.html.modal.ModalWindow;
+import org.apache.wicket.markup.html.form.DropDownChoice;
 import org.apache.wicket.markup.html.form.Form;
+import org.apache.wicket.markup.html.form.TextField;
 import org.apache.wicket.model.CompoundPropertyModel;
+import org.apache.wicket.model.Model;
 import org.apache.wicket.model.PropertyModel;
 import org.apache.wicket.util.string.Strings;
 import org.syncope.client.to.SchemaTO;
-import org.apache.wicket.authroles.authorization.strategies.role.metadata.MetaDataRoleAuthorizationStrategy;
+import org.apache.wicket.authorization.strategies.role.metadata.MetaDataRoleAuthorizationStrategy;
 import org.apache.wicket.extensions.ajax.markup.html.IndicatingAjaxButton;
-import org.apache.wicket.markup.html.form.DropDownChoice;
-import org.apache.wicket.model.IModel;
-import org.apache.wicket.model.LoadableDetachableModel;
-import org.apache.wicket.model.ResourceModel;
+import org.apache.wicket.markup.html.form.CheckBox;
 import org.syncope.client.AbstractBaseBean;
-import org.syncope.client.validation.SyncopeClientCompositeErrorException;
-import org.syncope.console.wicket.markup.html.form.AjaxCheckBoxPanel;
-import org.syncope.console.wicket.markup.html.form.AjaxDropDownChoicePanel;
-import org.syncope.console.wicket.markup.html.form.AjaxTextFieldPanel;
 import org.syncope.types.SchemaType;
 
 /**
@@ -50,15 +46,13 @@ import org.syncope.types.SchemaType;
  */
 public class SchemaModalPage extends AbstractSchemaModalPage {
 
-    private static final long serialVersionUID = -5991561277287424057L;
-
     public SchemaModalPage(String kind) {
         super(kind);
     }
 
     @Override
     public void setSchemaModalPage(
-            final PageReference callerPageRef,
+            final BasePage basePage,
             final ModalWindow window,
             AbstractBaseBean schemaTO,
             final boolean createFlag) {
@@ -66,88 +60,72 @@ public class SchemaModalPage extends AbstractSchemaModalPage {
         final SchemaTO schema =
                 schemaTO == null ? new SchemaTO() : (SchemaTO) schemaTO;
 
-        final Form schemaForm = new Form("form");
+        final Form schemaForm = new Form("SchemaForm");
 
         schemaForm.setModel(new CompoundPropertyModel(schema));
         schemaForm.setOutputMarkupId(Boolean.TRUE);
 
-        final AjaxTextFieldPanel name = new AjaxTextFieldPanel(
-                "name", getString("name"),
-                new PropertyModel<String>(schema, "name"), true);
-        name.addRequiredLabel();
+
+        final TextField name = new TextField("name");
+        addEmptyBehaviour(name, "onblur");
+        name.setRequired(true);
+
         name.setEnabled(createFlag);
 
-        final AjaxTextFieldPanel conversionPattern = new AjaxTextFieldPanel(
-                "conversionPattern", getString("conversionPattern"),
-                new PropertyModel<String>(schema, "conversionPattern"), true);
+        final TextField conversionPattern = new TextField("conversionPattern");
+        addEmptyBehaviour(conversionPattern, "onblur");
 
-        final IModel<List<String>> validatorsList =
-                new LoadableDetachableModel<List<String>>() {
+        final ArrayList<String> validatorsList = new ArrayList<String>();
+        validatorsList.add("org.syncope.core.persistence.validation"
+                + ".AlwaysTrueValidator");
+        validatorsList.add("org.syncope.core.persistence.validation"
+                + ".EmailAddressValidator");
 
-                    private static final long serialVersionUID =
-                            5275935387613157437L;
+        final DropDownChoice validatorClass = new DropDownChoice(
+                "validatorClass",
+                new PropertyModel(schema, "validatorClass"),
+                validatorsList);
 
-                    @Override
-                    protected List<String> load() {
-                        return restClient.getAllValidatorClasses();
-                    }
-                };
+        addEmptyBehaviour(validatorClass, "onblur");
 
-        final AjaxDropDownChoicePanel<String> validatorClass =
-                new AjaxDropDownChoicePanel<String>(
-                "validatorClass", getString("validatorClass"),
-                new PropertyModel(schema, "validatorClass"), true);
+        final DropDownChoice type = new DropDownChoice(
+                "type",
+                Arrays.asList(SchemaType.Enum.values()));
+        type.setRequired(true);
 
-        ((DropDownChoice) validatorClass.getField()).setNullValid(true);
-        validatorClass.setChoices(validatorsList.getObject());
-
-        final AjaxDropDownChoicePanel<SchemaType> type =
-                new AjaxDropDownChoicePanel<SchemaType>(
-                "type", getString("type"),
-                new PropertyModel(schema, "type"), false);
-        type.setChoices(Arrays.asList(SchemaType.values()));
-        type.addRequiredLabel();
-
-        final AjaxTextFieldPanel enumerationValues = new AjaxTextFieldPanel(
-                "enumerationValues", getString("enumerationValues"),
-                new PropertyModel<String>(schema, "enumerationValues"), false);
+        final TextField enumerationValues = new TextField("enumerationValues");
 
         if (schema != null
                 && SchemaType.Enum.equals(((SchemaTO) schema).getType())) {
-            enumerationValues.addRequiredLabel();
+            enumerationValues.setRequired(Boolean.TRUE);
             enumerationValues.setEnabled(Boolean.TRUE);
         } else {
-            enumerationValues.removeRequiredLabel();
+            enumerationValues.setRequired(Boolean.FALSE);
             enumerationValues.setEnabled(Boolean.FALSE);
         }
 
-        type.getField().add(new AjaxFormComponentUpdatingBehavior("onchange") {
-
-            private static final long serialVersionUID = -1107858522700306810L;
+        type.add(new AjaxFormComponentUpdatingBehavior("onchange") {
 
             @Override
             protected void onUpdate(final AjaxRequestTarget target) {
                 if (SchemaType.Enum.ordinal()
-                        == Integer.parseInt(type.getField().getValue())) {
-                    enumerationValues.addRequiredLabel();
+                        == Integer.parseInt(type.getValue())) {
+                    enumerationValues.setRequired(Boolean.TRUE);
                     enumerationValues.setEnabled(Boolean.TRUE);
-                    enumerationValues.setModelObject(
+                    enumerationValues.getModel().setObject(
                             ((SchemaTO) schema).getEnumerationValues());
                 } else {
-                    enumerationValues.removeRequiredLabel();
+                    enumerationValues.setRequired(Boolean.FALSE);
                     enumerationValues.setEnabled(Boolean.FALSE);
-                    enumerationValues.setModelObject(null);
+                    enumerationValues.getModel().setObject(null);
                 }
 
-                target.add(schemaForm);
+                target.addComponent(schemaForm);
             }
         });
 
         final AutoCompleteTextField mandatoryCondition =
                 new AutoCompleteTextField("mandatoryCondition") {
-
-                    private static final long serialVersionUID =
-                            -2428903969518079100L;
 
                     @Override
                     protected Iterator getChoices(String input) {
@@ -169,69 +147,47 @@ public class SchemaModalPage extends AbstractSchemaModalPage {
                     }
                 };
 
-        mandatoryCondition.add(
-                new AjaxFormComponentUpdatingBehavior("onchange") {
+        addEmptyBehaviour(mandatoryCondition, "onblur");
 
-                    private static final long serialVersionUID =
-                            -1107858522700306810L;
+        final CheckBox multivalue = new CheckBox("multivalue");
+        addEmptyBehaviour(multivalue, "onchange");
 
-                    @Override
-                    protected void onUpdate(AjaxRequestTarget art) {
-                    }
-                });
+        final CheckBox readonly = new CheckBox("readonly");
+        addEmptyBehaviour(readonly, "onchange");
 
-        final AjaxCheckBoxPanel multivalue = new AjaxCheckBoxPanel(
-                "multivalue", getString("multivalue"),
-                new PropertyModel<Boolean>(schema, "multivalue"), true);
-
-        final AjaxCheckBoxPanel readonly = new AjaxCheckBoxPanel(
-                "readonly", getString("readonly"),
-                new PropertyModel<Boolean>(schema, "readonly"), true);
-
-        final AjaxCheckBoxPanel uniqueConstraint = new AjaxCheckBoxPanel(
-                "uniqueConstraint", getString("uniqueConstraint"),
-                new PropertyModel<Boolean>(schema, "uniqueConstraint"), true);
+        final CheckBox uniqueConstraint = new CheckBox("uniqueConstraint");
+        addEmptyBehaviour(uniqueConstraint, "onchange");
 
         final AjaxButton submit = new IndicatingAjaxButton(
-                "apply", new ResourceModel("submit")) {
-
-            private static final long serialVersionUID = -958724007591692537L;
+                "submit", new Model(getString("submit"))) {
 
             @Override
-            protected void onSubmit(final AjaxRequestTarget target,
-                    final Form form) {
+            protected void onSubmit(AjaxRequestTarget target, Form form) {
 
                 SchemaTO schemaTO = (SchemaTO) form.getDefaultModelObject();
 
                 if (schemaTO.isMultivalue() && schemaTO.isUniqueConstraint()) {
                     error(getString("multivalueAndUniqueConstr.validation"));
-                    target.add(feedbackPanel);
                     return;
                 }
 
-                try {
-                    if (createFlag) {
-                        restClient.createSchema(kind, schemaTO);
-                    } else {
-                        restClient.updateSchema(kind, schemaTO);
-                    }
-                    if (callerPageRef.getPage() instanceof BasePage) {
-                        ((BasePage) callerPageRef.getPage()).setModalResult(
-                                true);
-                    }
+                LOG.error("aaaaaaaaaaa {}", schemaTO);
 
-                    window.close(target);
-                } catch (SyncopeClientCompositeErrorException e) {
-                    error(getString("error") + ":" + e.getMessage());
-                    target.add(feedbackPanel);
+                if (createFlag) {
+                    restClient.createSchema(kind, schemaTO);
+                } else {
+                    restClient.updateSchema(kind, schemaTO);
                 }
+
+                Schema callerPage = (Schema) basePage;
+                callerPage.setOperationResult(true);
+
+                window.close(target);
             }
 
             @Override
-            protected void onError(final AjaxRequestTarget target,
-                    final Form form) {
-
-                target.add(feedbackPanel);
+            protected void onError(AjaxRequestTarget target, Form form) {
+                target.addComponent(feedbackPanel);
             }
         };
 
@@ -261,5 +217,14 @@ public class SchemaModalPage extends AbstractSchemaModalPage {
         schemaForm.add(submit);
 
         add(schemaForm);
+    }
+
+    private void addEmptyBehaviour(Component component, String event) {
+        component.add(new AjaxFormComponentUpdatingBehavior(event) {
+
+            @Override
+            protected void onUpdate(AjaxRequestTarget art) {
+            }
+        });
     }
 }

@@ -26,7 +26,6 @@ import org.hibernate.annotations.Type;
 
 /**
  * An execution (with result) of a Task.
- *
  * @see PropagationTask
  */
 @Entity
@@ -76,8 +75,10 @@ public class TaskExec extends AbstractBaseBean {
         return endDate == null ? null : new Date(endDate.getTime());
     }
 
-    public void setEndDate(final Date endDate) {
-        this.endDate = endDate == null ? null : new Date(endDate.getTime());
+    public void setEndDate(Date endDate) {
+        if (endDate != null) {
+            this.endDate = new Date(endDate.getTime());
+        }
     }
 
     public String getMessage() {
@@ -92,9 +93,10 @@ public class TaskExec extends AbstractBaseBean {
         return startDate == null ? null : new Date(startDate.getTime());
     }
 
-    public void setStartDate(final Date startDate) {
-        this.startDate = startDate == null
-                ? null : new Date(startDate.getTime());
+    public void setStartDate(Date startDate) {
+        if (startDate != null) {
+            this.startDate = new Date(startDate.getTime());
+        }
     }
 
     public Task getTask() {

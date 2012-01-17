@@ -14,14 +14,12 @@
  */
 package org.syncope.core.persistence.beans.membership;
 
-import javax.persistence.Cacheable;
 import javax.persistence.Entity;
+import org.hibernate.annotations.Cache;
+import org.hibernate.annotations.CacheConcurrencyStrategy;
 import org.syncope.core.persistence.beans.AbstractDerSchema;
 
 @Entity
-@Cacheable
+@Cache(usage = CacheConcurrencyStrategy.TRANSACTIONAL)
 public class MDerSchema extends AbstractDerSchema {
-
-    private static final long serialVersionUID = -4694082505732174583L;
-
 }

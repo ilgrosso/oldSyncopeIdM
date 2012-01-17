@@ -14,83 +14,53 @@
  */
 package org.syncope.console.wicket.markup.html.form;
 
-import java.io.Serializable;
-import java.util.List;
 import org.apache.wicket.ajax.AjaxRequestTarget;
 import org.apache.wicket.ajax.form.AjaxFormComponentUpdatingBehavior;
 import org.apache.wicket.markup.html.form.CheckBox;
+import org.apache.wicket.markup.html.panel.Panel;
 import org.apache.wicket.model.IModel;
 import org.apache.wicket.model.Model;
-import org.springframework.util.StringUtils;
 
-public class AjaxCheckBoxPanel extends FieldPanel<Boolean> {
-
-    private static final long serialVersionUID = 5664138233103884310L;
+public class AjaxCheckBoxPanel extends Panel {
 
     public AjaxCheckBoxPanel(
             final String id,
             final String name,
             final IModel<Boolean> model,
-            final boolean active) {
+            final boolean required) {
 
-        super(id, name, model, active);
+        super(id, model);
 
-        field = new CheckBox("checkboxField", model);
-        add(field.setLabel(new Model(name)).setOutputMarkupId(true));
+        final CheckBox field = new CheckBox("checkboxField", model);
+        add(field.setLabel(new Model(name)));
 
-        if (active) {
-            field.add(new AjaxFormComponentUpdatingBehavior("onchange") {
-
-                private static final long serialVersionUID =
-                        -1107858522700306810L;
-
-                @Override
-                protected void onUpdate(final AjaxRequestTarget target) {
-                    // nothing to do
-                }
-            });
-        }
-    }
-
-    @Override
-    public FieldPanel addRequiredLabel() {
-        if (!isRequired()) {
-            setRequired(true);
-        }
-
-        this.isRequiredLabelAdded = true;
-
-        return this;
-    }
-
-    @Override
-    public FieldPanel setNewModel(final List<Serializable> list) {
-        setNewModel(new Model() {
-
-            private static final long serialVersionUID = 527651414610325237L;
+        field.add(new AjaxFormComponentUpdatingBehavior("onchange") {
 
             @Override
-            public Serializable getObject() {
-                Boolean value = null;
-
-                if (list != null && !list.isEmpty()
-                        && StringUtils.hasText(list.get(0).toString())) {
-
-                    value = "true".equalsIgnoreCase(list.get(0).toString());
-                }
-
-                return value;
-            }
-
-            @Override
-            public void setObject(final Serializable object) {
-                if (object != null) {
-                    list.clear();
-                    list.add(((Boolean) object).toString());
-                }
+            protected void onUpdate(AjaxRequestTarget art) {
+                // nothing to do
             }
         });
+    }
 
-        return this;
+    public AjaxCheckBoxPanel(
+            final String id,
+            final String name,
+            final IModel<Boolean> model,
+            final boolean required,
+            final boolean readonly) {
+
+        super(id, model);
+
+        final CheckBox field = new CheckBox("checkboxField", model);
+        add(field.setLabel(new Model(name)).setEnabled(!readonly));
+
+        field.add(new AjaxFormComponentUpdatingBehavior("onchange") {
+
+            @Override
+            protected void onUpdate(AjaxRequestTarget art) {
+                // nothing to do
+            }
+        });
     }
 }

@@ -16,17 +16,8 @@ package org.syncope.console.commons;
 
 public final class Constants {
 
-    public static final String PREF_USERS_DETAILS_VIEW =
-            "users.details.view";
-
     public static final String PREF_USERS_ATTRIBUTES_VIEW =
             "users.attributes.view";
-
-    public static final String PREF_USERS_DERIVED_ATTRIBUTES_VIEW =
-            "users.derived.attributes.view";
-
-    public static final String PREF_USERS_VIRTUAL_ATTRIBUTES_VIEW =
-            "users.virtual.attributes.view";
 
     public static final String PREFS_COOKIE_NAME = "syncopeConsolePrefs";
 
@@ -60,6 +51,9 @@ public final class Constants {
     public static final String PREF_USERS_PAGINATOR_ROWS =
             "users.paginator.rows";
 
+    public static final String PREF_USERS_SEARCH_PAGINATOR_ROWS =
+            "users.paginator.search.rows";
+
     public static final String PREF_RESOURCES_PAGINATOR_ROWS =
             "resources.paginator.rows";
 
@@ -69,26 +63,8 @@ public final class Constants {
     public static final String PREF_CONFIGURATION_PAGINATOR_ROWS =
             "configuration.paginator.rows";
 
-    public static final String PREF_NOTIFICATION_PAGINATOR_ROWS =
-            "notification.paginator.rows";
-
-    public static final String PREF_PROPAGATION_TASKS_PAGINATOR_ROWS =
-            "proagationtasks.paginator.rows";
-
-    public static final String PREF_NOTIFICATION_TASKS_PAGINATOR_ROWS =
-            "notificationtasks.paginator.rows";
-
-    public static final String PREF_SCHED_TASKS_PAGINATOR_ROWS =
-            "schedtasks.paginator.rows";
-
-    public static final String PREF_SYNC_TASKS_PAGINATOR_ROWS =
-            "synctasks.paginator.rows";
-
-    public static final String PREF_APPROVAL_PAGINATOR_ROWS =
-            "approval.paginator.rows";
-
-    public static final String PREF_USER_REQUEST_PAGINATOR_ROWS =
-            "userRequest.paginator.rows";
+    public static final String PREF_TASKS_PAGINATOR_ROWS =
+            "tasks.paginator.rows";
 
     public static final String PAGEPARAM_CREATE = "CREATE";
 
@@ -104,9 +80,6 @@ public final class Constants {
     public static final String[] VIRTUAL_SCHEMA_FIELDS = {"name"};
 
     public static final String[] DERIVED_SCHEMA_FIELDS = {"name", "expression"};
-
-    public static final String PREF_POLICY_PAGINATOR_ROWS =
-            "policy.paginator.rows";
 
     private Constants() {
     }

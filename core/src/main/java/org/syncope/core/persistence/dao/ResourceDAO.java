@@ -16,26 +16,26 @@ package org.syncope.core.persistence.dao;
 
 import java.util.List;
 import org.syncope.core.persistence.beans.SchemaMapping;
-import org.syncope.core.persistence.beans.ExternalResource;
+import org.syncope.core.persistence.beans.TargetResource;
 import org.syncope.core.persistence.validation.entity.InvalidEntityException;
-import org.syncope.types.IntMappingType;
+import org.syncope.types.SourceMappingType;
 
 public interface ResourceDAO extends DAO {
 
-    ExternalResource find(String name);
+    TargetResource find(String name);
 
-    List<ExternalResource> findAll();
+    List<TargetResource> findAll();
 
-    List<ExternalResource> findAllByPriority();
-
-    ExternalResource save(ExternalResource resource)
+    TargetResource save(TargetResource resource)
             throws InvalidEntityException;
 
     List<SchemaMapping> findAllMappings();
 
     SchemaMapping getMappingForAccountId(String resourceName);
 
-    void deleteMappings(String schemaName, IntMappingType intMappingType);
+    void deleteMappings(String schemaName, SourceMappingType sourceMappingType);
+
+    void deleteAllMappings(TargetResource resource);
 
     void delete(String name);
 }

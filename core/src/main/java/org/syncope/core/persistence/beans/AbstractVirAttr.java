@@ -28,9 +28,10 @@ import org.identityconnectors.framework.common.objects.ObjectClass;
 import org.identityconnectors.framework.common.objects.Uid;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.syncope.core.init.ConnInstanceLoader;
-import org.syncope.core.propagation.ConnectorFacadeProxy;
+import org.syncope.core.persistence.propagation.ConnectorFacadeProxy;
 import org.syncope.core.util.ApplicationContextManager;
-import org.syncope.types.IntMappingType;
+import org.syncope.core.util.JexlUtil;
+import org.syncope.types.SourceMappingType;
 
 @MappedSuperclass
 public abstract class AbstractVirAttr extends AbstractBaseBean {
@@ -54,10 +55,12 @@ public abstract class AbstractVirAttr extends AbstractBaseBean {
 
     protected <T extends AbstractAttributable> List<Object> retrieveValues(
             final T attributable, final String attributeName,
-            final IntMappingType intMappingType) {
+            final SourceMappingType sourceMappingType) {
 
         LOG.debug("{}: retrieving external values for {}",
                 new Object[]{attributable, attributeName});
+
+        List<Object> values;
 
         ConfigurableApplicationContext context =
                 ApplicationContextManager.getApplicationContext();
@@ -66,40 +69,48 @@ public abstract class AbstractVirAttr extends AbstractBaseBean {
         if (connInstanceLoader == null) {
             LOG.error("Could not get to ConnInstanceLoader");
             return null;
+        } else {
+            values = new ArrayList<Object>();
         }
 
-        List<Object> virAttrValues = new ArrayList<Object>();
+        JexlUtil jexlUtil = context.getBean(JexlUtil.class);
 
-        for (ExternalResource resource : attributable.getResources()) {
+        Set<String> attributeNames;
+        ConnInstance connInstance;
+        ConnectorFacadeProxy connector;
+        Set<Attribute> attributes;
+        String accountLink;
+        String accountId = null;
+        for (TargetResource resource : attributable.getTargetResources()) {
             LOG.debug("Retrieving attribute mapped on {}", resource);
 
-            Set<String> attributeNames = new HashSet<String>();
+            attributeNames = new HashSet<String>();
 
-            String accountId = null;
+            accountLink = resource.getAccountLink();
 
             for (SchemaMapping mapping : resource.getMappings()) {
                 if (LOG.isDebugEnabled()) {
                     LOG.debug("Processing mapping."
                             + "\n\tID: " + mapping.getId()
-                            + "\n\tSource: " + mapping.getIntAttrName()
-                            + "\n\tDestination: " + mapping.getExtAttrName()
-                            + "\n\tType: " + mapping.getIntMappingType()
+                            + "\n\tSource: " + mapping.getSourceAttrName()
+                            + "\n\tDestination: " + mapping.getDestAttrName()
+                            + "\n\tType: " + mapping.getSourceMappingType()
                             + "\n\tMandatory condition: "
                             + mapping.getMandatoryCondition()
                             + "\n\tAccountId: " + mapping.isAccountid()
                             + "\n\tPassword: " + mapping.isPassword());
                 }
 
-                if (attributeName.equals(mapping.getIntAttrName())
-                        && mapping.getIntMappingType() == intMappingType) {
+                if (mapping.getSourceAttrName().equals(attributeName)
+                        && mapping.getSourceMappingType() == sourceMappingType) {
 
-                    attributeNames.add(mapping.getExtAttrName());
+                    attributeNames.add(mapping.getDestAttrName());
                 }
 
                 if (mapping.isAccountid()) {
                     try {
                         accountId = attributable.getAttribute(
-                                mapping.getIntAttrName()).
+                                mapping.getSourceAttrName()).
                                 getValuesAsStrings().get(0);
                     } catch (NullPointerException e) {
                         // ignore exception
@@ -108,13 +119,20 @@ public abstract class AbstractVirAttr extends AbstractBaseBean {
                 }
             }
 
+            if (accountId == null && accountLink != null) {
+                accountId = jexlUtil.evaluate(accountLink, attributable);
+            }
+
             if (attributeNames != null && accountId != null) {
                 LOG.debug("Get object attribute for entry {}", accountId);
 
+                connInstance = resource.getConnector();
+
+                connector = connInstanceLoader.getConnector(
+                        ConnInstanceLoader.getBeanName(connInstance.getId()));
+
                 try {
-                    ConnectorFacadeProxy connector =
-                            connInstanceLoader.getConnector(resource);
-                    Set<Attribute> attributes = connector.getObjectAttributes(
+                    attributes = connector.getObjectAttributes(
                             ObjectClass.ACCOUNT,
                             new Uid(accountId),
                             null,
@@ -123,7 +141,7 @@ public abstract class AbstractVirAttr extends AbstractBaseBean {
                     LOG.debug("Retrieved {}", attributes);
 
                     for (Attribute attribute : attributes) {
-                        virAttrValues.addAll(attribute.getValue());
+                        values.addAll(attribute.getValue());
                     }
                 } catch (Exception e) {
                     LOG.warn("Error connecting to {}", resource.getName(), e);
@@ -132,7 +150,7 @@ public abstract class AbstractVirAttr extends AbstractBaseBean {
             }
         }
 
-        return virAttrValues;
+        return values;
     }
 
     public abstract List<String> getValues();

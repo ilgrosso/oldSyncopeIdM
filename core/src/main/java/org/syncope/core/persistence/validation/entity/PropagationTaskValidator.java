@@ -20,7 +20,6 @@ import javax.validation.ConstraintValidatorContext;
 import org.syncope.core.persistence.beans.PropagationTask;
 import org.syncope.core.persistence.beans.TaskExec;
 import org.syncope.types.EntityViolationType;
-import org.syncope.types.PropagationOperation;
 import org.syncope.types.PropagationTaskExecStatus;
 
 public class PropagationTaskValidator extends AbstractValidator
@@ -40,19 +39,15 @@ public class PropagationTaskValidator extends AbstractValidator
             isValid = true;
         } else {
             isValid = object.getPropagationMode() != null
-                    && object.getPropagationOperation() != null
+                    && object.getResourceOperationType() != null
                     && !object.getAttributes().isEmpty()
-                    && object.getResource() != null
-                    && (PropagationOperation.DELETE == object.
-                    getPropagationOperation()
-                    || object.getSyncopeUser() != null);
+                    && object.getResource() != null;
 
             if (isValid) {
                 List<TaskExec> executions = object.getExecs();
                 for (TaskExec execution : executions) {
                     try {
-                        PropagationTaskExecStatus.valueOf(
-                                execution.getStatus());
+                        PropagationTaskExecStatus.valueOf(execution.getStatus());
                     } catch (IllegalArgumentException e) {
                         LOG.error("Invalid execution status '"
                                 + execution.getStatus() + "'", e);

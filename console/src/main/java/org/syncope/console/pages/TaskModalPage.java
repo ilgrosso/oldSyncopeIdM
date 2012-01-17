@@ -20,15 +20,12 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import org.apache.wicket.Page;
 import org.apache.wicket.ajax.AjaxRequestTarget;
 import org.apache.wicket.ajax.markup.html.AjaxLink;
-import org.apache.wicket.authroles.authorization.strategies.role.metadata.MetaDataRoleAuthorizationStrategy;
+import org.apache.wicket.authorization.strategies.role.metadata.MetaDataRoleAuthorizationStrategy;
 import org.apache.wicket.extensions.ajax.markup.html.IndicatingAjaxLink;
-import org.apache.wicket.extensions.ajax.markup.html.modal.ModalWindow;
 import org.apache.wicket.extensions.ajax.markup.html.repeater.data.table.AjaxFallbackDefaultDataTable;
 import org.apache.wicket.extensions.markup.html.repeater.data.grid.ICellPopulator;
-import org.apache.wicket.extensions.markup.html.repeater.data.sort.SortOrder;
 import org.apache.wicket.extensions.markup.html.repeater.data.table.AbstractColumn;
 import org.apache.wicket.extensions.markup.html.repeater.data.table.IColumn;
 import org.apache.wicket.extensions.markup.html.repeater.data.table.PropertyColumn;
@@ -37,15 +34,13 @@ import org.apache.wicket.markup.html.WebMarkupContainer;
 import org.apache.wicket.markup.html.basic.Label;
 import org.apache.wicket.markup.html.form.Form;
 import org.apache.wicket.markup.html.form.FormComponent;
+import org.apache.wicket.markup.html.form.TextField;
 import org.apache.wicket.markup.repeater.Item;
 import org.apache.wicket.model.AbstractReadOnlyModel;
 import org.apache.wicket.model.CompoundPropertyModel;
 import org.apache.wicket.model.IModel;
-import org.apache.wicket.model.PropertyModel;
-import org.apache.wicket.model.ResourceModel;
+import org.apache.wicket.model.Model;
 import org.apache.wicket.spring.injection.annot.SpringBean;
-import org.springframework.util.StringUtils;
-import org.syncope.client.to.NotificationTaskTO;
 import org.syncope.client.to.PropagationTaskTO;
 import org.syncope.client.to.SchedTaskTO;
 import org.syncope.client.to.SyncTaskTO;
@@ -53,19 +48,16 @@ import org.syncope.client.to.TaskExecTO;
 import org.syncope.client.to.TaskTO;
 import org.syncope.client.validation.SyncopeClientCompositeErrorException;
 import org.syncope.console.commons.SortableDataProviderComparator;
+import org.syncope.console.pages.Tasks.DatePropertyColumn;
 import org.syncope.console.rest.TaskRestClient;
 import org.syncope.console.wicket.ajax.markup.html.IndicatingDeleteOnConfirmAjaxLink;
-import org.syncope.console.wicket.extensions.markup.html.repeater.data.table.DatePropertyColumn;
-import org.syncope.console.wicket.markup.html.form.AjaxTextFieldPanel;
 import org.syncope.console.wicket.markup.html.form.DeleteLinkPanel;
 import org.syncope.console.wicket.markup.html.form.LinkPanel;
 
 /**
  * Modal window with Task form (to stop and start execution).
  */
-public abstract class TaskModalPage extends BaseModalPage {
-
-    private static final long serialVersionUID = -4110576026663173545L;
+public class TaskModalPage extends BaseModalPage {
 
     @SpringBean
     protected TaskRestClient taskRestClient;
@@ -77,29 +69,26 @@ public abstract class TaskModalPage extends BaseModalPage {
     protected Form form;
 
     public TaskModalPage(final TaskTO taskTO) {
+
         final TaskTO actual = taskTO.getId() == 0
                 ? taskTO
                 : taskTO instanceof PropagationTaskTO
                 ? taskRestClient.readPropagationTask(taskTO.getId())
-                : taskTO instanceof NotificationTaskTO
-                ? taskRestClient.readNotificationTask(taskTO.getId())
                 : taskTO instanceof SyncTaskTO
                 ? taskRestClient.readSchedTask(
                 SyncTaskTO.class, taskTO.getId())
                 : taskRestClient.readSchedTask(
                 SchedTaskTO.class, taskTO.getId());
 
-        taskTO.setExecutions(actual.getExecutions());
+        final Label dialogContent =
+                new Label("dialogContent", new Model<String>(""));
 
-        final ModalWindow taskExecMessageWin = new ModalWindow(
-                "taskExecMessageWin");
-        taskExecMessageWin.setCssClassName(ModalWindow.CSS_CLASS_GRAY);
-        taskExecMessageWin.setCookieName("task-exec-message-win-modal");
-        add(taskExecMessageWin);
+        add(dialogContent.setOutputMarkupId(true));
 
-        form = new Form("form");
-        form.setModel(new CompoundPropertyModel(taskTO));
+        form = new Form("TaskForm");
         add(form);
+
+        form.setModel(new CompoundPropertyModel(actual));
 
         profile = new WebMarkupContainer("profile");
         profile.setOutputMarkupId(true);
@@ -109,32 +98,29 @@ public abstract class TaskModalPage extends BaseModalPage {
         executions.setOutputMarkupId(true);
         form.add(executions);
 
-        final Label idLabel = new Label("idLabel", new ResourceModel("id"));
+        final Label idLabel = new Label("idLabel", getString("id"));
+        idLabel.setVisible(actual.getId() != 0);
         profile.add(idLabel);
 
-        final AjaxTextFieldPanel id = new AjaxTextFieldPanel(
-                "id", getString("id"),
-                new PropertyModel<String>(taskTO, "id"), false);
-
+        final TextField id = new TextField("id");
         id.setEnabled(false);
+        id.setVisible(actual.getId() != 0);
         profile.add(id);
 
         final List<IColumn> columns = new ArrayList<IColumn>();
-        columns.add(new PropertyColumn(new ResourceModel("id"), "id", "id"));
+        columns.add(new PropertyColumn(new Model(getString("id")), "id", "id"));
 
-        columns.add(new DatePropertyColumn(
-                new ResourceModel("startDate"), "startDate", "startDate"));
+        columns.add(new DatePropertyColumn(new Model(getString("startDate")),
+                "startDate", "startDate", null));
 
-        columns.add(new DatePropertyColumn(
-                new ResourceModel("endDate"), "endDate", "endDate"));
+        columns.add(new DatePropertyColumn(new Model(getString("endDate")),
+                "endDate", "endDate", null));
 
-        columns.add(new PropertyColumn(
-                new ResourceModel("status"), "status", "status"));
+        columns.add(new PropertyColumn(new Model(getString("status")),
+                "status", "status"));
 
         columns.add(new AbstractColumn<TaskExecTO>(
-                new ResourceModel("message")) {
-
-            private static final long serialVersionUID = 2054811145491901166L;
+                new Model<String>(getString("message"))) {
 
             @Override
             public void populateItem(
@@ -144,24 +130,15 @@ public abstract class TaskModalPage extends BaseModalPage {
 
                 AjaxLink messageLink = new IndicatingAjaxLink("link") {
 
-                    private static final long serialVersionUID =
-                            -7978723352517770644L;
-
                     @Override
                     public void onClick(final AjaxRequestTarget target) {
-                        taskExecMessageWin.setPageCreator(
-                                new ModalWindow.PageCreator() {
+                        dialogContent.setDefaultModelObject(
+                                model.getObject().getMessage());
 
-                                    private static final long serialVersionUID =
-                                            -7834632442532690940L;
+                        target.addComponent(dialogContent);
 
-                                    @Override
-                                    public Page createPage() {
-                                        return new TaskExecMessageModalPage(
-                                                model.getObject().getMessage());
-                                    }
-                                });
-                        taskExecMessageWin.show(target);
+                        target.appendJavascript("jQuery('#dialog')"
+                                + ".dialog('open')");
                     }
                 };
 
@@ -172,17 +149,11 @@ public abstract class TaskModalPage extends BaseModalPage {
                 panel.add(messageLink);
 
                 cellItem.add(panel);
-
-                if (!StringUtils.hasText(model.getObject().getMessage())) {
-                    messageLink.setEnabled(false);
-                }
             }
         });
 
         columns.add(new AbstractColumn<TaskExecTO>(
-                new ResourceModel("delete")) {
-
-            private static final long serialVersionUID = 2054811145491901166L;
+                new Model<String>(getString("delete"))) {
 
             @Override
             public void populateItem(
@@ -195,24 +166,21 @@ public abstract class TaskModalPage extends BaseModalPage {
                 AjaxLink deleteLink = new IndicatingDeleteOnConfirmAjaxLink(
                         "deleteLink") {
 
-                    private static final long serialVersionUID =
-                            -7978723352517770644L;
-
                     @Override
                     public void onClick(final AjaxRequestTarget target) {
                         try {
                             taskRestClient.deleteExecution(
                                     taskExecutionTO.getId());
 
-                            taskTO.removeExecution(taskExecutionTO);
+                            actual.removeExecution(taskExecutionTO);
 
                             info(getString("operation_succeded"));
                         } catch (SyncopeClientCompositeErrorException scce) {
                             error(scce.getMessage());
                         }
 
-                        target.add(feedbackPanel);
-                        target.add(executions);
+                        target.addComponent(feedbackPanel);
+                        target.addComponent(executions);
                     }
                 };
 
@@ -228,15 +196,13 @@ public abstract class TaskModalPage extends BaseModalPage {
 
         final AjaxFallbackDefaultDataTable table =
                 new AjaxFallbackDefaultDataTable("executionsTable", columns,
-                new TaskExecutionsProvider(taskTO), 10);
+                new TaskExecutionsProvider(actual), 10);
 
         executions.add(table);
     }
 
     protected class TaskExecutionsProvider
             extends SortableDataProvider<TaskExecTO> {
-
-        private static final long serialVersionUID = 8943636537120648961L;
 
         private SortableDataProviderComparator<TaskExecTO> comparator;
 
@@ -245,7 +211,7 @@ public abstract class TaskModalPage extends BaseModalPage {
         public TaskExecutionsProvider(TaskTO taskTO) {
             //Default sorting
             this.taskTO = taskTO;
-            setSort("startDate", SortOrder.ASCENDING);
+            setSort("startDate", true);
             comparator =
                     new SortableDataProviderComparator<TaskExecTO>(this);
         }
@@ -271,9 +237,6 @@ public abstract class TaskModalPage extends BaseModalPage {
                 final TaskExecTO taskExecution) {
 
             return new AbstractReadOnlyModel<TaskExecTO>() {
-
-                private static final long serialVersionUID =
-                        7485475149862342421L;
 
                 @Override
                 public TaskExecTO getObject() {

@@ -14,22 +14,20 @@
  */
 package org.syncope.console.rest;
 
+import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
 import java.util.List;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.HttpStatusCodeException;
 import org.syncope.client.to.ConfigurationTO;
 import org.syncope.client.to.LoggerTO;
 import org.syncope.client.validation.SyncopeClientCompositeErrorException;
 
+/**
+ * Console client for invoking Rest Connectors services.
+ */
 @Component
 public class ConfigurationRestClient extends AbstractBaseRestClient {
-
-    public String dbContentAsXml()
-            throws SyncopeClientCompositeErrorException {
-
-        return restTemplate.getForObject(baseURL
-                + "configuration/dbexport.json", String.class);
-    }
 
     /**
      * Get all stored configurations.
@@ -76,7 +74,7 @@ public class ConfigurationRestClient extends AbstractBaseRestClient {
                 + "configuration/create",
                 configurationTO, ConfigurationTO.class);
 
-        return configurationTO.equals(newConfigurationTO);
+        return (configurationTO.equals(newConfigurationTO)) ? true : false;
     }
 
     /**
@@ -99,10 +97,12 @@ public class ConfigurationRestClient extends AbstractBaseRestClient {
     }
 
     /**
-     * Deelete a configuration by key.
+     * Deelete a configuration by key
+     * @throws UnsupportedEncodingException
      */
     public void deleteConfiguration(String key)
-            throws SyncopeClientCompositeErrorException {
+            throws
+            UnsupportedEncodingException, HttpStatusCodeException {
 
         restTemplate.delete(baseURL
                 + "configuration/delete/{key}.json",

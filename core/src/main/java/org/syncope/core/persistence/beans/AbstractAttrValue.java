@@ -48,28 +48,33 @@ public abstract class AbstractAttrValue extends AbstractBaseBean {
     public abstract Long getId();
 
     public Boolean getBooleanValue() {
-        return booleanValue == null ? null : isBooleanAsInteger(booleanValue);
+        if (booleanValue == null) {
+            return null;
+        }
+        return isBooleanAsInteger(booleanValue);
     }
 
-    public void setBooleanValue(final Boolean booleanValue) {
-        this.booleanValue = booleanValue == null
-                ? null : getBooleanAsInteger(booleanValue);
+    public void setBooleanValue(Boolean booleanValue) {
+        if (booleanValue == null) {
+            this.booleanValue = null;
+        } else {
+            this.booleanValue = getBooleanAsInteger(booleanValue);
+        }
     }
 
     public Date getDateValue() {
-        return dateValue == null ? null : new Date(dateValue.getTime());
+        return dateValue;
     }
 
-    public void setDateValue(final Date dateValue) {
-        this.dateValue = dateValue == null
-                ? null : new Date(dateValue.getTime());
+    public void setDateValue(Date dateValue) {
+        this.dateValue = dateValue;
     }
 
     public Double getDoubleValue() {
         return doubleValue;
     }
 
-    public void setDoubleValue(final Double doubleValue) {
+    public void setDoubleValue(Double doubleValue) {
         this.doubleValue = doubleValue;
     }
 
@@ -77,7 +82,7 @@ public abstract class AbstractAttrValue extends AbstractBaseBean {
         return longValue;
     }
 
-    public void setLongValue(final Long longValue) {
+    public void setLongValue(Long longValue) {
         this.longValue = longValue;
     }
 
@@ -85,7 +90,7 @@ public abstract class AbstractAttrValue extends AbstractBaseBean {
         return stringValue;
     }
 
-    public void setStringValue(final String stringValue) {
+    public void setStringValue(String stringValue) {
         this.stringValue = stringValue;
     }
 
@@ -107,30 +112,18 @@ public abstract class AbstractAttrValue extends AbstractBaseBean {
                 break;
 
             case Long:
-                if (getAttribute().getSchema().getFormatter() == null) {
-                    result = getLongValue().toString();
-                } else {
-                    result = getAttribute().getSchema().getFormatter().
-                            format(getLongValue());
-                }
+                result = getAttribute().getSchema().getFormatter().
+                        format(getLongValue());
                 break;
 
             case Double:
-                if (getAttribute().getSchema().getFormatter() == null) {
-                    result = getDoubleValue().toString();
-                } else {
-                    result = getAttribute().getSchema().getFormatter().
-                            format(getDoubleValue());
-                }
+                result = getAttribute().getSchema().getFormatter().
+                        format(getDoubleValue());
                 break;
 
             case Date:
-                if (getAttribute().getSchema().getFormatter() == null) {
-                    result = DATE_FORMAT.get().format(getDateValue());
-                } else {
-                    result = getAttribute().getSchema().getFormatter().
-                            format(getDateValue());
-                }
+                result = getAttribute().getSchema().getFormatter().
+                        format(getDateValue());
                 break;
 
             default:

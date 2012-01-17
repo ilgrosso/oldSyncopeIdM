@@ -21,25 +21,12 @@ import org.syncope.client.AbstractBaseBean;
  */
 public class AttributeCond extends AbstractBaseBean {
 
-    private static final long serialVersionUID = 3275277728404021417L;
-
     public enum Type {
 
-        LIKE,
-        EQ,
-        GT,
-        LT,
-        GE,
-        LE,
-        ISNULL,
-        ISNOTNULL
-
+        LIKE, EQ, GT, LT, GE, LE, ISNULL, ISNOTNULL
     }
-
     private Type type;
-
     private String schema;
-
     private String expression;
 
     public AttributeCond() {

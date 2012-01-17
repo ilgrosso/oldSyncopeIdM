@@ -19,12 +19,12 @@ package org.syncope.types;
  */
 public enum ConnectorCapability {
 
-    ONE_PHASE_CREATE,
-    TWO_PHASES_CREATE,
-    ONE_PHASE_UPDATE,
-    TWO_PHASES_UPDATE,
-    ONE_PHASE_DELETE,
-    TWO_PHASES_DELETE,
+    SYNC_CREATE,
+    ASYNC_CREATE,
+    SYNC_UPDATE,
+    ASYNC_UPDATE,
+    SYNC_DELETE,
+    ASYNC_DELETE,
     SEARCH,
     RESOLVE,
     SYNC

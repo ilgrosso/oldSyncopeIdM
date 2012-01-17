@@ -14,24 +14,18 @@
  */
 package org.syncope.core.rest;
 
-import static org.junit.Assert.*;
-
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Collections;
+import static org.junit.Assert.*;
+
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import org.apache.commons.httpclient.UsernamePasswordCredentials;
-import org.apache.commons.httpclient.auth.AuthScope;
 import org.junit.Test;
-import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.client.CommonsClientHttpRequestFactory;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.annotation.ExpectedException;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.syncope.client.mod.AttributeMod;
@@ -39,34 +33,29 @@ import org.syncope.client.mod.MembershipMod;
 import org.syncope.client.mod.UserMod;
 import org.syncope.client.to.AttributeTO;
 import org.syncope.client.search.AttributeCond;
-import org.syncope.client.search.SyncopeUserCond;
 import org.syncope.client.to.MembershipTO;
 import org.syncope.client.search.NodeCond;
 import org.syncope.client.search.ResourceCond;
-import org.syncope.client.to.PasswordPolicyTO;
-import org.syncope.client.to.PolicyTO;
 import org.syncope.client.to.PropagationTaskTO;
 import org.syncope.client.to.UserTO;
-import org.syncope.client.to.WorkflowFormPropertyTO;
-import org.syncope.client.to.WorkflowFormTO;
+import org.syncope.client.to.WorkflowActionsTO;
 import org.syncope.client.validation.SyncopeClientCompositeErrorException;
 import org.syncope.client.validation.SyncopeClientException;
 import org.syncope.core.persistence.beans.user.SyncopeUser;
+import org.syncope.core.workflow.Constants;
 import org.syncope.types.CipherAlgorithm;
-import org.syncope.types.PropagationTaskExecStatus;
 import org.syncope.types.SyncopeClientExceptionType;
 
 public class UserTestITCase extends AbstractTest {
 
     public static UserTO getSampleTO(final String email) {
         UserTO userTO = new UserTO();
-        userTO.setPassword("password123");
-        userTO.setUsername(email);
+        userTO.setPassword("password");
 
-        AttributeTO fullnameTO = new AttributeTO();
-        fullnameTO.setSchema("fullname");
-        fullnameTO.addValue(email);
-        userTO.addAttribute(fullnameTO);
+        AttributeTO usernameTO = new AttributeTO();
+        usernameTO.setSchema("username");
+        usernameTO.addValue(email);
+        userTO.addAttribute(usernameTO);
 
         AttributeTO firstnameTO = new AttributeTO();
         firstnameTO.setSchema("firstname");
@@ -107,7 +96,7 @@ public class UserTestITCase extends AbstractTest {
         // add a virtual attribute
         AttributeTO virtualdata = new AttributeTO();
         virtualdata.setSchema("virtualdata");
-        virtualdata.addValue("virtualvalue");
+        virtualdata.setValues(Collections.singletonList("virtualvalue"));
         userTO.addVirtualAttribute(virtualdata);
 
         return userTO;
@@ -133,7 +122,6 @@ public class UserTestITCase extends AbstractTest {
 
         // create a new user
         UserTO userTO = new UserTO();
-        userTO.setUsername("xxx@xxx.xxx");
 
         AttributeTO attributeTO = new AttributeTO();
         attributeTO.setSchema("firstname");
@@ -151,14 +139,15 @@ public class UserTestITCase extends AbstractTest {
         userTO.addAttribute(attributeTO);
 
         attributeTO = new AttributeTO();
-        attributeTO.setSchema("fullname");
+        attributeTO.setSchema("username");
         attributeTO.addValue("xxx");
         userTO.addAttribute(attributeTO);
 
-        userTO.setPassword("password123");
+        userTO.setPassword("password");
         userTO.addResource("ws-target-resource-nopropagation");
 
-        restTemplate.postForObject(BASE_URL + "user/create",
+        restTemplate.postForObject(BASE_URL + "user/create"
+                + "?mandatoryResources=ws-target-resource-nopropagation",
                 userTO, UserTO.class);
 
         // get the new task list
@@ -189,169 +178,8 @@ public class UserTestITCase extends AbstractTest {
     }
 
     @Test
-    /* This test has been introduced to verify and solve the following issue:
-     * http://code.google.com/p/syncope/issues/detail?id=172.
-     * Creations of a new user without having a global password policy stored
-     * into the local repository used to fail with a null pointer exception.
-     * This bug has been fixed introducing a simple control.
-     */
-    public final void issue172() {
-        PolicyTO policyTO = restTemplate.getForObject(
-                BASE_URL + "policy/read/{id}", PasswordPolicyTO.class, 2L);
-
-        assertNotNull(policyTO);
-
-        restTemplate.delete(BASE_URL + "policy/delete/{id}", 2L);
-
-        UserTO userTO = new UserTO();
-        userTO.setUsername("issue172@syncope-idm.org");
-        userTO.setPassword("password");
-
-        AttributeTO attributeTO = new AttributeTO();
-        attributeTO.setSchema("firstname");
-        attributeTO.addValue("issue172");
-        userTO.addAttribute(attributeTO);
-
-        attributeTO = new AttributeTO();
-        attributeTO.setSchema("surname");
-        attributeTO.addValue("issue172");
-        userTO.addAttribute(attributeTO);
-
-        attributeTO = new AttributeTO();
-        attributeTO.setSchema("userId");
-        attributeTO.addValue("issue172@syncope-idm.org");
-        userTO.addAttribute(attributeTO);
-
-        attributeTO = new AttributeTO();
-        attributeTO.setSchema("fullname");
-        attributeTO.addValue("issue172");
-        userTO.addAttribute(attributeTO);
-
-        restTemplate.postForObject(
-                BASE_URL + "user/create", userTO, UserTO.class);
-
-        policyTO = restTemplate.postForObject(
-                BASE_URL + "policy/password/create",
-                policyTO, PasswordPolicyTO.class);
-
-        assertNotNull(policyTO);
-    }
-
-    @Test
-    public final void issue186() {
-        // 1. create an user with strict mandatory attributes only
-        UserTO userTO = new UserTO();
-        userTO.setUsername("issue186@syncope-idm.org");
-        userTO.setPassword("password");
-
-        AttributeTO attributeTO = new AttributeTO();
-        attributeTO.setSchema("userId");
-        attributeTO.addValue("issue186@syncope-idm.org");
-        userTO.addAttribute(attributeTO);
-
-        attributeTO = new AttributeTO();
-        attributeTO.setSchema("fullname");
-        attributeTO.addValue("issue186");
-        userTO.addAttribute(attributeTO);
-
-        attributeTO = new AttributeTO();
-        attributeTO.setSchema("surname");
-        attributeTO.addValue("issue186");
-        userTO.addAttribute(attributeTO);
-
-        userTO = restTemplate.postForObject(BASE_URL + "user/create",
-                userTO, UserTO.class);
-        assertNotNull(userTO);
-        assertTrue(userTO.getResources().isEmpty());
-
-        // 2. update assignign a resource forcing mandatory constraints: must
-        // fail with RequiredValuesMissing
-        UserMod userMod = new UserMod();
-        userMod.setId(userTO.getId());
-        userMod.setPassword("newPassword");
-        userMod.addResourceToBeAdded("ws-target-resource-2");
-
-        SyncopeClientException sce = null;
-        try {
-            userTO = restTemplate.postForObject(
-                    BASE_URL + "user/update", userMod, UserTO.class);
-        } catch (SyncopeClientCompositeErrorException scce) {
-            sce = scce.getException(
-                    SyncopeClientExceptionType.RequiredValuesMissing);
-        }
-        assertNotNull(sce);
-
-        // 3. update assignign a resource NOT forcing mandatory constraints
-        // AND primary: must fail with PropagationException
-        userMod = new UserMod();
-        userMod.setId(userTO.getId());
-        userMod.setPassword("newPassword");
-        userMod.addResourceToBeAdded("ws-target-resource-1");
-
-        sce = null;
-        try {
-            userTO = restTemplate.postForObject(BASE_URL + "user/update",
-                    userMod, UserTO.class);
-        } catch (SyncopeClientCompositeErrorException scce) {
-            sce = scce.getException(SyncopeClientExceptionType.Propagation);
-        }
-        assertNotNull(sce);
-
-        // 4. update assignign a resource NOT forcing mandatory constraints
-        // BUT not primary: must succeed
-        userMod = new UserMod();
-        userMod.setId(userTO.getId());
-        userMod.setPassword("newPassword");
-        userMod.addResourceToBeAdded("resource-db");
-
-        sce = null;
-        try {
-            userTO = restTemplate.postForObject(
-                    BASE_URL + "user/update", userMod, UserTO.class);
-        } catch (SyncopeClientCompositeErrorException scce) {
-            sce = scce.getException(SyncopeClientExceptionType.Propagation);
-        }
-        assertNull(sce);
-    }
-
-    @Test
-    public final void issue147() {
-        // 1. create an user wihtout role nor resources
-        UserTO userTO = getSampleTO("issue147@syncope-idm.org");
-
-        userTO = restTemplate.postForObject(BASE_URL + "user/create",
-                userTO, UserTO.class);
-        assertNotNull(userTO);
-        assertTrue(userTO.getResources().isEmpty());
-
-        // 2. try to update by adding a resource, but no password: must fail
-        UserMod userMod = new UserMod();
-        userMod.setId(userTO.getId());
-        userMod.addResourceToBeAdded("ws-target-resource-2");
-
-        SyncopeClientException sce = null;
-        try {
-            userTO = restTemplate.postForObject(
-                    BASE_URL + "user/update", userMod, UserTO.class);
-        } catch (SyncopeClientCompositeErrorException scce) {
-            sce = scce.getException(
-                    SyncopeClientExceptionType.RequiredValuesMissing);
-        }
-        assertNotNull(sce);
-
-        // 3. provide password: now update must work
-        userMod.setPassword("newPassword");
-        userTO = restTemplate.postForObject(
-                BASE_URL + "user/update", userMod, UserTO.class);
-        assertNotNull(userTO);
-        assertEquals(1, userTO.getResources().size());
-    }
-
-    @Test
     public final void createUserWithDbPropagation() {
         UserTO userTO = new UserTO();
-        userTO.setPassword("password");
-        userTO.setUsername("yyy@yyy.yyy");
 
         AttributeTO attributeTO = new AttributeTO();
         attributeTO.setSchema("firstname");
@@ -369,75 +197,16 @@ public class UserTestITCase extends AbstractTest {
         userTO.addAttribute(attributeTO);
 
         attributeTO = new AttributeTO();
-        attributeTO.setSchema("fullname");
+        attributeTO.setSchema("username");
         attributeTO.addValue("yyy");
         userTO.addAttribute(attributeTO);
 
-        userTO.addResource("resource-testdb");
+        userTO.setPassword("password");
+        userTO.addResource("ws-target-resource-testdb");
 
-        userTO = restTemplate.postForObject(BASE_URL + "user/create",
+        restTemplate.postForObject(BASE_URL + "user/create"
+                + "?mandatoryResources=ws-target-resource-testdb",
                 userTO, UserTO.class);
-        assertNotNull(userTO);
-        assertEquals(1, userTO.getPropagationStatusMap().size());
-        assertEquals(PropagationTaskExecStatus.SUCCESS,
-                userTO.getPropagationStatusMap().get("resource-testdb"));
-    }
-
-    @Test
-    @ExpectedException(value = SyncopeClientCompositeErrorException.class)
-    public final void createWithInvalidPassword() {
-        UserTO userTO = getSampleTO("invalidpasswd@syncope-idm.org");
-        userTO.setPassword("pass");
-
-        restTemplate.postForObject(
-                BASE_URL + "user/create", userTO, UserTO.class);
-    }
-
-    @Test
-    @ExpectedException(value = SyncopeClientCompositeErrorException.class)
-    public final void createWithInvalidUsername() {
-        UserTO userTO = getSampleTO("invalidusername@syncope-idm.org");
-        userTO.setUsername("us");
-
-        MembershipTO membershipTO = new MembershipTO();
-        membershipTO.setRoleId(7L);
-
-        userTO.addMembership(membershipTO);
-
-        restTemplate.postForObject(
-                BASE_URL + "user/create", userTO, UserTO.class);
-    }
-
-    @Test
-    @ExpectedException(value = SyncopeClientCompositeErrorException.class)
-    public final void createWithInvalidPasswordByRes() {
-        UserTO userTO = getSampleTO("invalidPwdByRes@passwd.com");
-
-        // configured to be minLength=16
-        userTO.setPassword("password1");
-
-        userTO.setResources(
-                Collections.singleton("ws-target-resource-nopropagation"));
-
-        restTemplate.postForObject(
-                BASE_URL + "user/create", userTO, UserTO.class);
-    }
-
-    @Test
-    @ExpectedException(value = SyncopeClientCompositeErrorException.class)
-    public final void createWithInvalidPasswordByRole() {
-        UserTO userTO = getSampleTO("invalidPwdByRole@passwd.com");
-
-        // configured to be minLength=16
-        userTO.setPassword("password1");
-
-        final MembershipTO membership = new MembershipTO();
-        membership.setRoleId(8L);
-
-        userTO.addMembership(membership);
-
-        restTemplate.postForObject(
-                BASE_URL + "user/create", userTO, UserTO.class);
     }
 
     @Test
@@ -504,29 +273,40 @@ public class UserTestITCase extends AbstractTest {
 
         // 1. create user
         UserTO newUserTO = restTemplate.postForObject(
-                BASE_URL + "user/create", userTO, UserTO.class);
+                BASE_URL + "user/create?mandatoryRoles=8",
+                userTO, UserTO.class);
 
         assertNotNull(newUserTO);
         assertFalse(newUserTO.getAttributes().contains(
                 attrWithInvalidSchemaTO));
 
-        // check for changePwdDate
-        assertNotNull(newUserTO.getCreationDate());
+        WorkflowActionsTO workflowActions = restTemplate.getForObject(
+                BASE_URL + "user/actions/{userId}", WorkflowActionsTO.class,
+                newUserTO.getId());
+        assertTrue(workflowActions.getActions().equals(
+                Collections.singleton(Constants.ACTION_ACTIVATE)));
 
-        // 2. check for virtual attribute value
+        // 2. activate user
+        newUserTO = restTemplate.postForObject(BASE_URL + "user/activate",
+                newUserTO, UserTO.class);
+        assertEquals("active",
+                restTemplate.getForObject(BASE_URL + "user/status/"
+                + newUserTO.getId(), String.class));
+
+        // 3. check for virtual attribute value
         newUserTO = restTemplate.getForObject(
                 BASE_URL + "user/read/{userId}.json",
-                UserTO.class, newUserTO.getId());
+                UserTO.class,
+                newUserTO.getId());
         assertNotNull(newUserTO);
 
         assertNotNull(newUserTO.getVirtualAttributeMap());
-        assertNotNull(newUserTO.getVirtualAttributeMap().get("virtualdata").
-                getValues());
+        assertNotNull(newUserTO.getVirtualAttributeMap().get("virtualdata"));
         assertFalse(newUserTO.getVirtualAttributeMap().get("virtualdata").
-                getValues().isEmpty());
-        assertEquals("virtualvalue",
-                newUserTO.getVirtualAttributeMap().get("virtualdata").
-                getValues().get(0));
+                isEmpty());
+        assertEquals(
+                newUserTO.getVirtualAttributeMap().get("virtualdata").get(0),
+                "virtualvalue");
 
         // get the new task list
         tasks = Arrays.asList(
@@ -559,7 +339,7 @@ public class UserTestITCase extends AbstractTest {
 
         // 3. verify password
         Boolean verify = restTemplate.getForObject(
-                BASE_URL + "user/verifyPassword/{userId}?password=password123",
+                BASE_URL + "user/verifyPassword/{userId}?password=password",
                 Boolean.class, newUserTO.getId());
         assertTrue(verify);
         verify = restTemplate.getForObject(
@@ -582,7 +362,7 @@ public class UserTestITCase extends AbstractTest {
                     userTO, UserTO.class);
         } catch (SyncopeClientCompositeErrorException e) {
             sce = e.getException(
-                    SyncopeClientExceptionType.DataIntegrityViolation);
+                    SyncopeClientExceptionType.DuplicateUniqueValue);
         }
         assertNotNull(sce);
     }
@@ -608,7 +388,8 @@ public class UserTestITCase extends AbstractTest {
         SyncopeClientCompositeErrorException ex = null;
         try {
             // 1. create user without type (mandatory by UserSchema)
-            restTemplate.postForObject(BASE_URL + "user/create",
+            restTemplate.postForObject(
+                    BASE_URL + "user/create?mandatoryRoles=8",
                     userTO, UserTO.class);
         } catch (SyncopeClientCompositeErrorException e) {
             ex = e;
@@ -633,7 +414,8 @@ public class UserTestITCase extends AbstractTest {
         // 2. create user without surname (mandatory when type == 'F')
         ex = null;
         try {
-            restTemplate.postForObject(BASE_URL + "user/create",
+            restTemplate.postForObject(
+                    BASE_URL + "user/create?mandatoryRoles=8",
                     userTO, UserTO.class);
         } catch (SyncopeClientCompositeErrorException e) {
             ex = e;
@@ -644,165 +426,18 @@ public class UserTestITCase extends AbstractTest {
     }
 
     @Test
-    public final void createWithReject() {
-        UserTO userTO = getSampleTO("createWithReject@syncope-idm.org");
-
-        // User with role 9 are defined in workflow as subject to approval
-        MembershipTO membershipTO = new MembershipTO();
-        membershipTO.setRoleId(9L);
-        userTO.addMembership(membershipTO);
-
-        // 1. create user with role 9
-        userTO = restTemplate.postForObject(BASE_URL + "user/create",
-                userTO, UserTO.class);
-        assertNotNull(userTO);
-        assertEquals(1, userTO.getMemberships().size());
-        assertEquals(9, userTO.getMemberships().get(0).getRoleId());
-        assertEquals("createApproval", userTO.getStatus());
-
-        // 2. request if there is any pending task for user just created
-        WorkflowFormTO form = restTemplate.getForObject(
-                BASE_URL + "user/workflow/form/{userId}",
-                WorkflowFormTO.class, userTO.getId());
-        assertNotNull(form);
-        assertNotNull(form.getTaskId());
-        assertNull(form.getOwner());
-
-        // 3. claim task from user1, not in role 7 (designated for 
-        // approval in workflow definition): fail
-        ((CommonsClientHttpRequestFactory) restTemplate.getRequestFactory()).
-                getHttpClient().getState().setCredentials(AuthScope.ANY,
-                new UsernamePasswordCredentials(
-                "user1", "password"));
-
-        SyncopeClientException sce = null;
-        try {
-            restTemplate.getForObject(
-                    BASE_URL + "user/workflow/form/claim/{taskId}",
-                    WorkflowFormTO.class, form.getTaskId());
-        } catch (SyncopeClientCompositeErrorException scce) {
-            sce = scce.getException(SyncopeClientExceptionType.Workflow);
-        }
-        assertNotNull(sce);
-
-        // 4. claim task from user4, in to role 7
-        ((CommonsClientHttpRequestFactory) restTemplate.getRequestFactory()).
-                getHttpClient().getState().setCredentials(AuthScope.ANY,
-                new UsernamePasswordCredentials(
-                "user4", "password"));
-
-        form = restTemplate.getForObject(
-                BASE_URL + "user/workflow/form/claim/{taskId}",
-                WorkflowFormTO.class, form.getTaskId());
-        assertNotNull(form);
-        assertNotNull(form.getTaskId());
-        assertNotNull(form.getOwner());
-
-        // 5. reject user
-        Map<String, WorkflowFormPropertyTO> props = form.getPropertiesAsMap();
-        props.get("approve").setValue(Boolean.FALSE.toString());
-        props.get("rejectReason").setValue("I don't like him.");
-        form.setProperties(props.values());
-        userTO = restTemplate.postForObject(
-                BASE_URL + "user/workflow/form/submit",
-                form, UserTO.class);
-        assertNotNull(userTO);
-        assertEquals("rejected", userTO.getStatus());
-
-        // reset admin credentials for restTemplate
-        super.setupRestTemplate();
-    }
-
-    @Test
-    public final void createWithApproval() {
-        JdbcTemplate jdbcTemplate = new JdbcTemplate(testDataSource);
-
-        UserTO userTO = getSampleTO("createWithApproval@syncope-idm.org");
-        userTO.addResource("resource-testdb");
-
-        // User with role 9 are defined in workflow as subject to approval
-        MembershipTO membershipTO = new MembershipTO();
-        membershipTO.setRoleId(9L);
-        userTO.addMembership(membershipTO);
-
-        // 1. create user with role 9 (and verify that no propagation occurred)
-        userTO = restTemplate.postForObject(BASE_URL + "user/create",
-                userTO, UserTO.class);
-        assertNotNull(userTO);
-        assertEquals(1, userTO.getMemberships().size());
-        assertEquals(9, userTO.getMemberships().get(0).getRoleId());
-        assertEquals("createApproval", userTO.getStatus());
-        assertEquals(Collections.singleton("resource-testdb"),
-                userTO.getResources());
-        assertTrue(userTO.getPropagationStatusMap().isEmpty());
-        Exception exception = null;
-        try {
-            jdbcTemplate.queryForInt(
-                    "SELECT id FROM test WHERE id=?", userTO.getId());
-        } catch (EmptyResultDataAccessException e) {
-            exception = e;
-        }
-        assertNotNull(exception);
-
-        // 2. request if there is any pending task for user just created
-        WorkflowFormTO form = restTemplate.getForObject(
-                BASE_URL + "user/workflow/form/{userId}",
-                WorkflowFormTO.class, userTO.getId());
-        assertNotNull(form);
-        assertNotNull(form.getTaskId());
-        assertNull(form.getOwner());
-
-        // 4. claim task (from admin)
-        form = restTemplate.getForObject(
-                BASE_URL + "user/workflow/form/claim/{taskId}",
-                WorkflowFormTO.class, form.getTaskId());
-        assertNotNull(form);
-        assertNotNull(form.getTaskId());
-        assertNotNull(form.getOwner());
-
-        // 5. approve user (and verify that propagation occurred)
-        Map<String, WorkflowFormPropertyTO> props = form.getPropertiesAsMap();
-        props.get("approve").setValue(Boolean.TRUE.toString());
-        form.setProperties(props.values());
-        userTO = restTemplate.postForObject(
-                BASE_URL + "user/workflow/form/submit",
-                form, UserTO.class);
-        assertNotNull(userTO);
-        assertEquals("active", userTO.getStatus());
-        assertEquals(Collections.singleton("resource-testdb"),
-                userTO.getResources());
-        assertFalse(userTO.getPropagationStatusMap().isEmpty());
-        exception = null;
-        try {
-            int id = jdbcTemplate.queryForInt(
-                    "SELECT id FROM test WHERE id=?", userTO.getId());
-            assertEquals(userTO.getId(), id);
-        } catch (EmptyResultDataAccessException e) {
-            exception = e;
-        }
-        assertNull(exception);
-
-        // 6. update user
-        UserMod userMod = new UserMod();
-        userMod.setId(userTO.getId());
-        userMod.setPassword("anotherPassword123");
-
-        userTO = restTemplate.postForObject(BASE_URL + "user/update",
-                userMod, UserTO.class);
-        assertNotNull(userTO);
-    }
-
-    @Test
     public final void delete() {
         try {
             restTemplate.delete(BASE_URL + "user/delete/{userId}", 0);
         } catch (HttpStatusCodeException e) {
-            assertEquals(HttpStatus.NOT_FOUND, e.getStatusCode());
+            assertEquals(e.getStatusCode(), HttpStatus.NOT_FOUND);
         }
 
         UserTO userTO = getSampleTO("qqgf.z@nn.com");
 
         userTO = restTemplate.postForObject(BASE_URL + "user/create",
+                userTO, UserTO.class);
+        userTO = restTemplate.postForObject(BASE_URL + "user/activate",
                 userTO, UserTO.class);
 
         restTemplate.delete(BASE_URL + "user/delete/{userId}", userTO.getId());
@@ -810,7 +445,7 @@ public class UserTestITCase extends AbstractTest {
             restTemplate.getForObject(BASE_URL + "user/read/{userId}.json",
                     UserTO.class, userTO.getId());
         } catch (HttpStatusCodeException e) {
-            assertEquals(HttpStatus.NOT_FOUND, e.getStatusCode());
+            assertEquals(e.getStatusCode(), HttpStatus.NOT_FOUND);
         }
     }
 
@@ -887,21 +522,41 @@ public class UserTestITCase extends AbstractTest {
     }
 
     @Test
+    public final void token() {
+        UserTO userTO = getSampleTO("d.e@f.com");
+
+        userTO = restTemplate.postForObject(BASE_URL + "user/create",
+                userTO, UserTO.class);
+        userTO = restTemplate.postForObject(BASE_URL + "user/activate",
+                userTO, UserTO.class);
+        assertNull(userTO.getToken());
+
+        userTO = restTemplate.getForObject(
+                BASE_URL + "user/generateToken/{userId}",
+                UserTO.class, userTO.getId());
+        assertNotNull(userTO.getToken());
+
+        userTO = restTemplate.postForObject(BASE_URL + "user/verifyToken",
+                userTO, UserTO.class);
+        assertNull(userTO.getToken());
+    }
+
+    @Test
     public final void search() {
         // LIKE
-        AttributeCond fullnameLeafCond1 =
+        AttributeCond usernameLeafCond1 =
                 new AttributeCond(AttributeCond.Type.LIKE);
-        fullnameLeafCond1.setSchema("fullname");
-        fullnameLeafCond1.setExpression("%o%");
+        usernameLeafCond1.setSchema("username");
+        usernameLeafCond1.setExpression("%o%");
 
-        AttributeCond fullnameLeafCond2 =
+        AttributeCond usernameLeafCond2 =
                 new AttributeCond(AttributeCond.Type.LIKE);
-        fullnameLeafCond2.setSchema("fullname");
-        fullnameLeafCond2.setExpression("%i%");
+        usernameLeafCond2.setSchema("username");
+        usernameLeafCond2.setExpression("%i%");
 
         NodeCond searchCondition = NodeCond.getAndCond(
-                NodeCond.getLeafCond(fullnameLeafCond1),
-                NodeCond.getLeafCond(fullnameLeafCond2));
+                NodeCond.getLeafCond(usernameLeafCond1),
+                NodeCond.getLeafCond(usernameLeafCond2));
 
         assertTrue(searchCondition.checkValidity());
 
@@ -929,46 +584,18 @@ public class UserTestITCase extends AbstractTest {
         for (UserTO user : matchedUsers) {
             userIds.add(user.getId());
         }
+        assertEquals(2, userIds.size());
         assertTrue(userIds.contains(2L));
         assertTrue(userIds.contains(3L));
     }
 
     @Test
-    public final void searchByUsernameAndId() {
-        final SyncopeUserCond usernameLeafCond =
-                new SyncopeUserCond(SyncopeUserCond.Type.EQ);
-        usernameLeafCond.setSchema("username");
-        usernameLeafCond.setExpression("user1");
-
-        final SyncopeUserCond idRightCond =
-                new SyncopeUserCond(SyncopeUserCond.Type.LT);
-        idRightCond.setSchema("id");
-        idRightCond.setExpression("2");
-
-        final NodeCond searchCondition = NodeCond.getAndCond(
-                NodeCond.getLeafCond(usernameLeafCond),
-                NodeCond.getLeafCond(idRightCond));
-
-        assertTrue(searchCondition.checkValidity());
-
-        final List<UserTO> matchingUsers = Arrays.asList(
-                restTemplate.postForObject(
-                BASE_URL + "user/search",
-                searchCondition, UserTO[].class));
-
-        assertNotNull(matchingUsers);
-        assertEquals(1, matchingUsers.size());
-        assertEquals("user1", matchingUsers.iterator().next().getUsername());
-        assertEquals(1L, matchingUsers.iterator().next().getId());
-    }
-
-    @Test
     public final void searchUserByResourceName() {
         ResourceCond ws2 = new ResourceCond();
-        ws2.setResourceName("ws-target-resource2");
+        ws2.setName("ws-target-resource2");
 
         ResourceCond ws1 = new ResourceCond();
-        ws1.setResourceName("ws-target-resource-list-mappings-2");
+        ws1.setName("ws-target-resource-list-mappings-2");
 
         NodeCond searchCondition = NodeCond.getAndCond(
                 NodeCond.getNotLeafCond(ws2),
@@ -995,19 +622,19 @@ public class UserTestITCase extends AbstractTest {
     @Test
     public final void paginatedSearch() {
         // LIKE
-        AttributeCond fullnameLeafCond1 =
+        AttributeCond usernameLeafCond1 =
                 new AttributeCond(AttributeCond.Type.LIKE);
-        fullnameLeafCond1.setSchema("fullname");
-        fullnameLeafCond1.setExpression("%o%");
+        usernameLeafCond1.setSchema("username");
+        usernameLeafCond1.setExpression("%o%");
 
-        AttributeCond fullnameLeafCond2 =
+        AttributeCond usernameLeafCond2 =
                 new AttributeCond(AttributeCond.Type.LIKE);
-        fullnameLeafCond2.setSchema("fullname");
-        fullnameLeafCond2.setExpression("%i%");
+        usernameLeafCond2.setSchema("username");
+        usernameLeafCond2.setExpression("%i%");
 
         NodeCond searchCondition = NodeCond.getAndCond(
-                NodeCond.getLeafCond(fullnameLeafCond1),
-                NodeCond.getLeafCond(fullnameLeafCond2));
+                NodeCond.getLeafCond(usernameLeafCond1),
+                NodeCond.getLeafCond(usernameLeafCond2));
 
         assertTrue(searchCondition.checkValidity());
 
@@ -1048,6 +675,11 @@ public class UserTestITCase extends AbstractTest {
 
         assertNotNull(userTO);
 
+        userTO = restTemplate.postForObject(BASE_URL + "user/activate",
+                userTO, UserTO.class);
+
+        assertNotNull(userTO);
+
         UserMod userMod = new UserMod();
         userMod.setId(userTO.getId());
         userMod.addDerivedAttributeToBeRemoved("cn");
@@ -1058,40 +690,6 @@ public class UserTestITCase extends AbstractTest {
         assertNotNull(userTO);
         assertNotNull(userTO.getDerivedAttributeMap());
         assertFalse(userTO.getDerivedAttributeMap().containsKey("cn"));
-    }
-
-    @Test
-    @ExpectedException(value = SyncopeClientCompositeErrorException.class)
-    public final void updateInvalidPassword() {
-        UserTO userTO = getSampleTO("updateinvalid@password.com");
-
-        userTO = restTemplate.postForObject(
-                BASE_URL + "user/create", userTO, UserTO.class);
-        assertNotNull(userTO);
-
-        UserMod userMod = new UserMod();
-        userMod.setId(userTO.getId());
-        userMod.setPassword("pass");
-
-        restTemplate.postForObject(
-                BASE_URL + "user/update", userMod, UserTO.class);
-    }
-
-    @Test
-    @ExpectedException(value = SyncopeClientCompositeErrorException.class)
-    public final void updateSamePassword() {
-        UserTO userTO = getSampleTO("updatesame@password.com");
-
-        userTO = restTemplate.postForObject(
-                BASE_URL + "user/create", userTO, UserTO.class);
-        assertNotNull(userTO);
-
-        UserMod userMod = new UserMod();
-        userMod.setId(userTO.getId());
-        userMod.setPassword("password123");
-
-        restTemplate.postForObject(
-                BASE_URL + "user/update", userMod, UserTO.class);
     }
 
     @Test
@@ -1107,6 +705,8 @@ public class UserTestITCase extends AbstractTest {
         userTO.addMembership(membershipTO);
 
         userTO = restTemplate.postForObject(BASE_URL + "user/create",
+                userTO, UserTO.class);
+        userTO = restTemplate.postForObject(BASE_URL + "user/activate",
                 userTO, UserTO.class);
 
         assertFalse(userTO.getDerivedAttributes().isEmpty());
@@ -1130,9 +730,9 @@ public class UserTestITCase extends AbstractTest {
         attributeMod.addValueToBeAdded("t.w@spre.net");
         userMod.addAttributeToBeUpdated(attributeMod);
 
-        userMod.addAttributeToBeRemoved("fullname");
+        userMod.addAttributeToBeRemoved("username");
         attributeMod = new AttributeMod();
-        attributeMod.setSchema("fullname");
+        attributeMod.setSchema("username");
         attributeMod.addValueToBeAdded("g.h@t.com");
         userMod.addAttributeToBeUpdated(attributeMod);
 
@@ -1143,10 +743,9 @@ public class UserTestITCase extends AbstractTest {
 
         userTO = restTemplate.postForObject(BASE_URL + "user/update",
                 userMod, UserTO.class);
-        assertNotNull(userTO);
 
         SyncopeUser passwordTestUser = new SyncopeUser();
-        passwordTestUser.setPassword("newPassword", CipherAlgorithm.MD5, 0);
+        passwordTestUser.setPassword("newPassword", CipherAlgorithm.MD5);
         assertEquals(passwordTestUser.getPassword(), userTO.getPassword());
 
         assertEquals(1, userTO.getMemberships().size());
@@ -1154,7 +753,7 @@ public class UserTestITCase extends AbstractTest {
                 getAttributes().size());
         assertFalse(userTO.getDerivedAttributes().isEmpty());
         boolean userIdFound = false;
-        boolean fullnameFound = false;
+        boolean usernameFound = false;
         for (AttributeTO attributeTO : userTO.getAttributes()) {
             if ("userId".equals(attributeTO.getSchema())) {
                 userIdFound = true;
@@ -1162,58 +761,15 @@ public class UserTestITCase extends AbstractTest {
                 assertEquals(Collections.singletonList("t.w@spre.net"),
                         attributeTO.getValues());
             }
-            if ("fullname".equals(attributeTO.getSchema())) {
-                fullnameFound = true;
+            if ("username".equals(attributeTO.getSchema())) {
+                usernameFound = true;
 
                 assertEquals(Collections.singletonList("g.h@t.com"),
                         attributeTO.getValues());
             }
         }
         assertTrue(userIdFound);
-        assertTrue(fullnameFound);
-    }
-
-    @Test
-    public void updatePasswordOnly() {
-        List<PropagationTaskTO> beforeTasks = Arrays.asList(
-                restTemplate.getForObject(
-                BASE_URL + "task/propagation/list", PropagationTaskTO[].class));
-        assertNotNull(beforeTasks);
-        assertFalse(beforeTasks.isEmpty());
-
-        UserTO userTO = getSampleTO("pwdonly@t.com");
-        MembershipTO membershipTO = new MembershipTO();
-        membershipTO.setRoleId(8L);
-        AttributeTO membershipAttr = new AttributeTO();
-        membershipAttr.setSchema("subscriptionDate");
-        membershipAttr.addValue("2009-08-18T16:33:12.203+0200");
-        membershipTO.addAttribute(membershipAttr);
-        userTO.addMembership(membershipTO);
-
-        userTO = restTemplate.postForObject(BASE_URL + "user/create",
-                userTO, UserTO.class);
-
-        UserMod userMod = new UserMod();
-        userMod.setId(userTO.getId());
-        userMod.setPassword("newPassword");
-
-        userTO = restTemplate.postForObject(BASE_URL + "user/update",
-                userMod, UserTO.class);
-
-        // check for changePwdDate
-        assertNotNull(userTO.getChangePwdDate());
-
-        SyncopeUser passwordTestUser = new SyncopeUser();
-        passwordTestUser.setPassword("newPassword", CipherAlgorithm.MD5, 0);
-        assertEquals(passwordTestUser.getPassword(), userTO.getPassword());
-
-        List<PropagationTaskTO> afterTasks = Arrays.asList(
-                restTemplate.getForObject(
-                BASE_URL + "task/propagation/list", PropagationTaskTO[].class));
-        assertNotNull(afterTasks);
-        assertFalse(afterTasks.isEmpty());
-
-        assertTrue(beforeTasks.size() < afterTasks.size());
+        assertTrue(usernameFound);
     }
 
     @Test
@@ -1246,9 +802,24 @@ public class UserTestITCase extends AbstractTest {
         userTO.addMembership(membershipTO);
 
         // 1. create user
-        userTO = restTemplate.postForObject(BASE_URL + "user/create",
+        userTO = restTemplate.postForObject(
+                BASE_URL + "user/create?mandatoryRoles=8",
                 userTO, UserTO.class);
+
         assertNotNull(userTO);
+
+        WorkflowActionsTO workflowActions = restTemplate.getForObject(
+                BASE_URL + "user/actions/{userId}", WorkflowActionsTO.class,
+                userTO.getId());
+        assertTrue(workflowActions.getActions().equals(
+                Collections.singleton(Constants.ACTION_ACTIVATE)));
+
+        // 2. activate user
+        userTO = restTemplate.postForObject(BASE_URL + "user/activate",
+                userTO, UserTO.class);
+        assertEquals("active",
+                restTemplate.getForObject(BASE_URL + "user/status/"
+                + userTO.getId(), String.class));
 
         // get the new task list
         tasks = Arrays.asList(
@@ -1329,78 +900,5 @@ public class UserTestITCase extends AbstractTest {
         //             no delete executions have to be registered
         // --> no more tasks/executions should be added
         assertEquals(newMaxId, maxId);
-    }
-
-    @Test
-    public final void suspendReactivate() {
-        UserTO userTO = getSampleTO("suspendReactivate@syncope-idm.org");
-
-        MembershipTO membershipTO = new MembershipTO();
-        membershipTO.setRoleId(7L);
-        userTO.addMembership(membershipTO);
-
-        userTO = restTemplate.postForObject(BASE_URL + "user/create",
-                userTO, UserTO.class);
-
-        assertNotNull(userTO);
-        assertEquals("active", userTO.getStatus());
-
-        userTO = restTemplate.getForObject(
-                BASE_URL + "user/suspend/" + userTO.getId(), UserTO.class);
-
-        assertNotNull(userTO);
-        assertEquals("suspended", userTO.getStatus());
-
-        userTO = restTemplate.getForObject(
-                BASE_URL + "user/reactivate/" + userTO.getId(), UserTO.class);
-
-        assertNotNull(userTO);
-        assertEquals("active", userTO.getStatus());
-    }
-
-    @ExpectedException(EmptyResultDataAccessException.class)
-    @Test
-    public void issue213() {
-        UserTO userTO = getSampleTO("issue213@syncope-idm.org");
-        userTO.addResource("resource-testdb");
-
-        userTO = restTemplate.postForObject(
-                BASE_URL + "user/create", userTO, UserTO.class);
-        assertNotNull(userTO);
-
-        JdbcTemplate jdbcTemplate = new JdbcTemplate(testDataSource);
-        int id = jdbcTemplate.queryForInt(
-                "SELECT id FROM test WHERE id=?", userTO.getId());
-        assertEquals(userTO.getId(), id);
-
-        UserMod userMod = new UserMod();
-        userMod.setId(userTO.getId());
-        userMod.addResourceToBeRemoved("resource-testdb");
-
-        userTO = restTemplate.postForObject(BASE_URL + "user/update",
-                userMod, UserTO.class);
-        assertTrue(userTO.getResources().isEmpty());
-
-        jdbcTemplate.queryForInt(
-                "SELECT id FROM test WHERE id=?", userTO.getId());
-    }
-
-    @Test
-    public void issue234() {
-        UserTO userTO = getSampleTO("issue234@syncope-idm.org");
-        userTO.addResource("resource-ldap");
-
-        userTO = restTemplate.postForObject(
-                BASE_URL + "user/create", userTO, UserTO.class);
-        assertNotNull(userTO);
-
-        UserMod userMod = new UserMod();
-        userMod.setId(userTO.getId());
-        userMod.setUsername("1" + userTO.getUsername());
-
-        userTO = restTemplate.postForObject(BASE_URL + "user/update",
-                userMod, UserTO.class);
-        assertNotNull(userTO);
-        assertEquals("1issue234@syncope-idm.org", userTO.getUsername());
     }
 }

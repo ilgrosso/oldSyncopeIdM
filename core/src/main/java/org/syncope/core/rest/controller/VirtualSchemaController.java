@@ -83,6 +83,7 @@ public class VirtualSchemaController extends AbstractController {
         }
     }
 
+    @PreAuthorize("hasRole('SCHEMA_LIST')")
     @RequestMapping(method = RequestMethod.GET,
     value = "/{kind}/list")
     public List<VirtualSchemaTO> list(@PathVariable("kind") final String kind) {

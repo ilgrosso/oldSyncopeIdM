@@ -14,18 +14,15 @@
  */
 package org.syncope.core.security;
 
-import java.util.Date;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Configurable;
 import org.springframework.security.authentication.AuthenticationProvider;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.transaction.annotation.Transactional;
 import org.syncope.core.persistence.beans.user.SyncopeUser;
 import org.syncope.core.persistence.dao.UserDAO;
 import org.syncope.types.CipherAlgorithm;
@@ -75,47 +72,44 @@ public class SyncopeAuthenticationProvider implements AuthenticationProvider {
     }
 
     @Override
-    @Transactional(noRollbackFor = {BadCredentialsException.class})
     public Authentication authenticate(final Authentication authentication)
             throws AuthenticationException {
 
         boolean authenticated;
         SyncopeUser passwordUser = new SyncopeUser();
-        SyncopeUser user = null;
 
         if (adminUser.equals(authentication.getPrincipal())) {
             passwordUser.setPassword(
                     authentication.getCredentials().toString(),
-                    CipherAlgorithm.MD5, 0);
+                    CipherAlgorithm.MD5);
 
             authenticated = adminMD5Password.equalsIgnoreCase(
                     passwordUser.getPassword());
         } else {
-            String username;
+            Long id;
             try {
-                username = authentication.getPrincipal().toString();
+                id = Long.valueOf(authentication.getPrincipal().toString());
             } catch (NumberFormatException e) {
                 throw new UsernameNotFoundException(
-                        "Invalid username: " + authentication.getName(), e);
+                        "Invalid user id: " + authentication.getName(), e);
             }
 
-            user = userDAO.find(username);
+            SyncopeUser user = userDAO.find(id);
             if (user == null) {
                 throw new UsernameNotFoundException(
-                        "Could not find user " + username);
+                        "Could not find any user with id " + id);
             }
 
             passwordUser.setPassword(
                     authentication.getCredentials().toString(),
-                    user.getCipherAlgoritm(), 0);
+                    user.getCipherAlgoritm());
 
             authenticated = user.getPassword().equalsIgnoreCase(
                     passwordUser.getPassword());
         }
 
         Authentication result;
-
-        if ((user == null || !user.getSuspended()) && authenticated) {
+        if (authenticated) {
             UsernamePasswordAuthenticationToken token =
                     new UsernamePasswordAuthenticationToken(
                     authentication.getPrincipal(),
@@ -128,26 +122,11 @@ public class SyncopeAuthenticationProvider implements AuthenticationProvider {
 
             LOG.debug("User {} authenticated with roles {}",
                     authentication.getPrincipal(), token.getAuthorities());
-
-            if (user != null) {
-                user.setLastLoginDate(new Date());
-                user.setFailedLogins(0);
-                userDAO.save(user);
-            }
-
         } else {
             result = authentication;
 
-            if (user != null && !user.getSuspended()) {
-                user.setFailedLogins(user.getFailedLogins() + 1);
-                userDAO.save(user);
-            }
-
             LOG.debug("User {} not authenticated",
                     authentication.getPrincipal());
-
-            throw new BadCredentialsException("User "
-                    + authentication.getPrincipal() + " not authenticated");
         }
 
         return result;

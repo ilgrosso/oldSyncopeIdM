@@ -20,7 +20,6 @@ import javax.persistence.CascadeType;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
 import javax.persistence.Id;
-import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
 import javax.persistence.OneToOne;
@@ -54,7 +53,6 @@ public class UAttr extends AbstractAttr {
      * The schema of this attribute.
      */
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "schema_name")
     private USchema schema;
 
     /**
@@ -101,7 +99,7 @@ public class UAttr extends AbstractAttr {
     }
 
     @Override
-    public <T extends AbstractSchema> void setSchema(final T schema) {
+    public <T extends AbstractSchema> void setSchema(T schema) {
         this.schema = (USchema) schema;
     }
 

@@ -20,7 +20,6 @@ import javax.persistence.CascadeType;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
 import javax.persistence.Id;
-import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
 import javax.persistence.OneToOne;
@@ -42,7 +41,6 @@ public class MAttr extends AbstractAttr {
     private Membership owner;
 
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "schema_name")
     private MSchema schema;
 
     @OneToMany(cascade = CascadeType.MERGE, orphanRemoval = true,

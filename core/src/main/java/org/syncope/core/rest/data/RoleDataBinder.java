@@ -14,7 +14,6 @@
  */
 package org.syncope.core.rest.data;
 
-import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.syncope.core.util.AttributableUtil;
 import org.springframework.http.HttpStatus;
@@ -23,15 +22,10 @@ import org.syncope.client.mod.RoleMod;
 import org.syncope.client.to.RoleTO;
 import org.syncope.client.validation.SyncopeClientCompositeErrorException;
 import org.syncope.client.validation.SyncopeClientException;
-import org.syncope.core.persistence.beans.AccountPolicy;
 import org.syncope.core.persistence.beans.Entitlement;
-import org.syncope.core.persistence.beans.PasswordPolicy;
-import org.syncope.core.persistence.beans.role.RAttr;
-import org.syncope.core.persistence.beans.role.RDerAttr;
-import org.syncope.core.persistence.beans.role.RVirAttr;
 import org.syncope.core.persistence.beans.role.SyncopeRole;
 import org.syncope.core.persistence.dao.EntitlementDAO;
-import org.syncope.core.propagation.PropagationByResource;
+import org.syncope.core.persistence.propagation.ResourceOperations;
 import org.syncope.types.SyncopeClientExceptionType;
 
 @Component
@@ -49,9 +43,6 @@ public class RoleDataBinder extends AbstractAttributableDataBinder {
                 roleTO.isInheritDerivedAttributes());
         role.setInheritVirtualAttributes(
                 roleTO.isInheritVirtualAttributes());
-
-        role.setInheritPasswordPolicy(roleTO.isInheritPasswordPolicy());
-        role.setInheritAccountPolicy(roleTO.isInheritAccountPolicy());
 
         SyncopeClientCompositeErrorException scce =
                 new SyncopeClientCompositeErrorException(
@@ -105,18 +96,10 @@ public class RoleDataBinder extends AbstractAttributableDataBinder {
             }
         }
 
-        role.setPasswordPolicy(roleTO.getPasswordPolicy() != null
-                ? (PasswordPolicy) policyDAO.find(roleTO.getPasswordPolicy())
-                : null);
-
-        role.setAccountPolicy(roleTO.getAccountPolicy() != null
-                ? (AccountPolicy) policyDAO.find(roleTO.getAccountPolicy())
-                : null);
-
         return role;
     }
 
-    public PropagationByResource update(SyncopeRole role, RoleMod roleMod)
+    public ResourceOperations update(SyncopeRole role, RoleMod roleMod)
             throws SyncopeClientCompositeErrorException {
 
         SyncopeClientCompositeErrorException scce =
@@ -128,8 +111,7 @@ public class RoleDataBinder extends AbstractAttributableDataBinder {
                 SyncopeClientExceptionType.InvalidRoles);
         if (roleMod.getName() != null) {
             SyncopeRole otherRole = roleDAO.find(
-                    roleMod.getName(),
-                    role.getParent() != null ? role.getParent().getId() : 0L);
+                    roleMod.getName(), role.getParent().getId());
 
             if (otherRole != null) {
                 LOG.error("Another role exists with the same name "
@@ -143,31 +125,21 @@ public class RoleDataBinder extends AbstractAttributableDataBinder {
         }
 
         // inherited attributes
-        if (roleMod.getInheritAttributes() != null) {
+        if (roleMod.isChangeInheritAttributes()) {
             role.setInheritAttributes(
-                    roleMod.getInheritAttributes());
+                    !role.isInheritAttributes());
         }
 
         // inherited derived attributes
-        if (roleMod.getInheritDerivedAttributes() != null) {
+        if (roleMod.isChangeInheritDerivedAttributes()) {
             role.setInheritDerivedAttributes(
-                    roleMod.getInheritDerivedAttributes());
+                    !role.isInheritDerivedAttributes());
         }
 
         // inherited virtual attributes
-        if (roleMod.getInheritVirtualAttributes() != null) {
+        if (roleMod.isChangeInheritVirtualAttributes()) {
             role.setInheritVirtualAttributes(
-                    roleMod.getInheritVirtualAttributes());
-        }
-
-        // inherited password Policy
-        if (roleMod.getInheritPasswordPolicy() != null) {
-            role.setInheritPasswordPolicy(roleMod.getInheritPasswordPolicy());
-        }
-
-        // inherited account Policy
-        if (roleMod.getInheritAccountPolicy() != null) {
-            role.setInheritAccountPolicy(roleMod.getInheritAccountPolicy());
+                    !role.isInheritVirtualAttributes());
         }
 
         // entitlements
@@ -182,20 +154,6 @@ public class RoleDataBinder extends AbstractAttributableDataBinder {
             }
         }
 
-        if (roleMod.getPasswordPolicy() != null) {
-            role.setPasswordPolicy(
-                    roleMod.getPasswordPolicy().getId() != null
-                    ? (PasswordPolicy) policyDAO.find(
-                    roleMod.getPasswordPolicy().getId()) : null);
-        }
-
-        if (roleMod.getAccountPolicy() != null) {
-            role.setAccountPolicy(
-                    roleMod.getAccountPolicy().getId() != null
-                    ? (AccountPolicy) policyDAO.find(
-                    roleMod.getAccountPolicy().getId()) : null);
-        }
-
         // attributes, derived attributes, virtual attributes and resources
         return fill(role, roleMod, AttributableUtil.ROLE, scce);
     }
@@ -207,43 +165,20 @@ public class RoleDataBinder extends AbstractAttributableDataBinder {
         roleTO.setInheritAttributes(role.isInheritAttributes());
         roleTO.setInheritDerivedAttributes(role.isInheritDerivedAttributes());
         roleTO.setInheritVirtualAttributes(role.isInheritVirtualAttributes());
-        roleTO.setInheritPasswordPolicy(role.isInheritPasswordPolicy());
-        roleTO.setInheritAccountPolicy(role.isInheritAccountPolicy());
 
         if (role.getParent() != null) {
             roleTO.setParent(role.getParent().getId());
         }
 
-        // -------------------------
-        // Retrieve all [derived/virtual] attributes (inherited and not)
-        // -------------------------
-        final List<RAttr> allAttributes = role.findInheritedAttributes();
-        allAttributes.addAll((List<RAttr>) role.getAttributes());
-
-        final List<RDerAttr> allDerAttributes =
-                role.findInheritedDerivedAttributes();
-        allDerAttributes.addAll((List<RDerAttr>) role.getDerivedAttributes());
-
-        final List<RVirAttr> allVirAttributes =
-                role.findInheritedVirtualAttributes();
-        allVirAttributes.addAll((List<RVirAttr>) role.getVirtualAttributes());
-        // -------------------------
-
         fillTO(roleTO,
-                allAttributes,
-                allDerAttributes,
-                allVirAttributes,
-                role.getResources());
+                role.findInheritedAttributes(),
+                role.findInheritedDerivedAttributes(),
+                role.findInheritedVirtualAttributes(),
+                role.getTargetResources());
 
         for (Entitlement entitlement : role.getEntitlements()) {
             roleTO.addEntitlement(entitlement.getName());
         }
-
-        roleTO.setPasswordPolicy(role.getPasswordPolicy() != null
-                ? role.getPasswordPolicy().getId() : null);
-
-        roleTO.setAccountPolicy(role.getAccountPolicy() != null
-                ? role.getAccountPolicy().getId() : null);
 
         return roleTO;
     }

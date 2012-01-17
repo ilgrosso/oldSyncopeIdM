@@ -16,28 +16,20 @@ package org.syncope.core.persistence.dao;
 
 import java.util.List;
 import org.syncope.core.persistence.beans.Task;
-import org.syncope.core.persistence.beans.ExternalResource;
-import org.syncope.core.persistence.beans.PropagationTask;
-import org.syncope.core.persistence.beans.user.SyncopeUser;
+import org.syncope.core.persistence.beans.TargetResource;
 import org.syncope.core.persistence.validation.entity.InvalidEntityException;
 
 public interface TaskDAO extends DAO {
 
      <T extends Task> T find(Long id);
 
-     <T extends Task> List<T> findWithoutExecs(Class<T> reference);
-
-     <T extends Task> List<T> findAll(ExternalResource resource,
+     <T extends Task> List<T> findAll(TargetResource resource,
             Class<T> reference);
 
      <T extends Task> List<T> findAll(Class<T> reference);
 
      <T extends Task> List<T> findAll(int page, int itemsPerPage,
             Class<T> reference);
-
-    List<PropagationTask> findAll(ExternalResource resource, SyncopeUser user);
-
-    List<PropagationTask> findAll(SyncopeUser user);
 
      <T extends Task> Integer count(Class<T> reference);
 
@@ -48,6 +40,6 @@ public interface TaskDAO extends DAO {
 
      <T extends Task> void delete(T task);
 
-     <T extends Task> void deleteAll(ExternalResource resource,
+     <T extends Task> void deleteAll(TargetResource resource,
             Class<T> reference);
 }

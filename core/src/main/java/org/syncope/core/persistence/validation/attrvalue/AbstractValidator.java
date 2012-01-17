@@ -14,20 +14,15 @@
  */
 package org.syncope.core.persistence.validation.attrvalue;
 
-import java.io.Serializable;
-import java.text.DateFormat;
 import java.text.DecimalFormat;
+import java.text.SimpleDateFormat;
 import java.util.Date;
-import org.apache.commons.lang.time.DateUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.syncope.client.SyncopeConstants;
 import org.syncope.core.persistence.beans.AbstractSchema;
 import org.syncope.core.persistence.beans.AbstractAttrValue;
 
-public abstract class AbstractValidator implements Validator, Serializable {
-
-    private static final long serialVersionUID = -5439345166669502493L;
+public abstract class AbstractValidator implements Validator {
 
     /*
      * Logger
@@ -71,13 +66,9 @@ public abstract class AbstractValidator implements Validator, Serializable {
 
             case Long:
                 try {
-                    if (schema.getFormatter() == null) {
-                        attributeValue.setLongValue(Long.valueOf(value));
-                    } else {
-                        attributeValue.setLongValue(Long.valueOf(
-                                ((DecimalFormat) schema.getFormatter()).parse(
-                                value).longValue()));
-                    }
+                    attributeValue.setLongValue(Long.valueOf(
+                            ((DecimalFormat) schema.getFormatter()).parse(
+                            value).longValue()));
                 } catch (java.text.ParseException pe) {
                     exception = pe;
                 }
@@ -85,13 +76,9 @@ public abstract class AbstractValidator implements Validator, Serializable {
 
             case Double:
                 try {
-                    if (schema.getFormatter() == null) {
-                        attributeValue.setDoubleValue(Double.valueOf(value));
-                    } else {
-                        attributeValue.setDoubleValue(Double.valueOf(
-                                ((DecimalFormat) schema.getFormatter()).parse(
-                                value).doubleValue()));
-                    }
+                    attributeValue.setDoubleValue(Double.valueOf(
+                            ((DecimalFormat) schema.getFormatter()).parse(
+                            value).doubleValue()));
                 } catch (java.text.ParseException pe) {
                     exception = pe;
                 }
@@ -99,15 +86,9 @@ public abstract class AbstractValidator implements Validator, Serializable {
 
             case Date:
                 try {
-                    if (schema.getFormatter() == null) {
-                        attributeValue.setDateValue(DateUtils.parseDate(
-                                value,
-                                SyncopeConstants.DATE_PATTERNS));
-                    } else {
-                        attributeValue.setDateValue(new Date(
-                                ((DateFormat) schema.getFormatter()).parse(
-                                value).getTime()));
-                    }
+                    attributeValue.setDateValue(new Date(
+                            ((SimpleDateFormat) schema.getFormatter()).parse(
+                            value).getTime()));
                 } catch (java.text.ParseException pe) {
                     exception = pe;
                 }

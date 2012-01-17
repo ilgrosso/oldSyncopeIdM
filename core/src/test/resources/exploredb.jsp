@@ -17,16 +17,10 @@
         try {
             stmt = conn.createStatement();
 
-            long size = 0;
-            rs = stmt.executeQuery("SELECT COUNT(*) FROM " + tableName);
-            if (rs.next())
-                size = rs.getLong(1);
-
             rs = stmt.executeQuery("SELECT * FROM " + tableName);
             ResultSetMetaData metaData = rs.getMetaData();
             out.println("<a name=\"" + tableName + "\"><strong>Table: "
                     + tableName + "</strong></a>");
-            out.println(" (" + size + ") ");
             out.println("<a href=\"#top\">Back</a>");
 
             out.println("<table border=\"1\">");
@@ -80,6 +74,22 @@
                         DatabaseMetaData dbm = conn.getMetaData();
                         String[] types = {"TABLE", "VIEW"};
                         ResultSet rs = dbm.getTables(null, null, "%", types);
+            %>
+            <div style="width:300px;float:left;">
+                <a name="top">&#160;</a>
+                <ul style="margin-top:0px;">
+                    <%
+                                while (rs.next()) {
+                                    out.println("<li><a href=\"#"
+                                            + rs.getString("TABLE_NAME") + "\">"
+                                            + rs.getString("TABLE_NAME")
+                                            + "</a></li>");
+                                }
+                    %>
+                </ul>
+            </div>
+            <%
+                        rs.beforeFirst();
             %>
             <div style="width:1000px;float:left;">
                 <%

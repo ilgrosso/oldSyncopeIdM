@@ -14,9 +14,9 @@
  */
 package org.syncope.core.persistence.dao;
 
+import java.util.HashSet;
 import static org.junit.Assert.*;
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import org.identityconnectors.framework.common.objects.Attribute;
@@ -24,17 +24,14 @@ import org.identityconnectors.framework.common.objects.AttributeBuilder;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
-import org.syncope.client.to.UserTO;
-import org.syncope.core.AbstractTest;
-import org.syncope.core.persistence.beans.ExternalResource;
+import org.syncope.core.persistence.AbstractTest;
+import org.syncope.core.persistence.beans.TargetResource;
 import org.syncope.core.persistence.beans.PropagationTask;
 import org.syncope.core.persistence.beans.SchedTask;
 import org.syncope.core.persistence.beans.SyncTask;
-import org.syncope.core.persistence.beans.user.SyncopeUser;
 import org.syncope.core.persistence.validation.entity.InvalidEntityException;
-import org.syncope.core.scheduling.TestSyncJobActions;
 import org.syncope.types.PropagationMode;
-import org.syncope.types.PropagationOperation;
+import org.syncope.types.ResourceOperationType;
 
 @Transactional
 public class TaskTest extends AbstractTest {
@@ -45,51 +42,27 @@ public class TaskTest extends AbstractTest {
     @Autowired
     private ResourceDAO resourceDAO;
 
-    @Autowired
-    private UserDAO userDAO;
-
-    @Test
-    public final void findWithoutExecs() {
-        List<PropagationTask> tasks =
-                taskDAO.findWithoutExecs(PropagationTask.class);
-        assertNotNull(tasks);
-        assertEquals(3, tasks.size());
-    }
-
     @Test
     public final void findAll() {
         List<PropagationTask> plist = taskDAO.findAll(PropagationTask.class);
-        assertEquals(4, plist.size());
+        assertEquals(3, plist.size());
 
         List<SchedTask> sclist = taskDAO.findAll(SchedTask.class);
         assertEquals(1, sclist.size());
 
         List<SyncTask> sylist = taskDAO.findAll(SyncTask.class);
         assertEquals(1, sylist.size());
-
-        ExternalResource resource = resourceDAO.find("ws-target-resource-2");
-        assertNotNull(resource);
-
-        SyncopeUser user = userDAO.find(1L);
-        assertNotNull(user);
-
-        plist = taskDAO.findAll(resource, user);
-        assertEquals(3, plist.size());
     }
 
     @Test
     public final void savePropagationTask() {
-        ExternalResource resource = resourceDAO.find("ws-target-resource-1");
+        TargetResource resource = resourceDAO.find("ws-target-resource-1");
         assertNotNull(resource);
-
-        SyncopeUser user = userDAO.find(2L);
-        assertNotNull(user);
 
         PropagationTask task = new PropagationTask();
         task.setResource(resource);
-        task.setSyncopeUser(user);
-        task.setPropagationMode(PropagationMode.TWO_PHASES);
-        task.setPropagationOperation(PropagationOperation.CREATE);
+        task.setPropagationMode(PropagationMode.ASYNC);
+        task.setResourceOperationType(ResourceOperationType.CREATE);
         task.setAccountId("one@two.com");
 
         Set<Attribute> attributes = new HashSet<Attribute>();
@@ -108,11 +81,11 @@ public class TaskTest extends AbstractTest {
 
     @Test
     public final void saveSyncTask() {
-        ExternalResource resource = resourceDAO.find("ws-target-resource-1");
+        TargetResource resource = resourceDAO.find("ws-target-resource-1");
         assertNotNull(resource);
 
         SyncTask task = new SyncTask();
-        task.setUserTemplate(new UserTO());
+        task.addDefaultResource(resource);
         task.setCronExpression("BLA BLA");
 
         // this save() fails because of an invalid Cron Expression
@@ -135,19 +108,6 @@ public class TaskTest extends AbstractTest {
         assertNotNull(exception);
 
         task.setResource(resource);
-        task.setJobActionsClassName(getClass().getName());
-
-        // this save() fails because jobActionsClassName does not implement 
-        // the right interface
-        exception = null;
-        try {
-            taskDAO.save(task);
-        } catch (InvalidEntityException e) {
-            exception = e;
-        }
-        assertNotNull(exception);
-
-        task.setJobActionsClassName(TestSyncJobActions.class.getName());
         // this save() finally works
         task = taskDAO.save(task);
         assertNotNull(task);
@@ -161,7 +121,7 @@ public class TaskTest extends AbstractTest {
         PropagationTask task = taskDAO.find(1L);
         assertNotNull(task);
 
-        ExternalResource resource = task.getResource();
+        TargetResource resource = task.getResource();
         assertNotNull(resource);
 
         taskDAO.delete(task);

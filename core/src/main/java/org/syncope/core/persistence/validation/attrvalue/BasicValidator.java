@@ -20,9 +20,8 @@ import org.syncope.types.SchemaType;
 
 public class BasicValidator extends AbstractValidator {
 
-    private static final long serialVersionUID = -2606728447694223607L;
+    public BasicValidator(AbstractSchema schema) {
 
-    public BasicValidator(final AbstractSchema schema) {
         super(schema);
     }
 

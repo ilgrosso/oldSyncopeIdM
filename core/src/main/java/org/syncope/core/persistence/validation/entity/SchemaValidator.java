@@ -38,8 +38,7 @@ public class SchemaValidator extends AbstractValidator
             if (object == null) {
                 isValid = true;
             } else {
-                isValid = object.getType() == null
-                        || !object.getType().equals(SchemaType.Enum)
+                isValid = !object.getType().equals(SchemaType.Enum)
                         || object.getEnumerationValues() != null;
 
                 if (!isValid) {
@@ -62,18 +61,16 @@ public class SchemaValidator extends AbstractValidator
                             + "unique constraint at the same time");
                 }
             }
-
-            return isValid;
         } catch (Exception e) {
-            LOG.error("Error saving schema", e);
+            LOG.error(e.getMessage());
 
             context.disableDefaultConstraintViolation();
             context.buildConstraintViolationWithTemplate(
                     violation.toString()).
                     addNode(object.toString()).
                     addConstraintViolation();
-
-            return false;
+        } finally {
+            return isValid;
         }
     }
 }

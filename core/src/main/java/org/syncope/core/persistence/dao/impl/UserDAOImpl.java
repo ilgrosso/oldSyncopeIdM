@@ -34,7 +34,6 @@ import org.springframework.stereotype.Repository;
 import org.springframework.util.StringUtils;
 import org.syncope.core.persistence.beans.AbstractAttrValue;
 import org.syncope.core.persistence.beans.AbstractVirAttr;
-import org.syncope.core.persistence.beans.PropagationTask;
 import org.syncope.core.persistence.beans.membership.Membership;
 import org.syncope.core.persistence.beans.user.SyncopeUser;
 import org.syncope.core.persistence.beans.user.UAttrUniqueValue;
@@ -44,7 +43,6 @@ import org.syncope.core.persistence.beans.user.USchema;
 import org.syncope.core.persistence.dao.DerSchemaDAO;
 import org.syncope.core.persistence.dao.SchemaDAO;
 import org.syncope.core.persistence.dao.RoleDAO;
-import org.syncope.core.persistence.dao.TaskDAO;
 import org.syncope.core.persistence.dao.UserDAO;
 import org.syncope.core.rest.controller.InvalidSearchConditionException;
 
@@ -60,9 +58,6 @@ public class UserDAOImpl extends AbstractDAOImpl
 
     @Autowired
     private RoleDAO roleDAO;
-
-    @Autowired
-    private TaskDAO taskDAO;
 
     @Override
     public SyncopeUser find(final Long id) {
@@ -81,23 +76,7 @@ public class UserDAOImpl extends AbstractDAOImpl
     }
 
     @Override
-    public SyncopeUser find(final String username) {
-        Query query = entityManager.createQuery(
-                "SELECT e FROM " + SyncopeUser.class.getSimpleName() + " e "
-                + "WHERE e.username = :username");
-        query.setHint("javax.persistence.cache.retrieveMode",
-                CacheRetrieveMode.USE);
-        query.setParameter("username", username);
-
-        try {
-            return (SyncopeUser) query.getSingleResult();
-        } catch (NoResultException e) {
-            return null;
-        }
-    }
-
-    @Override
-    public SyncopeUser findByWorkflowId(final String workflowId) {
+    public SyncopeUser findByWorkflowId(final Long workflowId) {
         Query query = entityManager.createQuery(
                 "SELECT e FROM " + SyncopeUser.class.getSimpleName() + " e "
                 + "WHERE e.workflowId = :workflowId");
@@ -136,20 +115,14 @@ public class UserDAOImpl extends AbstractDAOImpl
         // query string
         final StringBuilder querystring = new StringBuilder();
 
-        boolean subquery = false;
         for (String clause : getWhereClause(schema.getExpression(), value)) {
             if (querystring.length() > 0) {
-                subquery = true;
-                querystring.append(" AND a.owner_id IN ( ");
+                querystring.append(" INTERSECT ");
             }
 
             querystring.append("SELECT a.owner_id ").
-                    append("FROM UAttr a, UAttrValue v, USchema s ").
+                    append("FROM uattr a, uattrvalue v, uschema s ").
                     append("WHERE ").append(clause);
-
-            if (subquery) {
-                querystring.append(')');
-            }
         }
 
         LOG.debug("Execute query {}", querystring);
@@ -200,14 +173,11 @@ public class UserDAOImpl extends AbstractDAOImpl
         query.setParameter("schemaName", schemaName);
         query.setParameter("stringValue", attrValue.getStringValue());
         query.setParameter("booleanValue",
-                attrValue.getBooleanValue() == null ? null
+                attrValue.getBooleanValue() == null
+                ? null
                 : attrValue.getBooleanAsInteger(attrValue.getBooleanValue()));
-        if (attrValue.getDateValue() != null) {
-            query.setParameter("dateValue",
-                    attrValue.getDateValue(), TemporalType.TIMESTAMP);
-        } else {
-            query.setParameter("dateValue", null);
-        }
+        query.setParameter("dateValue", attrValue.getDateValue(),
+                TemporalType.TIMESTAMP);
         query.setParameter("longValue", attrValue.getLongValue());
         query.setParameter("doubleValue", attrValue.getDoubleValue());
 
@@ -344,7 +314,8 @@ public class UserDAOImpl extends AbstractDAOImpl
 
         for (AbstractVirAttr virtual : merged.getVirtualAttributes()) {
             virtual.setValues(user.getVirtualAttribute(
-                    virtual.getVirtualSchema().getName()).getValues());
+                    virtual.getVirtualSchema().getName()).
+                    getValues());
         }
 
         return merged;
@@ -374,10 +345,6 @@ public class UserDAOImpl extends AbstractDAOImpl
             entityManager.remove(membership);
         }
         user.getMemberships().clear();
-
-        for (PropagationTask task : taskDAO.findAll(user)) {
-            task.setSyncopeUser(null);
-        }
 
         entityManager.remove(user);
     }

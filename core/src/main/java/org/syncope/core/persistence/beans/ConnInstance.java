@@ -14,9 +14,16 @@
  */
 package org.syncope.core.persistence.beans;
 
+import com.thoughtworks.xstream.XStream;
+import java.beans.XMLDecoder;
+import java.beans.XMLEncoder;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 import javax.persistence.CascadeType;
@@ -30,7 +37,9 @@ import javax.persistence.Id;
 import javax.persistence.Lob;
 import javax.persistence.OneToMany;
 import org.hibernate.annotations.Type;
-import org.syncope.core.util.XMLSerializer;
+import org.identityconnectors.framework.common.objects.SyncToken;
+import org.springframework.context.ConfigurableApplicationContext;
+import org.syncope.core.util.ApplicationContextManager;
 import org.syncope.types.ConnConfProperty;
 import org.syncope.types.ConnectorCapability;
 
@@ -49,8 +58,8 @@ public class ConnInstance extends AbstractBaseBean {
     private String connectorName;
 
     /**
-     * ConnectorBundle-Name: Qualified name for the connector bundle. Within a
-     * given deployment, the pair (ConnectorBundle-Name,
+     * ConnectorBundle-Name: Qualified name for the connector bundle.
+     * Within a given deployment, the pair (ConnectorBundle-Name,
      * ConnectorBundle-Version) must be unique.
      */
     @Column(nullable = false)
@@ -58,8 +67,8 @@ public class ConnInstance extends AbstractBaseBean {
 
     /**
      * ConnectorBundle-Version: The version of the bundle. Within a given
-     * deployment, the pair (ConnectorBundle-Name, ConnectorBundle-Version) must
-     * be unique.
+     * deployment, the pair (ConnectorBundle-Name, ConnectorBundle-Version)
+     * must be unique.
      */
     @Column(nullable = false)
     private String version;
@@ -69,13 +78,12 @@ public class ConnInstance extends AbstractBaseBean {
      */
     @ElementCollection(fetch = FetchType.EAGER)
     @Enumerated(EnumType.STRING)
-    @Column(name = "capabilities")
     private Set<ConnectorCapability> capabilities;
 
     /**
-     * The main configuration for the connector instance. This is directly
-     * implemented by the Configuration bean class which contains annotated
-     * ConfigurationProperties (@ConfigurationProperty).
+     * The main configuration for the connector instance.
+     * This is directly implemented by the Configuration bean class which
+     * contains annotated ConfigurationProperties (@ConfigurationProperty).
      */
     @Lob
     @Type(type = "org.hibernate.type.StringClobType")
@@ -83,15 +91,22 @@ public class ConnInstance extends AbstractBaseBean {
 
     private String displayName;
 
+    @Lob
+    @Type(type = "org.hibernate.type.StringClobType")
+    private String serializedSyncToken;
+
     /**
-     * External resources associated to the connector.
+     * Provisioning target resources associated to the connector.
+     * The connector can be considered the resource's type.
      */
-    @OneToMany(cascade = {CascadeType.ALL}, mappedBy = "connector")
-    private List<ExternalResource> resources;
+    @OneToMany(cascade = {CascadeType.REFRESH, CascadeType.MERGE},
+    mappedBy = "connector")
+    private List<TargetResource> resources;
 
     public ConnInstance() {
         super();
-        capabilities = new HashSet<ConnectorCapability>();
+
+        capabilities = EnumSet.noneOf(ConnectorCapability.class);
     }
 
     public String getVersion() {
@@ -119,18 +134,37 @@ public class ConnInstance extends AbstractBaseBean {
     }
 
     public Set<ConnConfProperty> getConfiguration() {
-        Set<ConnConfProperty> result =
-                XMLSerializer.<HashSet<ConnConfProperty>>deserialize(
-                xmlConfiguration);
-        if (result == null) {
-            result = Collections.emptySet();
+        Set<ConnConfProperty> result = Collections.EMPTY_SET;
+
+        try {
+            ByteArrayInputStream tokenContentIS = new ByteArrayInputStream(
+                    URLDecoder.decode(xmlConfiguration, "UTF-8").getBytes());
+
+            XMLDecoder decoder = new XMLDecoder(tokenContentIS);
+            Object object = decoder.readObject();
+            decoder.close();
+
+            result = (Set<ConnConfProperty>) object;
+        } catch (Throwable t) {
+            LOG.error("During connector properties deserialization", t);
         }
+
         return result;
     }
 
     public void setConfiguration(final Set<ConnConfProperty> configuration) {
-        xmlConfiguration = XMLSerializer.serialize(
-                new HashSet<ConnConfProperty>(configuration));
+        try {
+            ByteArrayOutputStream tokenContentOS = new ByteArrayOutputStream();
+            XMLEncoder encoder = new XMLEncoder(tokenContentOS);
+            encoder.writeObject(configuration);
+            encoder.flush();
+            encoder.close();
+
+            xmlConfiguration = URLEncoder.encode(tokenContentOS.toString(),
+                    "UTF-8");
+        } catch (Throwable t) {
+            LOG.error("During connector properties serialization", t);
+        }
     }
 
     public Long getId() {
@@ -145,25 +179,25 @@ public class ConnInstance extends AbstractBaseBean {
         this.displayName = displayName;
     }
 
-    public List<ExternalResource> getResources() {
+    public List<TargetResource> getResources() {
         if (this.resources == null) {
-            this.resources = new ArrayList<ExternalResource>();
+            this.resources = new ArrayList<TargetResource>();
         }
         return this.resources;
     }
 
-    public void setResources(List<ExternalResource> resources) {
+    public void setResources(List<TargetResource> resources) {
         this.resources = resources;
     }
 
-    public boolean addResource(ExternalResource resource) {
+    public boolean addResource(TargetResource resource) {
         if (this.resources == null) {
-            this.resources = new ArrayList<ExternalResource>();
+            this.resources = new ArrayList<TargetResource>();
         }
         return this.resources.add(resource);
     }
 
-    public boolean removeResource(ExternalResource resource) {
+    public boolean removeResource(TargetResource resource) {
         if (this.resources == null) {
             return true;
         }
@@ -186,6 +220,44 @@ public class ConnInstance extends AbstractBaseBean {
         this.capabilities.clear();
         if (capabilities != null && !capabilities.isEmpty()) {
             this.capabilities.addAll(capabilities);
+        }
+    }
+
+    public String getSerializedSyncToken() {
+        return serializedSyncToken;
+    }
+
+    public void setSerializedSyncToken(final String serializedSyncToken) {
+        this.serializedSyncToken = serializedSyncToken;
+    }
+
+    public SyncToken getSyncToken() {
+        SyncToken result = null;
+
+        if (serializedSyncToken != null) {
+            ConfigurableApplicationContext context =
+                    ApplicationContextManager.getApplicationContext();
+            XStream xStream = context.getBean(XStream.class);
+            try {
+                result = (SyncToken) xStream.fromXML(
+                        URLDecoder.decode(serializedSyncToken, "UTF-8"));
+            } catch (Throwable t) {
+                LOG.error("During attribute deserialization", t);
+            }
+        }
+
+        return result;
+    }
+
+    public void setSyncToken(final SyncToken syncToken) {
+        ConfigurableApplicationContext context =
+                ApplicationContextManager.getApplicationContext();
+        XStream xStream = context.getBean(XStream.class);
+        try {
+            serializedSyncToken = URLEncoder.encode(
+                    xStream.toXML(syncToken), "UTF-8");
+        } catch (Throwable t) {
+            LOG.error("During attribute serialization", t);
         }
     }
 }

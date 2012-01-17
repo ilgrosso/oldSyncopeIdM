@@ -14,20 +14,13 @@
  */
 package org.syncope.types;
 
-import java.util.ArrayList;
-import java.util.List;
 import org.syncope.client.AbstractBaseBean;
 
-public class ConnConfProperty extends AbstractBaseBean
-        implements Comparable<ConnConfProperty> {
-
-    private static final long serialVersionUID = -8391413960221862238L;
+public class ConnConfProperty extends AbstractBaseBean {
 
     private ConnConfPropSchema schema;
 
-    private List values;
-
-    private boolean overridable;
+    private String value;
 
     public ConnConfPropSchema getSchema() {
         return schema;
@@ -37,27 +30,11 @@ public class ConnConfProperty extends AbstractBaseBean
         this.schema = schema;
     }
 
-    public List getValues() {
-        if (values == null) {
-            values = new ArrayList();
-        }
-        return values;
+    public String getValue() {
+        return value;
     }
 
-    public void setValues(final List values) {
-        this.values = values;
-    }
-
-    public boolean isOverridable() {
-        return overridable;
-    }
-
-    public void setOverridable(boolean overridable) {
-        this.overridable = overridable;
-    }
-
-    @Override
-    public int compareTo(final ConnConfProperty connConfProperty) {
-        return this.getSchema().compareTo(connConfProperty.getSchema());
+    public void setValue(String value) {
+        this.value = value;
     }
 }

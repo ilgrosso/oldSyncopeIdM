@@ -14,7 +14,7 @@
  */
 package org.syncope.console.pages;
 
-import org.apache.wicket.request.mapper.parameter.PageParameters;
+import org.apache.wicket.PageParameters;
 import org.syncope.console.SyncopeSession;
 
 /**
@@ -22,15 +22,11 @@ import org.syncope.console.SyncopeSession;
  */
 public class Logout extends BasePage {
 
-    private static final long serialVersionUID = -2143007520243939450L;
-
-    public Logout(final PageParameters parameters) {
+    public Logout(PageParameters parameters) {
         super(parameters);
 
         SyncopeSession.get().invalidate();
-
-        // TODO: check that this is indeed not necessary anymore.
-        //        getRequestCycle().setRedirect(true);
+        getRequestCycle().setRedirect(true);
 
         setResponsePage(getApplication().getHomePage());
     }

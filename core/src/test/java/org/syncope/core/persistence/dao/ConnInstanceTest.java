@@ -14,10 +14,8 @@
  */
 package org.syncope.core.persistence.dao;
 
-import static org.junit.Assert.*;
-
-import java.util.Collections;
 import java.util.List;
+import static org.junit.Assert.*;
 import java.util.HashSet;
 import java.util.Set;
 import org.connid.bundles.soap.WebServiceConnector;
@@ -26,7 +24,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 import org.syncope.types.ConnConfProperty;
 import org.syncope.core.persistence.beans.ConnInstance;
-import org.syncope.core.AbstractTest;
+import org.syncope.core.persistence.AbstractTest;
 import org.syncope.types.ConnConfPropSchema;
 
 @Transactional
@@ -86,7 +84,7 @@ public class ConnInstanceTest extends AbstractTest {
         endpointSchema.setRequired(true);
         ConnConfProperty endpoint = new ConnConfProperty();
         endpoint.setSchema(endpointSchema);
-        endpoint.setValues(Collections.singletonList("http://host.domain"));
+        endpoint.setValue("http://host.domain");
 
         ConnConfPropSchema servicenameSchema = new ConnConfPropSchema();
         servicenameSchema.setName("servicename");
@@ -94,7 +92,7 @@ public class ConnInstanceTest extends AbstractTest {
         servicenameSchema.setRequired(true);
         ConnConfProperty servicename = new ConnConfProperty();
         servicename.setSchema(servicenameSchema);
-        servicename.setValues(Collections.singletonList("Provisioning"));
+        servicename.setValue("Provisioning");
 
         conf.add(endpoint);
         conf.add(servicename);

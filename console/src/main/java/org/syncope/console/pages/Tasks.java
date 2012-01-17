@@ -14,53 +14,60 @@
  */
 package org.syncope.console.pages;
 
+import org.syncope.console.pages.panels.PropagationTasks;
+import org.syncope.console.pages.panels.SyncTasks;
+import org.syncope.console.pages.panels.GenericTasks;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
-import org.apache.wicket.extensions.ajax.markup.html.modal.ModalWindow;
-import org.apache.wicket.extensions.markup.html.repeater.data.sort.SortOrder;
+import org.apache.wicket.PageParameters;
+import org.apache.wicket.extensions.markup.html.repeater.data.grid.ICellPopulator;
+import org.apache.wicket.extensions.markup.html.repeater.data.table.PropertyColumn;
 import org.apache.wicket.extensions.markup.html.repeater.util.SortableDataProvider;
-import org.apache.wicket.markup.html.WebMarkupContainer;
+import org.apache.wicket.markup.html.basic.Label;
+import org.apache.wicket.markup.repeater.Item;
 import org.apache.wicket.model.AbstractReadOnlyModel;
 import org.apache.wicket.model.CompoundPropertyModel;
 import org.apache.wicket.model.IModel;
-import org.apache.wicket.request.mapper.parameter.PageParameters;
+import org.apache.wicket.util.convert.converters.DateConverter;
 import org.syncope.client.to.SchedTaskTO;
 import org.syncope.client.to.TaskExecTO;
 import org.syncope.client.to.TaskTO;
+import org.syncope.console.SyncopeSession;
+import org.syncope.console.commons.Constants;
 import org.syncope.console.commons.SortableDataProviderComparator;
-import org.syncope.console.pages.panels.NotificationTasks;
-import org.syncope.console.pages.panels.SchedTasks;
-import org.syncope.console.pages.panels.PropagationTasks;
-import org.syncope.console.pages.panels.SyncTasks;
+import org.syncope.console.commons.SelectOption;
 import org.syncope.console.rest.TaskRestClient;
 
 public class Tasks extends BasePage {
 
-    private static final long serialVersionUID = 5289215853622289061L;
+    public static final SelectOption[] CRON_TEMPLATES = new SelectOption[]{
+        new SelectOption(
+        "Unschedule", "UNSCHEDULE"),
+        new SelectOption(
+        "Fire at 12pm (noon) every day", "0 0 12 * * ?"),
+        new SelectOption(
+        "Fire at 12am (midnight) every first day of the month", "0 0 0 1 * ?"),
+        new SelectOption(
+        "Fire at 12am (midnight) every Last day of the month", "0 0 0 L * ?"),
+        new SelectOption(
+        "Fire at 12am (midnight) every Monday", "0 0 0 ? * 2")
+    };
 
     public Tasks(final PageParameters parameters) {
         super();
 
         add(new PropagationTasks("propagation"));
-        add(new NotificationTasks("notification"));
-        add(new SchedTasks("sched", getPageReference()));
-        add(new SyncTasks("sync", getPageReference()));
-    }
-
-    @Override
-    public void setWindowClosedCallback(final ModalWindow window,
-            final WebMarkupContainer container) {
-
-        super.setWindowClosedCallback(window, container);
+        add(new GenericTasks("sched"));
+        add(new SyncTasks("sync"));
     }
 
     public static class TaskExecutionsProvider
             extends SortableDataProvider<TaskExecTO> {
-
-        private static final long serialVersionUID = -5401263348984206145L;
 
         private SortableDataProviderComparator<TaskExecTO> comparator;
 
@@ -71,7 +78,7 @@ public class Tasks extends BasePage {
 
             //Default sorting
             this.taskTO = taskTO;
-            setSort("startDate", SortOrder.ASCENDING);
+            setSort("startDate", true);
             comparator = new SortableDataProviderComparator<TaskExecTO>(this);
         }
 
@@ -109,7 +116,50 @@ public class Tasks extends BasePage {
         }
     }
 
-    public static class TasksProvider<T extends TaskTO>
+    /**
+     * Format column's value as date string.
+     */
+    public static class DatePropertyColumn<T> extends PropertyColumn<T> {
+
+        private SimpleDateFormat formatter;
+
+        public DatePropertyColumn(final IModel<String> displayModel,
+                final String sortProperty,
+                final String propertyExpression,
+                final DateConverter converter) {
+
+            super(displayModel, sortProperty, propertyExpression);
+
+            String language = "en";
+            if (SyncopeSession.get().getLocale() != null) {
+                language = SyncopeSession.get().getLocale().getLanguage();
+            }
+
+            if ("it".equals(language)) {
+                formatter = new SimpleDateFormat(Constants.ITALIAN_DATE_FORMAT);
+            } else {
+                formatter = new SimpleDateFormat(Constants.ENGLISH_DATE_FORMAT);
+            }
+        }
+
+        @Override
+        public void populateItem(final Item<ICellPopulator<T>> item,
+                final String componentId, final IModel<T> rowModel) {
+
+            IModel date = (IModel<Date>) createLabelModel(rowModel);
+
+            String convertedDate = "";
+
+            if (date.getObject() != null) {
+                convertedDate = formatter.format(date.getObject());
+                item.add(new Label(componentId, convertedDate));
+            } else {
+                item.add(new Label(componentId, convertedDate));
+            }
+        }
+    }
+
+    public static class TasksProvider<T extends SchedTaskTO>
             extends SortableDataProvider<T> {
 
         private SortableDataProviderComparator<T> comparator;
@@ -131,7 +181,7 @@ public class Tasks extends BasePage {
             super();
 
             //Default sorting
-            setSort("id", SortOrder.ASCENDING);
+            setSort("id", true);
             comparator = new SortableDataProviderComparator<T>(this);
             this.paginatorRows = paginatorRows;
             this.restClient = restClient;
@@ -141,13 +191,13 @@ public class Tasks extends BasePage {
 
         @Override
         public Iterator<T> iterator(final int first, final int count) {
+
             final List<T> tasks = new ArrayList<T>();
 
-            for (T task : (List<T>) restClient.listTasks(
-                    reference, (first / paginatorRows) + 1, paginatorRows)) {
+            for (T task : (List<T>) restClient.listSchedTasks(
+                    reference, (first / paginatorRows) + 1, count)) {
 
-                if (task instanceof SchedTaskTO
-                        && ((SchedTaskTO) task).getLastExec() == null
+                if (task.getLastExec() == null
                         && task.getExecutions() != null
                         && !task.getExecutions().isEmpty()) {
 
@@ -158,13 +208,12 @@ public class Tasks extends BasePage {
                                 public int compare(
                                         final TaskExecTO left,
                                         final TaskExecTO right) {
-
                                     return left.getStartDate().
                                             compareTo(right.getStartDate());
                                 }
                             });
 
-                    ((SchedTaskTO) task).setLastExec(
+                    task.setLastExec(
                             task.getExecutions().get(
                             task.getExecutions().size() - 1).getStartDate());
                 }
@@ -181,8 +230,8 @@ public class Tasks extends BasePage {
         }
 
         @Override
-        public IModel<T> model(final T object) {
-            return new CompoundPropertyModel<T>(object);
+        public IModel<SchedTaskTO> model(final SchedTaskTO object) {
+            return new CompoundPropertyModel<SchedTaskTO>(object);
         }
     }
 }

@@ -14,10 +14,6 @@
  */
 package org.syncope.core.rest.data;
 
-import java.util.Map;
-import javassist.NotFoundException;
-import org.identityconnectors.framework.api.ConfigurationProperties;
-import org.identityconnectors.framework.api.ConfigurationProperty;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -27,22 +23,16 @@ import org.syncope.client.validation.SyncopeClientCompositeErrorException;
 import org.syncope.client.validation.SyncopeClientException;
 import org.syncope.core.persistence.beans.ConnInstance;
 import org.syncope.core.persistence.dao.ConnInstanceDAO;
-import org.syncope.core.util.ConnBundleManager;
-import org.syncope.types.ConnConfPropSchema;
-import org.syncope.types.ConnConfProperty;
 import org.syncope.types.SyncopeClientExceptionType;
 
 @Component
 public class ConnInstanceDataBinder {
 
-    private static final String[] IGNORE_PROPERTIES = {
-        "id", "resources"};
+    private static final String[] ignoreProperties = {
+        "id", "resources", "syncToken"};
 
     @Autowired
     private ConnInstanceDAO connectorInstanceDAO;
-
-    @Autowired
-    private ConnBundleManager connBundleManager;
 
     public ConnInstance getConnInstance(
             final ConnInstanceTO connectorInstanceTO)
@@ -76,12 +66,12 @@ public class ConnInstanceDataBinder {
         ConnInstance connectorInstance = new ConnInstance();
 
         BeanUtils.copyProperties(
-                connectorInstanceTO, connectorInstance, IGNORE_PROPERTIES);
+                connectorInstanceTO, connectorInstance, ignoreProperties);
 
         // Throw composite exception if there is at least one element set
         // in the composing exceptions
 
-        if (!requiredValuesMissing.isEmpty()) {
+        if (!requiredValuesMissing.getElements().isEmpty()) {
             compositeErrorException.addException(requiredValuesMissing);
         }
 
@@ -93,8 +83,8 @@ public class ConnInstanceDataBinder {
     }
 
     public ConnInstance updateConnInstance(
-            final Long connectorInstanceId,
-            final ConnInstanceTO connInstanceTO)
+            Long connectorInstanceId,
+            ConnInstanceTO connInstanceTO)
             throws SyncopeClientCompositeErrorException {
 
         SyncopeClientCompositeErrorException compositeErrorException =
@@ -127,7 +117,7 @@ public class ConnInstanceDataBinder {
         }
 
         if (connInstanceTO.getConfiguration() != null
-                && !connInstanceTO.getConfiguration().isEmpty()) {
+                || connInstanceTO.getConfiguration().isEmpty()) {
 
             connInstance.setConfiguration(
                     connInstanceTO.getConfiguration());
@@ -141,7 +131,11 @@ public class ConnInstanceDataBinder {
         connInstance.setCapabilities(
                 connInstanceTO.getCapabilities());
 
-        if (!requiredValuesMissing.isEmpty()) {
+        if (connInstanceTO.getSyncToken() == null) {
+            connInstance.setSerializedSyncToken(null);
+        }
+
+        if (!requiredValuesMissing.getElements().isEmpty()) {
             compositeErrorException.addException(requiredValuesMissing);
         }
 
@@ -154,52 +148,16 @@ public class ConnInstanceDataBinder {
         return connInstance;
     }
 
-    public ConnInstanceTO getConnInstanceTO(final ConnInstance connInstance)
-            throws NotFoundException {
-
+    public ConnInstanceTO getConnInstanceTO(ConnInstance connInstance) {
         ConnInstanceTO connInstanceTO = new ConnInstanceTO();
         connInstanceTO.setId(connInstance.getId());
 
-        // retrieve the ConfigurationProperties.
-        ConfigurationProperties properties =
-                connBundleManager.getConfigurationProperties(
-                connInstance.getBundleName(),
-                connInstance.getVersion(),
-                connInstance.getConnectorName());
-
         BeanUtils.copyProperties(
-                connInstance, connInstanceTO, IGNORE_PROPERTIES);
+                connInstance, connInstanceTO, ignoreProperties);
 
-        ConnConfPropSchema connConfPropSchema;
-        ConfigurationProperty configurationProperty;
+        connInstanceTO.setSyncToken(
+                connInstance.getSerializedSyncToken());
 
-        Map<String, ConnConfProperty> connInstanceToConfMap =
-                connInstanceTO.getConfigurationMap();
-        for (String propName : properties.getPropertyNames()) {
-            configurationProperty = properties.getProperty(propName);
-
-            if (!connInstanceToConfMap.containsKey(propName)) {
-                connConfPropSchema = new ConnConfPropSchema();
-                connConfPropSchema.setName(
-                        configurationProperty.getName());
-                connConfPropSchema.setDisplayName(
-                        configurationProperty.getDisplayName(propName));
-                connConfPropSchema.setHelpMessage(
-                        configurationProperty.getHelpMessage(propName));
-                connConfPropSchema.setRequired(
-                        configurationProperty.isRequired());
-                connConfPropSchema.setType(
-                        configurationProperty.getType().getName());
-
-                ConnConfProperty property = new ConnConfProperty();
-                property.setSchema(connConfPropSchema);
-                connInstanceTO.addConfiguration(property);
-            } else {
-                connInstanceToConfMap.get(propName).getSchema().
-                        setDisplayName(
-                        configurationProperty.getDisplayName(propName));
-            }
-        }
         return connInstanceTO;
     }
 }

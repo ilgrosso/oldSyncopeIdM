@@ -44,7 +44,8 @@ public class RoleDAOImpl extends AbstractDAOImpl implements RoleDAO {
 
         try {
             return (SyncopeRole) query.getSingleResult();
-        } catch (NoResultException e) {
+        }
+        catch (NoResultException e) {
             return null;
         }
     }
@@ -66,12 +67,12 @@ public class RoleDAOImpl extends AbstractDAOImpl implements RoleDAO {
         if (parentId != null) {
             query = entityManager.createQuery(
                     "SELECT r FROM SyncopeRole r WHERE "
-                    + "r.name=:name AND r.parent.id=:parentId");
+                    + "name=:name AND parent.id=:parentId");
             query.setParameter("parentId", parentId);
         } else {
             query = entityManager.createQuery(
                     "SELECT r FROM SyncopeRole r WHERE "
-                    + "r.name=:name AND r.parent IS NULL");
+                    + "name=:name AND parent IS NULL");
         }
         query.setParameter("name", name);
 
@@ -83,7 +84,7 @@ public class RoleDAOImpl extends AbstractDAOImpl implements RoleDAO {
     public List<SyncopeRole> findChildren(final Long roleId) {
         Query query = entityManager.createQuery(
                 "SELECT r FROM SyncopeRole r WHERE "
-                + "r.parent.id=:roleId");
+                + "parent.id=:roleId");
         query.setParameter("roleId", roleId);
         return query.getResultList();
     }
@@ -95,7 +96,7 @@ public class RoleDAOImpl extends AbstractDAOImpl implements RoleDAO {
     }
 
     @Override
-    public List<Membership> findMemberships(final SyncopeRole role) {
+    public List<Membership> getMemberships(final SyncopeRole role) {
         Query query = entityManager.createQuery(
                 "SELECT e FROM " + Membership.class.getSimpleName() + " e"
                 + " WHERE e.syncopeRole=:role");
@@ -106,16 +107,6 @@ public class RoleDAOImpl extends AbstractDAOImpl implements RoleDAO {
 
     @Override
     public SyncopeRole save(final SyncopeRole role) {
-        // reset account policy in case of inheritance
-        if (role.isInheritAccountPolicy()) {
-            role.setAccountPolicy(null);
-        }
-
-        // reset password policy in case of inheritance
-        if (role.isInheritPasswordPolicy()) {
-            role.setPasswordPolicy(null);
-        }
-
         final SyncopeRole savedRole = entityManager.merge(role);
         entitlementDAO.save(savedRole);
 
@@ -130,14 +121,15 @@ public class RoleDAOImpl extends AbstractDAOImpl implements RoleDAO {
         }
 
         Query query = entityManager.createQuery(
-                "SELECT r FROM SyncopeRole r WHERE r.parent.id=:id");
+                "SELECT r FROM SyncopeRole r WHERE "
+                + "parent_id=:id");
         query.setParameter("id", id);
         List<SyncopeRole> childrenRoles = query.getResultList();
         for (SyncopeRole child : childrenRoles) {
             delete(child.getId());
         }
 
-        for (Membership membership : findMemberships(role)) {
+        for (Membership membership : getMemberships(role)) {
             membership.setSyncopeRole(null);
             membership.getSyncopeUser().removeMembership(membership);
             membership.setSyncopeUser(null);

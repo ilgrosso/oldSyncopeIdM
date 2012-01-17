@@ -16,32 +16,33 @@ package org.syncope.console;
 
 import org.apache.wicket.Component;
 import org.apache.wicket.Page;
+import org.apache.wicket.Request;
+import org.apache.wicket.RequestCycle;
+import org.apache.wicket.Response;
 import org.apache.wicket.RestartResponseAtInterceptPageException;
 import org.apache.wicket.Session;
 import org.apache.wicket.authorization.IUnauthorizedComponentInstantiationListener;
 import org.apache.wicket.authorization.UnauthorizedInstantiationException;
-import org.apache.wicket.authroles.authorization.strategies.role.IRoleCheckingStrategy;
-import org.apache.wicket.authroles.authorization.strategies.role.RoleAuthorizationStrategy;
-import org.apache.wicket.authroles.authorization.strategies.role.metadata.MetaDataRoleAuthorizationStrategy;
+import org.apache.wicket.authorization.strategies.role.IRoleCheckingStrategy;
+import org.apache.wicket.authorization.strategies.role.RoleAuthorizationStrategy;
+import org.apache.wicket.authorization.strategies.role.metadata.MetaDataRoleAuthorizationStrategy;
 import org.apache.wicket.markup.html.WebPage;
 import org.apache.wicket.markup.html.basic.Label;
-import org.apache.wicket.markup.html.image.Image;
 import org.apache.wicket.markup.html.link.BookmarkablePageLink;
 import org.apache.wicket.protocol.http.WebApplication;
-import org.apache.wicket.request.Request;
-import org.apache.wicket.request.Response;
-import org.apache.wicket.request.resource.ContextRelativeResource;
+import org.apache.wicket.protocol.http.WebRequest;
+import org.apache.wicket.protocol.http.WebResponse;
 import org.apache.wicket.spring.injection.annot.SpringComponentInjector;
 import org.syncope.console.commons.XMLRolesReader;
 import org.syncope.console.pages.Configuration;
+import org.syncope.console.pages.Connectors;
 import org.syncope.console.pages.Login;
 import org.syncope.console.pages.Logout;
-import org.syncope.console.pages.Reports;
+import org.syncope.console.pages.Report;
 import org.syncope.console.pages.Resources;
 import org.syncope.console.pages.Roles;
 import org.syncope.console.pages.Schema;
 import org.syncope.console.pages.Tasks;
-import org.syncope.console.pages.Todo;
 import org.syncope.console.pages.Users;
 import org.syncope.console.pages.WelcomePage;
 
@@ -52,17 +53,9 @@ public class SyncopeApplication extends WebApplication
         implements IUnauthorizedComponentInstantiationListener,
         IRoleCheckingStrategy {
 
-    public static final String IMG_PREFIX = "/img/menu/";
-
-    public static final String IMG_NOTSEL = "notsel/";
-
-    public static final String IMG_SUFFIX = ".png";
-
     @Override
     protected void init() {
-        getComponentInstantiationListeners().add(
-                new SpringComponentInjector(this));
-
+        addComponentInstantiationListener(new SpringComponentInjector(this));
         getResourceSettings().setThrowExceptionOnMissingResource(true);
 
         getSecuritySettings().
@@ -72,25 +65,38 @@ public class SyncopeApplication extends WebApplication
 
         getMarkupSettings().setStripWicketTags(true);
 
-        getRequestCycleListeners().add(new SyncopeRequestCycleListener());
+        // setup authorizations
+        MetaDataRoleAuthorizationStrategy.authorize(Schema.class,
+                "SCHEMA_LIST");
+        MetaDataRoleAuthorizationStrategy.authorize(Roles.class,
+                "ROLE_LIST");
+        MetaDataRoleAuthorizationStrategy.authorize(Connectors.class,
+                "CONNECTOR_LIST");
+        MetaDataRoleAuthorizationStrategy.authorize(Resources.class,
+                "RESOURCE_LIST");
+        MetaDataRoleAuthorizationStrategy.authorize(Users.class,
+                "USER_LIST");
+        MetaDataRoleAuthorizationStrategy.authorize(Report.class,
+                "REPORT_LIST");
+        MetaDataRoleAuthorizationStrategy.authorize(Tasks.class,
+                "TASK_LIST");
+        MetaDataRoleAuthorizationStrategy.authorize(Configuration.class,
+                "CONFIGURATION_LIST");
     }
 
     public void setupNavigationPane(final WebPage page,
-            final XMLRolesReader xmlRolesReader, final boolean notsel,
-            final String version) {
+            final XMLRolesReader xmlRolesReader, final String version) {
 
         page.add(new Label("version", "Console: " + version
                 + "; Core: " + SyncopeSession.get().getCoreVersion()));
 
         BookmarkablePageLink schemaLink =
                 new BookmarkablePageLink("schema", Schema.class);
-        MetaDataRoleAuthorizationStrategy.authorizeAll(
-                schemaLink, WebPage.ENABLE);
+        String allowedSchemaRoles =
+                xmlRolesReader.getAllAllowedRoles("Schema", "list");
+        MetaDataRoleAuthorizationStrategy.authorize(
+                schemaLink, WebPage.ENABLE, allowedSchemaRoles);
         page.add(schemaLink);
-        schemaLink.add(
-                new Image("schemaIcon",
-                new ContextRelativeResource(IMG_PREFIX
-                + (notsel ? IMG_NOTSEL : "") + "schema" + IMG_SUFFIX)));
 
         BookmarkablePageLink usersLink =
                 new BookmarkablePageLink("users", Users.class);
@@ -99,49 +105,38 @@ public class SyncopeApplication extends WebApplication
         MetaDataRoleAuthorizationStrategy.authorize(
                 usersLink, WebPage.ENABLE, allowedUsersRoles);
         page.add(usersLink);
-        usersLink.add(new Image("usersIcon",
-                new ContextRelativeResource(IMG_PREFIX
-                + (notsel ? IMG_NOTSEL : "") + "users" + IMG_SUFFIX)));
 
         BookmarkablePageLink rolesLink =
                 new BookmarkablePageLink("roles", Roles.class);
-        MetaDataRoleAuthorizationStrategy.authorizeAll(
-                rolesLink, WebPage.ENABLE);
+        String allowedRoleRoles =
+                xmlRolesReader.getAllAllowedRoles("Roles", "list");
+        MetaDataRoleAuthorizationStrategy.authorize(
+                rolesLink, WebPage.ENABLE, allowedRoleRoles);
         page.add(rolesLink);
-        rolesLink.add(new Image("rolesIcon",
-                new ContextRelativeResource(IMG_PREFIX
-                + (notsel ? IMG_NOTSEL : "") + "roles" + IMG_SUFFIX)));
 
         BookmarkablePageLink resourcesLink =
                 new BookmarkablePageLink("resources", Resources.class);
-        MetaDataRoleAuthorizationStrategy.authorizeAll(
-                resourcesLink, WebPage.ENABLE);
-        page.add(resourcesLink);
-        resourcesLink.add(new Image("resourcesIcon",
-                new ContextRelativeResource(
-                IMG_PREFIX + (notsel ? IMG_NOTSEL : "") + "resources"
-                + IMG_SUFFIX)));
-
-        BookmarkablePageLink todoLink =
-                new BookmarkablePageLink("todo", Todo.class);
+        String allowedResourcesRoles =
+                xmlRolesReader.getAllAllowedRoles("Resources", "list");
         MetaDataRoleAuthorizationStrategy.authorize(
-                todoLink, WebPage.ENABLE,
-                xmlRolesReader.getAllAllowedRoles("Approval", "list"));
-        page.add(todoLink);
-        todoLink.add(new Image("todoIcon",
-                new ContextRelativeResource(IMG_PREFIX
-                + (notsel ? IMG_NOTSEL : "") + "todo" + IMG_SUFFIX)));
+                resourcesLink, WebPage.ENABLE, allowedResourcesRoles);
+        page.add(resourcesLink);
+
+        BookmarkablePageLink connectorsLink =
+                new BookmarkablePageLink("connectors", Connectors.class);
+        String allowedConnectorsRoles =
+                xmlRolesReader.getAllAllowedRoles("Connectors", "list");
+        MetaDataRoleAuthorizationStrategy.authorize(
+                connectorsLink, WebPage.ENABLE, allowedConnectorsRoles);
+        page.add(connectorsLink);
 
         BookmarkablePageLink reportLink =
-                new BookmarkablePageLink("reports", Reports.class);
+                new BookmarkablePageLink("report", Report.class);
         String allowedReportRoles =
-                xmlRolesReader.getAllAllowedRoles("Reports", "list");
+                xmlRolesReader.getAllAllowedRoles("Report", "list");
         MetaDataRoleAuthorizationStrategy.authorize(
                 reportLink, WebPage.ENABLE, allowedReportRoles);
         page.add(reportLink);
-        reportLink.add(new Image("reportsIcon",
-                new ContextRelativeResource(IMG_PREFIX
-                + (notsel ? IMG_NOTSEL : "") + "reports" + IMG_SUFFIX)));
 
         BookmarkablePageLink configurationLink =
                 new BookmarkablePageLink("configuration", Configuration.class);
@@ -150,9 +145,6 @@ public class SyncopeApplication extends WebApplication
         MetaDataRoleAuthorizationStrategy.authorize(
                 configurationLink, WebPage.ENABLE, allowedConfigurationRoles);
         page.add(configurationLink);
-        configurationLink.add(new Image("configurationIcon",
-                new ContextRelativeResource(IMG_PREFIX
-                + (notsel ? IMG_NOTSEL : "") + "configuration" + IMG_SUFFIX)));
 
         BookmarkablePageLink taskLink =
                 new BookmarkablePageLink("tasks", Tasks.class);
@@ -161,9 +153,6 @@ public class SyncopeApplication extends WebApplication
         MetaDataRoleAuthorizationStrategy.authorize(
                 taskLink, WebPage.ENABLE, allowedTasksRoles);
         page.add(taskLink);
-        taskLink.add(new Image("tasksIcon",
-                new ContextRelativeResource(IMG_PREFIX
-                + (notsel ? IMG_NOTSEL : "") + "tasks" + IMG_SUFFIX)));
 
         page.add(new BookmarkablePageLink("logout", Logout.class));
     }
@@ -181,6 +170,14 @@ public class SyncopeApplication extends WebApplication
     }
 
     @Override
+    public final RequestCycle newRequestCycle(final Request request,
+            final Response response) {
+
+        return new SyncopeRequestCycle(this, (WebRequest) request,
+                (WebResponse) response);
+    }
+
+    @Override
     public void onUnauthorizedInstantiation(final Component component) {
         SyncopeSession.get().invalidate();
 
@@ -193,7 +190,7 @@ public class SyncopeApplication extends WebApplication
 
     @Override
     public boolean hasAnyRole(
-            final org.apache.wicket.authroles.authorization.strategies.role.Roles roles) {
+            org.apache.wicket.authorization.strategies.role.Roles roles) {
 
         return SyncopeSession.get().hasAnyRole(roles);
     }

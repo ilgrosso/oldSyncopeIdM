@@ -19,15 +19,15 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import org.apache.wicket.Page;
+import org.apache.wicket.PageParameters;
 import org.apache.wicket.ajax.AjaxRequestTarget;
 import org.apache.wicket.ajax.form.AjaxFormComponentUpdatingBehavior;
 import org.apache.wicket.ajax.markup.html.AjaxLink;
-import org.apache.wicket.authroles.authorization.strategies.role.metadata.MetaDataRoleAuthorizationStrategy;
+import org.apache.wicket.authorization.strategies.role.metadata.MetaDataRoleAuthorizationStrategy;
 import org.apache.wicket.extensions.ajax.markup.html.IndicatingAjaxLink;
 import org.apache.wicket.extensions.ajax.markup.html.modal.ModalWindow;
 import org.apache.wicket.extensions.ajax.markup.html.repeater.data.table.AjaxFallbackDefaultDataTable;
 import org.apache.wicket.extensions.markup.html.repeater.data.grid.ICellPopulator;
-import org.apache.wicket.extensions.markup.html.repeater.data.sort.SortOrder;
 import org.apache.wicket.extensions.markup.html.repeater.data.table.AbstractColumn;
 import org.apache.wicket.extensions.markup.html.repeater.data.table.IColumn;
 import org.apache.wicket.extensions.markup.html.repeater.data.table.PropertyColumn;
@@ -38,17 +38,14 @@ import org.apache.wicket.markup.html.form.Form;
 import org.apache.wicket.markup.repeater.Item;
 import org.apache.wicket.model.AbstractReadOnlyModel;
 import org.apache.wicket.model.IModel;
+import org.apache.wicket.model.Model;
 import org.apache.wicket.model.PropertyModel;
-import org.apache.wicket.model.ResourceModel;
-import org.apache.wicket.request.mapper.parameter.PageParameters;
 import org.apache.wicket.spring.injection.annot.SpringBean;
-import org.syncope.client.to.ConnInstanceTO;
 import org.syncope.client.to.ResourceTO;
 import org.syncope.client.validation.SyncopeClientCompositeErrorException;
 import org.syncope.console.commons.Constants;
 import org.syncope.console.commons.PreferenceManager;
 import org.syncope.console.commons.SortableDataProviderComparator;
-import org.syncope.console.rest.ConnectorRestClient;
 import org.syncope.console.rest.ResourceRestClient;
 import org.syncope.console.wicket.ajax.markup.html.IndicatingDeleteOnConfirmAjaxLink;
 import org.syncope.console.wicket.markup.html.form.DeleteLinkPanel;
@@ -59,13 +56,8 @@ import org.syncope.console.wicket.markup.html.form.EditLinkPanel;
  */
 public class Resources extends BasePage {
 
-    private static final long serialVersionUID = -3789252860990261728L;
-
     @SpringBean
-    private ResourceRestClient resourceRestClient;
-
-    @SpringBean
-    private ConnectorRestClient connectorRestClient;
+    private ResourceRestClient restClient;
 
     @SpringBean
     private PreferenceManager prefMan;
@@ -74,83 +66,55 @@ public class Resources extends BasePage {
 
     private final ModalWindow editResourceWin;
 
-    private final ModalWindow createConnectorWin;
-
-    private final ModalWindow editConnectorWin;
-
     private static final int WIN_HEIGHT = 500;
 
-    private static final int WIN_WIDTH = 900;
+    private static final int WIN_WIDTH = 775;
 
-    private WebMarkupContainer resourceContainer;
+    private WebMarkupContainer container;
 
-    private WebMarkupContainer connectorContainer;
+    /*
+    Response flag set by the Modal Window after the operation is completed:
+    TRUE if the operation succedes, FALSE otherwise
+     */
+    private boolean operationResult = false;
 
-    private int resourcePaginatorRows;
+    private int paginatorRows;
 
-    private int connectorPaginatorRows;
-
-    public Resources(final PageParameters parameters) {
+    public Resources(PageParameters parameters) {
         super(parameters);
 
         add(createResourceWin = new ModalWindow("createResourceWin"));
         add(editResourceWin = new ModalWindow("editResourceWin"));
-        add(createConnectorWin = new ModalWindow("createConnectorWin"));
-        add(editConnectorWin = new ModalWindow("editConnectorWin"));
 
         add(feedbackPanel);
 
-        resourcePaginatorRows = prefMan.getPaginatorRows(getRequest(),
+        paginatorRows = prefMan.getPaginatorRows(
+                getWebRequestCycle().getWebRequest(),
                 Constants.PREF_RESOURCES_PAGINATOR_ROWS);
-        connectorPaginatorRows = prefMan.getPaginatorRows(
-                getRequest(),
-                Constants.PREF_CONNECTORS_PAGINATOR_ROWS);
 
-        setupResources();
-        setupConnectors();
-    }
-
-    private final void setupResources() {
         List<IColumn> columns = new ArrayList<IColumn>();
 
-        columns.add(new PropertyColumn(
-                new ResourceModel("name"), "name", "name"));
-        columns.add(new PropertyColumn(
-                new ResourceModel("propagationPrimary"),
-                "propagationPrimary", "propagationPrimary"));
-        columns.add(new PropertyColumn(
-                new ResourceModel("propagationPriority"),
-                "propagationPriority", "propagationPriority"));
+        columns.add(new PropertyColumn(new Model(getString("name")),
+                "name", "name"));
 
-        columns.add(new AbstractColumn<ResourceTO>(new ResourceModel("edit")) {
+        columns.add(new AbstractColumn<ResourceTO>(new Model<String>(
+                getString("edit"))) {
 
-            private static final long serialVersionUID = 2054811145491901166L;
-
-            @Override
-            public void populateItem(
-                    final Item<ICellPopulator<ResourceTO>> cellItem,
-                    final String componentId,
-                    final IModel<ResourceTO> model) {
+            public void populateItem(Item<ICellPopulator<ResourceTO>> cellItem,
+                    String componentId, IModel<ResourceTO> model) {
                 final ResourceTO resourceTO = model.getObject();
 
                 AjaxLink editLink = new IndicatingAjaxLink("editLink") {
 
-                    private static final long serialVersionUID =
-                            -7978723352517770644L;
-
                     @Override
-                    public void onClick(final AjaxRequestTarget target) {
+                    public void onClick(AjaxRequestTarget target) {
 
                         editResourceWin.setPageCreator(new ModalWindow.PageCreator() {
 
-                            private static final long serialVersionUID =
-                                    -7834632442532690940L;
-
-                            @Override
                             public Page createPage() {
                                 ResourceModalPage form = new ResourceModalPage(
-                                        Resources.this.getPageReference(),
-                                        editResourceWin, resourceTO, false);
+                                        Resources.this, editResourceWin,
+                                        resourceTO, false);
                                 return form;
                             }
                         });
@@ -159,8 +123,7 @@ public class Resources extends BasePage {
                     }
                 };
 
-                final EditLinkPanel panel =
-                        new EditLinkPanel(componentId, model);
+                EditLinkPanel panel = new EditLinkPanel(componentId, model);
                 panel.add(editLink);
 
                 MetaDataRoleAuthorizationStrategy.authorize(panel, ENABLE,
@@ -171,28 +134,21 @@ public class Resources extends BasePage {
             }
         });
 
-        columns.add(new AbstractColumn<ResourceTO>(new ResourceModel("delete")) {
+        columns.add(new AbstractColumn<ResourceTO>(new Model<String>(getString(
+                "delete"))) {
 
-            private static final long serialVersionUID = 2054811145491901166L;
-
-            @Override
-            public void populateItem(
-                    final Item<ICellPopulator<ResourceTO>> cellItem,
-                    final String componentId,
-                    final IModel<ResourceTO> model) {
+            public void populateItem(Item<ICellPopulator<ResourceTO>> cellItem,
+                    String componentId, IModel<ResourceTO> model) {
                 final ResourceTO resourceTO = model.getObject();
 
                 AjaxLink deleteLink = new IndicatingDeleteOnConfirmAjaxLink(
                         "deleteLink") {
 
-                    private static final long serialVersionUID =
-                            -7978723352517770644L;
-
                     @Override
                     public void onClick(final AjaxRequestTarget target) {
                         try {
 
-                            resourceRestClient.delete(resourceTO.getName());
+                            restClient.delete(resourceTO.getName());
                             info(getString("operation_succeded"));
 
                         } catch (SyncopeClientCompositeErrorException e) {
@@ -202,18 +158,18 @@ public class Resources extends BasePage {
                                     + resourceTO.getName(), e);
                         }
 
-                        target.add(feedbackPanel);
-                        target.add(resourceContainer);
+                        target.addComponent(feedbackPanel);
+                        target.addComponent(container);
                     }
                 };
-
-                final DeleteLinkPanel panel =
-                        new DeleteLinkPanel(componentId, model);
+                DeleteLinkPanel panel = new DeleteLinkPanel(componentId, model);
                 panel.add(deleteLink);
 
+                String allowedRoles = xmlRolesReader.getAllAllowedRoles(
+                        "Resources", "delete");
+
                 MetaDataRoleAuthorizationStrategy.authorize(panel, ENABLE,
-                        xmlRolesReader.getAllAllowedRoles(
-                        "Resources", "delete"));
+                        allowedRoles);
 
                 cellItem.add(panel);
             }
@@ -221,45 +177,41 @@ public class Resources extends BasePage {
 
 
         final AjaxFallbackDefaultDataTable table =
-                new AjaxFallbackDefaultDataTable("resourceDatatable", columns,
-                new ResourcesProvider(), resourcePaginatorRows);
+                new AjaxFallbackDefaultDataTable("datatable", columns,
+                new ResourcesProvider(), paginatorRows);
 
-        resourceContainer = new WebMarkupContainer("resourceContainer");
-        resourceContainer.add(table);
-        resourceContainer.setOutputMarkupId(true);
+        container = new WebMarkupContainer("container");
+        container.add(table);
+        container.setOutputMarkupId(true);
 
-        add(resourceContainer);
+        add(container);
 
-        setWindowClosedCallback(createResourceWin, resourceContainer);
-        setWindowClosedCallback(editResourceWin, resourceContainer);
+        setWindowClosedCallback(createResourceWin, container);
+        setWindowClosedCallback(editResourceWin, container);
 
         createResourceWin.setCssClassName(ModalWindow.CSS_CLASS_GRAY);
         createResourceWin.setInitialHeight(WIN_HEIGHT);
         createResourceWin.setInitialWidth(WIN_WIDTH);
+        createResourceWin.setPageMapName("create-res-modal");
         createResourceWin.setCookieName("create-res-modal");
 
         editResourceWin.setCssClassName(ModalWindow.CSS_CLASS_GRAY);
         editResourceWin.setInitialHeight(WIN_HEIGHT);
         editResourceWin.setInitialWidth(WIN_WIDTH);
+        editResourceWin.setPageMapName("edit-res-modal");
         editResourceWin.setCookieName("edit-res-modal");
 
         add(new IndicatingAjaxLink("createResourceLink") {
-
-            private static final long serialVersionUID = -7978723352517770644L;
 
             @Override
             public void onClick(AjaxRequestTarget target) {
 
                 createResourceWin.setPageCreator(new ModalWindow.PageCreator() {
 
-                    private static final long serialVersionUID =
-                            -7834632442532690940L;
-
                     @Override
                     public Page createPage() {
-                        final ResourceModalPage windows = new ResourceModalPage(
-                                Resources.this.getPageReference(),
-                                editResourceWin,
+                        ResourceModalPage windows = new ResourceModalPage(
+                                Resources.this, editResourceWin,
                                 new ResourceTO(), true);
                         return windows;
                     }
@@ -269,24 +221,23 @@ public class Resources extends BasePage {
             }
         });
 
-        final Form paginatorForm = new Form("resourcePaginatorForm");
+        Form paginatorForm = new Form("PaginatorForm");
 
         final DropDownChoice rowsChooser = new DropDownChoice("rowsChooser",
-                new PropertyModel(this, "resourcePaginatorRows"),
+                new PropertyModel(this, "paginatorRows"),
                 prefMan.getPaginatorChoices());
 
         rowsChooser.add(new AjaxFormComponentUpdatingBehavior("onchange") {
-
-            private static final long serialVersionUID = -1107858522700306810L;
 
             @Override
             protected void onUpdate(final AjaxRequestTarget target) {
-                prefMan.set(getRequest(), getResponse(),
+                prefMan.set(getWebRequestCycle().getWebRequest(),
+                        getWebRequestCycle().getWebResponse(),
                         Constants.PREF_RESOURCES_PAGINATOR_ROWS,
-                        String.valueOf(resourcePaginatorRows));
+                        String.valueOf(paginatorRows));
+                table.setRowsPerPage(paginatorRows);
 
-                table.setItemsPerPage(resourcePaginatorRows);
-                target.add(resourceContainer);
+                target.addComponent(container);
             }
         });
 
@@ -294,219 +245,49 @@ public class Resources extends BasePage {
         add(paginatorForm);
     }
 
-    private void setupConnectors() {
-        List<IColumn> columns = new ArrayList<IColumn>();
+    public boolean isOperationResult() {
+        return operationResult;
+    }
 
-        columns.add(new PropertyColumn(new ResourceModel("id"),
-                "id", "id"));
+    public void setOperationResult(boolean operationResult) {
+        this.operationResult = operationResult;
+    }
 
-        columns.add(new PropertyColumn(new ResourceModel("name"),
-                "connectorName", "connectorName"));
+    /**
+     * Set a WindowClosedCallback for a ModalWindow instance.
+     * @param window
+     * @param container
+     */
+    public void setWindowClosedCallback(ModalWindow window,
+            final WebMarkupContainer container) {
 
-        columns.add(new PropertyColumn(new ResourceModel("displayName"),
-                "displayName", "displayName"));
+        window.setWindowClosedCallback(
+                new ModalWindow.WindowClosedCallback() {
 
-        columns.add(new PropertyColumn(new ResourceModel("version"),
-                "version", "version"));
-
-        columns.add(new PropertyColumn(new ResourceModel("bundleName"),
-                "bundleName", "bundleName"));
-
-        columns.add(new AbstractColumn<ConnInstanceTO>(
-                new ResourceModel("edit")) {
-
-            private static final long serialVersionUID = 2054811145491901166L;
-
-            @Override
-            public void populateItem(
-                    final Item<ICellPopulator<ConnInstanceTO>> cellItem,
-                    final String componentId,
-                    final IModel<ConnInstanceTO> model) {
-
-                final ConnInstanceTO connectorTO = model.getObject();
-
-                final AjaxLink editLink = new IndicatingAjaxLink("editLink") {
-
-                    private static final long serialVersionUID =
-                            -7978723352517770644L;
-
-                    @Override
-                    public void onClick(final AjaxRequestTarget target) {
-
-                        editConnectorWin.setPageCreator(
-                                new ModalWindow.PageCreator() {
-
-                                    private static final long serialVersionUID =
-                                            -7834632442532690940L;
-
-                                    @Override
-                                    public Page createPage() {
-                                        return new ConnectorModalPage(
-                                                Resources.this.getPageReference(),
-                                                editConnectorWin, connectorTO,
-                                                false);
-                                    }
-                                });
-
-                        editConnectorWin.show(target);
-                    }
-                };
-
-                EditLinkPanel panel = new EditLinkPanel(componentId, model);
-                panel.add(editLink);
-
-                MetaDataRoleAuthorizationStrategy.authorize(panel, ENABLE,
-                        xmlRolesReader.getAllAllowedRoles(
-                        "Connectors", "read"));
-
-                cellItem.add(panel);
-            }
-        });
-
-        columns.add(new AbstractColumn<ConnInstanceTO>(
-                new ResourceModel("delete")) {
-
-            private static final long serialVersionUID = 2054811145491901166L;
-
-            @Override
-            public void populateItem(
-                    final Item<ICellPopulator<ConnInstanceTO>> cellItem,
-                    final String componentId,
-                    final IModel<ConnInstanceTO> model) {
-
-                final ConnInstanceTO connectorTO = model.getObject();
-
-                AjaxLink deleteLink = new IndicatingDeleteOnConfirmAjaxLink(
-                        "deleteLink") {
-
-                    private static final long serialVersionUID =
-                            -7978723352517770644L;
-
-                    @Override
-                    public void onClick(final AjaxRequestTarget target) {
-                        try {
-                            connectorRestClient.delete(connectorTO.getId());
+                    public void onClose(AjaxRequestTarget target) {
+                        target.addComponent(container);
+                        if (operationResult) {
                             info(getString("operation_succeded"));
-                        } catch (SyncopeClientCompositeErrorException e) {
-                            error(getString("operation_error"));
-
-                            LOG.error("While deleting connector "
-                                    + connectorTO.getId(), e);
+                            target.addComponent(feedbackPanel);
+                            operationResult = false;
                         }
-
-                        target.add(connectorContainer);
-                        target.add(feedbackPanel);
-                    }
-                };
-
-                DeleteLinkPanel panel = new DeleteLinkPanel(componentId, model);
-                panel.add(deleteLink);
-
-                MetaDataRoleAuthorizationStrategy.authorize(panel, ENABLE,
-                        xmlRolesReader.getAllAllowedRoles(
-                        "Connectors", "delete"));
-
-                cellItem.add(panel);
-            }
-        });
-
-        final AjaxFallbackDefaultDataTable table =
-                new AjaxFallbackDefaultDataTable("connectorDatatable", columns,
-                new ConnectorsProvider(), connectorPaginatorRows);
-
-        connectorContainer = new WebMarkupContainer("connectorContainer");
-        connectorContainer.add(table);
-        connectorContainer.setOutputMarkupId(true);
-
-        add(connectorContainer);
-
-        setWindowClosedCallback(createConnectorWin, connectorContainer);
-        setWindowClosedCallback(editConnectorWin, connectorContainer);
-
-        createConnectorWin.setCssClassName(ModalWindow.CSS_CLASS_GRAY);
-        createConnectorWin.setInitialHeight(WIN_HEIGHT);
-        createConnectorWin.setInitialWidth(WIN_WIDTH);
-        createConnectorWin.setCookieName("create-conn-modal");
-
-        editConnectorWin.setCssClassName(ModalWindow.CSS_CLASS_GRAY);
-        editConnectorWin.setInitialHeight(WIN_HEIGHT);
-        editConnectorWin.setInitialWidth(WIN_WIDTH);
-        editConnectorWin.setCookieName("edit-conn-modal");
-
-        AjaxLink createConnectorLink = new IndicatingAjaxLink(
-                "createConnectorLink") {
-
-            private static final long serialVersionUID = -7978723352517770644L;
-
-            @Override
-            public void onClick(AjaxRequestTarget target) {
-
-                createConnectorWin.setPageCreator(new ModalWindow.PageCreator() {
-
-                    private static final long serialVersionUID =
-                            -7834632442532690940L;
-
-                    @Override
-                    public Page createPage() {
-                        ConnectorModalPage form = new ConnectorModalPage(
-                                Resources.this.getPageReference(),
-                                editConnectorWin, new ConnInstanceTO(), true);
-                        return form;
                     }
                 });
-
-                createConnectorWin.show(target);
-            }
-        };
-
-        String allowedRoles = xmlRolesReader.getAllAllowedRoles(
-                "Connectors", "create");
-        MetaDataRoleAuthorizationStrategy.authorize(createConnectorLink, ENABLE,
-                allowedRoles);
-
-        add(createConnectorLink);
-
-        Form paginatorForm = new Form("connectorPaginatorForm");
-
-        final DropDownChoice rowsChooser = new DropDownChoice("rowsChooser",
-                new PropertyModel(this, "connectorPaginatorRows"),
-                prefMan.getPaginatorChoices());
-
-        rowsChooser.add(new AjaxFormComponentUpdatingBehavior("onchange") {
-
-            private static final long serialVersionUID = -1107858522700306810L;
-
-            @Override
-            protected void onUpdate(AjaxRequestTarget target) {
-                prefMan.set(getRequest(),
-                        getResponse(),
-                        Constants.PREF_CONNECTORS_PAGINATOR_ROWS,
-                        String.valueOf(connectorPaginatorRows));
-                table.setItemsPerPage(connectorPaginatorRows);
-
-                target.add(connectorContainer);
-            }
-        });
-
-        paginatorForm.add(rowsChooser);
-        add(paginatorForm);
     }
 
     class ResourcesProvider extends SortableDataProvider<ResourceTO> {
-
-        private static final long serialVersionUID = -9055916672926643975L;
 
         private SortableDataProviderComparator<ResourceTO> comparator;
 
         public ResourcesProvider() {
             //Default sorting
-            setSort("name", SortOrder.ASCENDING);
+            setSort("name", true);
             comparator =
                     new SortableDataProviderComparator<ResourceTO>(this);
         }
 
         @Override
-        public Iterator<ResourceTO> iterator(final int first, final int count) {
+        public Iterator<ResourceTO> iterator(int first, int count) {
             List<ResourceTO> list = getResourcesListDB();
 
             Collections.sort(list, comparator);
@@ -531,56 +312,7 @@ public class Resources extends BasePage {
         }
 
         public List<ResourceTO> getResourcesListDB() {
-            return resourceRestClient.getAllResources();
-        }
-    }
-
-    class ConnectorsProvider extends SortableDataProvider<ConnInstanceTO> {
-
-        private static final long serialVersionUID = 4445909568349448518L;
-
-        private SortableDataProviderComparator<ConnInstanceTO> comparator;
-
-        public ConnectorsProvider() {
-            //Default sorting
-            setSort("id", SortOrder.ASCENDING);
-            comparator =
-                    new SortableDataProviderComparator<ConnInstanceTO>(
-                    this);
-        }
-
-        @Override
-        public Iterator<ConnInstanceTO> iterator(int first, int count) {
-            List<ConnInstanceTO> list = getConnectorsListDB();
-
-            Collections.sort(list, comparator);
-
-            return list.subList(first, first + count).iterator();
-        }
-
-        @Override
-        public int size() {
-            return getConnectorsListDB().size();
-        }
-
-        @Override
-        public IModel<ConnInstanceTO> model(
-                final ConnInstanceTO connector) {
-
-            return new AbstractReadOnlyModel<ConnInstanceTO>() {
-
-                private static final long serialVersionUID =
-                        -6033068018293569398L;
-
-                @Override
-                public ConnInstanceTO getObject() {
-                    return connector;
-                }
-            };
-        }
-
-        public List<ConnInstanceTO> getConnectorsListDB() {
-            return connectorRestClient.getAllConnectors();
+            return restClient.getAllResources();
         }
     }
 }

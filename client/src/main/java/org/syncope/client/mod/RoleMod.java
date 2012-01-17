@@ -16,7 +16,6 @@ package org.syncope.client.mod;
 
 import java.util.ArrayList;
 import java.util.List;
-import org.codehaus.jackson.annotate.JsonIgnore;
 
 public class RoleMod extends AbstractAttributableMod {
 
@@ -24,21 +23,13 @@ public class RoleMod extends AbstractAttributableMod {
 
     private String name;
 
-    private Boolean inheritAttributes;
+    private boolean changeInheritAttributes;
 
-    private Boolean inheritDerivedAttributes;
+    private boolean changeInheritDerivedAttributes;
 
-    private Boolean inheritVirtualAttributes;
-
-    private Boolean inheritAccountPolicy;
-
-    private Boolean inheritPasswordPolicy;
+    private boolean changeInheritVirtualAttributes;
 
     private List<String> entitlements;
-
-    private ReferenceMod passwordPolicy;
-
-    private ReferenceMod accountPolicy;
 
     public RoleMod() {
         super();
@@ -46,46 +37,47 @@ public class RoleMod extends AbstractAttributableMod {
         entitlements = new ArrayList<String>();
     }
 
-    public Boolean getInheritAttributes() {
-        return inheritAttributes;
+    public boolean isChangeInheritAttributes() {
+        return changeInheritAttributes;
     }
 
-    public void setInheritAttributes(
-            final Boolean inheritAttributes) {
-        this.inheritAttributes = inheritAttributes;
+    public void setChangeInheritAttributes(boolean changeInheritAttributes) {
+        this.changeInheritAttributes = changeInheritAttributes;
     }
 
-    public Boolean getInheritDerivedAttributes() {
-        return inheritDerivedAttributes;
+    public boolean isChangeInheritDerivedAttributes() {
+        return changeInheritDerivedAttributes;
     }
 
-    public void setInheritDerivedAttributes(
-            final Boolean inheritDerivedAttributes) {
-        this.inheritDerivedAttributes = inheritDerivedAttributes;
+    public void setChangeInheritDerivedAttributes(
+            boolean changeInheritDerivedAttributes) {
+
+        this.changeInheritDerivedAttributes = changeInheritDerivedAttributes;
     }
 
-    public Boolean getInheritVirtualAttributes() {
-        return inheritVirtualAttributes;
+    public boolean isChangeInheritVirtualAttributes() {
+        return changeInheritVirtualAttributes;
     }
 
-    public void setInheritVirtualAttributes(
-            final Boolean inheritVirtualAttributes) {
-        this.inheritVirtualAttributes = inheritVirtualAttributes;
+    public void setChangeInheritVirtualAttributes(
+            boolean changeInheritVirtualAttributes) {
+
+        this.changeInheritVirtualAttributes = changeInheritVirtualAttributes;
     }
 
     public String getName() {
         return name;
     }
 
-    public void setName(final String name) {
+    public void setName(String name) {
         this.name = name;
     }
 
-    public boolean addEntitlement(final String entitlement) {
+    public boolean addEntitlement(String entitlement) {
         return entitlements.add(entitlement);
     }
 
-    public boolean removeEntitlement(final String entitlement) {
+    public boolean removeEntitlement(String entitlement) {
         return entitlements.remove(entitlement);
     }
 
@@ -93,57 +85,10 @@ public class RoleMod extends AbstractAttributableMod {
         return entitlements;
     }
 
-    public void setEntitlements(final List<String> entitlements) {
+    public void setEntitlements(List<String> entitlements) {
         this.entitlements.clear();
-        if (entitlements != null && !entitlements.isEmpty()) {
+        if (entitlements != null || !entitlements.isEmpty()) {
             this.entitlements.addAll(entitlements);
         }
-    }
-
-    public ReferenceMod getPasswordPolicy() {
-        return passwordPolicy;
-    }
-
-    public void setPasswordPolicy(final ReferenceMod passwordPolicy) {
-        this.passwordPolicy = passwordPolicy;
-    }
-
-    public Boolean getInheritPasswordPolicy() {
-        return inheritPasswordPolicy;
-    }
-
-    public void setInheritPasswordPolicy(final Boolean inheritPasswordPolicy) {
-        this.inheritPasswordPolicy = inheritPasswordPolicy;
-    }
-
-    public ReferenceMod getAccountPolicy() {
-        return accountPolicy;
-    }
-
-    public void setAccountPolicy(final ReferenceMod accountPolicy) {
-        this.accountPolicy = accountPolicy;
-    }
-
-    public Boolean getInheritAccountPolicy() {
-        return inheritAccountPolicy;
-    }
-
-    public void setInheritAccountPolicy(final Boolean inheritAccountPolicy) {
-        this.inheritAccountPolicy = inheritAccountPolicy;
-    }
-
-    @JsonIgnore
-    @Override
-    public boolean isEmpty() {
-        return super.isEmpty()
-                && name == null
-                && inheritAccountPolicy == null
-                && inheritPasswordPolicy == null
-                && inheritAttributes == null
-                && inheritDerivedAttributes == null
-                && inheritVirtualAttributes == null
-                && accountPolicy == null
-                && passwordPolicy == null
-                && entitlements.isEmpty();
     }
 }

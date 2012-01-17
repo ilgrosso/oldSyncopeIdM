@@ -16,21 +16,5 @@ package org.syncope.types;
 
 public enum TraceLevel {
 
-    /**
-     * No details at all.
-     */
-    NONE,
-    /**
-     * Only failed entries.
-     */
-    FAILURES,
-    /**
-     * Only an overall summary.
-     */
-    SUMMARY,
-    /**
-     * All available information, including per-entry information.
-     */
-    ALL
-
+    NONE, FAILURES, ALL
 }

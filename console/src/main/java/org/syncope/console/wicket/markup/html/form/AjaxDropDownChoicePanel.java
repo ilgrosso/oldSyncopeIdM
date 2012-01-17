@@ -14,76 +14,68 @@
  */
 package org.syncope.console.wicket.markup.html.form;
 
-import java.util.Collections;
 import java.util.List;
 import org.apache.wicket.ajax.AjaxRequestTarget;
 import org.apache.wicket.ajax.form.AjaxFormComponentUpdatingBehavior;
-import org.apache.wicket.markup.html.form.ChoiceRenderer;
+import org.apache.wicket.markup.html.basic.Label;
 import org.apache.wicket.markup.html.form.DropDownChoice;
 import org.apache.wicket.markup.html.form.IChoiceRenderer;
+import org.apache.wicket.markup.html.form.TextField;
+import org.apache.wicket.markup.html.panel.Panel;
 import org.apache.wicket.model.IModel;
 import org.apache.wicket.model.Model;
 
-public class AjaxDropDownChoicePanel<T>
-        extends FieldPanel implements Cloneable {
+public class AjaxDropDownChoicePanel extends Panel {
 
-    private static final long serialVersionUID = -4716376580659196095L;
+    public AjaxDropDownChoicePanel(final String id, final String name,
+            final IModel model, final List choices,
+            final IChoiceRenderer renderer, final boolean required) {
 
-    public AjaxDropDownChoicePanel(
-            final String id,
-            final String name,
-            final IModel<T> model,
-            final boolean active) {
+        super(id, model);
 
-        super(id, name, model, active);
-
-        field = new DropDownChoice("dropDownChoiceField", model,
-                Collections.EMPTY_LIST, new ChoiceRenderer());
-
-        add(field.setLabel(new Model(name)).setOutputMarkupId(true));
-
-        if (active) {
-            field.add(new AjaxFormComponentUpdatingBehavior("onblur") {
-
-                private static final long serialVersionUID =
-                        -1107858522700306810L;
-
-                @Override
-                protected void onUpdate(AjaxRequestTarget art) {
-                    // nothing to do
-                }
-            });
+        if (required) {
+            add(new Label("required", "*"));
+        } else {
+            add(new Label("required", ""));
         }
+
+        final DropDownChoice field = new DropDownChoice(
+                "dropDownChoiceField", model, choices, renderer);
+
+        add(field.setRequired(required).setLabel(new Model(name)));
+
+        field.add(new AjaxFormComponentUpdatingBehavior("onblur") {
+
+            @Override
+            protected void onUpdate(AjaxRequestTarget art) {
+                // nothing to do
+            }
+        });
     }
 
-    public AjaxDropDownChoicePanel<T> setChoiceRenderer(
-            final IChoiceRenderer renderer) {
+    public AjaxDropDownChoicePanel(final String id, final String name,
+            final IModel model,
+            final boolean required, final boolean readonly) {
 
-        ((DropDownChoice) field).setChoiceRenderer(renderer);
-        return this;
-    }
+        super(id, model);
 
-    public AjaxDropDownChoicePanel<T> setChoices(final List<T> choices) {
-        ((DropDownChoice) field).setChoices(choices);
-        return this;
-    }
+        if (required) {
+            add(new Label("required", "*"));
+        } else {
+            add(new Label("required", ""));
+        }
 
-    public AjaxDropDownChoicePanel<T> setChoices(
-            final IModel<? extends List<? extends T>> choices) {
+        final TextField field = new TextField("dropDownChoiceField", model);
 
-        ((DropDownChoice) field).setChoices(choices);
-        return this;
-    }
+        add(field.setRequired(
+                required).setLabel(new Model(name)).setEnabled(!readonly));
 
-    @Override
-    public FieldPanel clone() {
+        field.add(new AjaxFormComponentUpdatingBehavior("change") {
 
-        AjaxDropDownChoicePanel<T> panel =
-                (AjaxDropDownChoicePanel<T>) super.clone();
-
-        setChoiceRenderer(((DropDownChoice) field).getChoiceRenderer());
-        setChoices(((DropDownChoice) field).getChoices());
-
-        return panel;
+            @Override
+            protected void onUpdate(AjaxRequestTarget art) {
+                // nothing to do
+            }
+        });
     }
 }

@@ -15,6 +15,7 @@
 package org.syncope.client.to;
 
 import org.syncope.client.AbstractBaseBean;
+import org.syncope.types.SchemaType;
 
 public class VirtualSchemaTO extends AbstractBaseBean {
 

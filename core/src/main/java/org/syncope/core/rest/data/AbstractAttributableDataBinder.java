@@ -24,7 +24,6 @@ import java.util.Set;
 import javax.validation.ValidationException;
 import org.apache.commons.jexl2.JexlContext;
 import org.apache.commons.jexl2.MapContext;
-import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,24 +41,25 @@ import org.syncope.core.persistence.beans.AbstractDerSchema;
 import org.syncope.core.persistence.beans.AbstractSchema;
 import org.syncope.core.persistence.beans.AbstractVirAttr;
 import org.syncope.core.persistence.beans.AbstractVirSchema;
-import org.syncope.core.persistence.beans.ExternalResource;
+import org.syncope.core.persistence.beans.TargetResource;
 import org.syncope.core.persistence.beans.SchemaMapping;
+import org.syncope.core.persistence.beans.role.SyncopeRole;
+import org.syncope.core.persistence.beans.user.SyncopeUser;
 import org.syncope.core.persistence.dao.AttrDAO;
 import org.syncope.core.persistence.dao.AttrValueDAO;
 import org.syncope.core.persistence.dao.ConfDAO;
 import org.syncope.core.persistence.dao.DerAttrDAO;
 import org.syncope.core.persistence.dao.DerSchemaDAO;
 import org.syncope.core.persistence.dao.MembershipDAO;
-import org.syncope.core.persistence.dao.PolicyDAO;
 import org.syncope.core.persistence.dao.ResourceDAO;
 import org.syncope.core.persistence.dao.SchemaDAO;
 import org.syncope.core.persistence.dao.RoleDAO;
 import org.syncope.core.persistence.dao.UserDAO;
 import org.syncope.core.persistence.dao.VirAttrDAO;
 import org.syncope.core.persistence.dao.VirSchemaDAO;
-import org.syncope.core.propagation.PropagationByResource;
+import org.syncope.core.persistence.propagation.ResourceOperations;
 import org.syncope.core.util.JexlUtil;
-import org.syncope.types.PropagationOperation;
+import org.syncope.types.ResourceOperationType;
 import org.syncope.types.SyncopeClientExceptionType;
 
 public abstract class AbstractAttributableDataBinder {
@@ -89,10 +89,10 @@ public abstract class AbstractAttributableDataBinder {
     protected AttrDAO attributeDAO;
 
     @Autowired
-    protected DerAttrDAO derAttrDAO;
+    protected DerAttrDAO derivedAttributeDAO;
 
     @Autowired
-    protected VirAttrDAO virAttrDAO;
+    protected VirAttrDAO virtualAttributeDAO;
 
     @Autowired
     protected AttrValueDAO attributeValueDAO;
@@ -107,27 +107,21 @@ public abstract class AbstractAttributableDataBinder {
     protected MembershipDAO membershipDAO;
 
     @Autowired
-    protected PolicyDAO policyDAO;
-
-    @Autowired
     private JexlUtil jexlUtil;
 
     private <T extends AbstractSchema> T getSchema(
             final String schemaName, final Class<T> reference) {
 
-        T schema = null;
-        if (StringUtils.isNotBlank(schemaName)) {
-            schema = schemaDAO.find(schemaName, reference);
+        T schema = schemaDAO.find(schemaName, reference);
 
-            // safely ignore invalid schemas from AttributeTO
-            // see http://code.google.com/p/syncope/issues/detail?id=17
-            if (schema == null) {
-                LOG.debug("Ignoring invalid schema {}", schemaName);
-            } else if (schema.isReadonly()) {
-                schema = null;
+        // safely ignore invalid schemas from AttributeTO
+        // see http://code.google.com/p/syncope/issues/detail?id=17
+        if (schema == null) {
+            LOG.debug("Ignoring invalid schema {}", schemaName);
+        } else if (schema.isReadonly()) {
+            schema = null;
 
-                LOG.debug("Ignoring virtual or readonly schema {}", schemaName);
-            }
+            LOG.debug("Ignoring virtual or readonly schema {}", schemaName);
         }
 
         return schema;
@@ -136,12 +130,10 @@ public abstract class AbstractAttributableDataBinder {
     private <T extends AbstractDerSchema> T getDerivedSchema(
             final String derSchemaName, final Class<T> reference) {
 
-        T derivedSchema = null;
-        if (StringUtils.isNotBlank(derSchemaName)) {
-            derivedSchema = derivedSchemaDAO.find(derSchemaName, reference);
-            if (derivedSchema == null) {
-                LOG.debug("Ignoring invalid derived schema {}", derSchemaName);
-            }
+        T derivedSchema = derivedSchemaDAO.find(derSchemaName, reference);
+
+        if (derivedSchema == null) {
+            LOG.debug("Ignoring invalid derived schema {}", derSchemaName);
         }
 
         return derivedSchema;
@@ -150,20 +142,17 @@ public abstract class AbstractAttributableDataBinder {
     private <T extends AbstractVirSchema> T getVirtualSchema(
             final String virSchemaName, final Class<T> reference) {
 
-        T virtualSchema = null;
-        if (StringUtils.isNotBlank(virSchemaName)) {
-            virtualSchema = virtualSchemaDAO.find(virSchemaName, reference);
+        T virtualSchema = virtualSchemaDAO.find(virSchemaName, reference);
 
-            if (virtualSchema == null) {
-                LOG.debug("Ignoring invalid virtual schema {}", virSchemaName);
-            }
+        if (virtualSchema == null) {
+            LOG.debug("Ignoring invalid virtual schema {}", virSchemaName);
         }
 
         return virtualSchema;
     }
 
-    private ExternalResource getResource(final String resourceName) {
-        ExternalResource resource = resourceDAO.find(resourceName);
+    private TargetResource getResource(final String resourceName) {
+        TargetResource resource = resourceDAO.find(resourceName);
 
         if (resource == null) {
             LOG.debug("Ignoring invalid resource {} ", resourceName);
@@ -209,7 +198,7 @@ public abstract class AbstractAttributableDataBinder {
             final List<? extends AbstractAttr> attributes) {
 
         JexlContext jexlContext = new MapContext();
-        jexlUtil.addAttrsToContext(attributes, jexlContext);
+        jexlUtil.addAttributesToContext(attributes, jexlContext);
 
         return Boolean.parseBoolean(
                 jexlUtil.evaluate(
@@ -217,13 +206,13 @@ public abstract class AbstractAttributableDataBinder {
     }
 
     private boolean evaluateMandatoryCondition(
-            final ExternalResource resource,
+            final TargetResource resource,
             final List<? extends AbstractAttr> attributes,
-            final String intAttrName,
+            final String sourceAttrName,
             final AttributableUtil attributableUtil) {
 
-        Set<SchemaMapping> mappings = resource.getMappings(intAttrName,
-                attributableUtil.intMappingType());
+        List<SchemaMapping> mappings = resource.getMappings(sourceAttrName,
+                attributableUtil.sourceMappingType());
 
         boolean result = false;
 
@@ -241,21 +230,21 @@ public abstract class AbstractAttributableDataBinder {
     }
 
     private boolean evaluateMandatoryCondition(
-            final Set<ExternalResource> resources,
+            final Set<TargetResource> resources,
             final List<? extends AbstractAttr> attributes,
-            final String intAttrName,
+            final String sourceAttrName,
             final AttributableUtil attributableUtil) {
 
         boolean result = false;
 
-        ExternalResource resource;
-        for (Iterator<ExternalResource> itor = resources.iterator();
+        TargetResource resource;
+        for (Iterator<TargetResource> itor = resources.iterator();
                 itor.hasNext() && !result;) {
 
             resource = itor.next();
             if (resource.isForceMandatoryConstraint()) {
                 result |= evaluateMandatoryCondition(resource,
-                        attributes, intAttrName, attributableUtil);
+                        attributes, sourceAttrName, attributableUtil);
             }
         }
 
@@ -271,7 +260,7 @@ public abstract class AbstractAttributableDataBinder {
                 SyncopeClientExceptionType.RequiredValuesMissing);
 
         LOG.debug("Check mandatory constraint among resources {}",
-                attributable.getResources());
+                attributable.getTargetResources());
         // Check if there is some mandatory schema defined for which no value
         // has been provided
         List<AbstractSchema> allSchemas =
@@ -284,7 +273,7 @@ public abstract class AbstractAttributableDataBinder {
                     schema.getMandatoryCondition(),
                     attributable.getAttributes())
                     || evaluateMandatoryCondition(
-                    attributable.getResources(),
+                    attributable.getTargetResources(),
                     attributable.getAttributes(),
                     schema.getName(),
                     attributableUtil))) {
@@ -299,150 +288,26 @@ public abstract class AbstractAttributableDataBinder {
         return requiredValuesMissing;
     }
 
-    public PropagationByResource fillVirtual(
-            final AbstractAttributable attributable,
-            final Set<String> vAttrsToBeRemoved,
-            final Set<AttributeMod> vAttrsToBeUpdated,
-            final AttributableUtil attributableUtil) {
-
-        PropagationByResource propByRes = new PropagationByResource();
-
-        // 1. virtual attributes to be removed
-        for (String vAttrToBeRemoved : vAttrsToBeRemoved) {
-            AbstractVirSchema virtualSchema = getVirtualSchema(
-                    vAttrToBeRemoved, attributableUtil.virtualSchemaClass());
-
-            if (virtualSchema != null) {
-                AbstractVirAttr virtualAttribute =
-                        attributable.getVirtualAttribute(
-                        virtualSchema.getName());
-
-                if (virtualAttribute == null) {
-                    LOG.debug("No virtual attribute found for schema {}",
-                            virtualSchema.getName());
-                } else {
-                    virAttrDAO.delete(virtualAttribute);
-                }
-
-                for (SchemaMapping mapping : resourceDAO.findAllMappings()) {
-                    if (virtualSchema.getName().equals(
-                            mapping.getIntAttrName())
-                            && mapping.getIntMappingType()
-                            == attributableUtil.virtualIntMappingType()
-                            && mapping.getResource() != null
-                            && attributable.getResources().
-                            contains(mapping.getResource())) {
-
-                        propByRes.add(PropagationOperation.UPDATE,
-                                mapping.getResource().getName());
-
-                        if (mapping.isAccountid() && virtualAttribute != null
-                                && !virtualAttribute.getValues().isEmpty()) {
-
-                            propByRes.addOldAccountId(
-                                    mapping.getResource().getName(),
-                                    virtualAttribute.getValues().get(0));
-                        }
-                    }
-                }
-            }
-        }
-
-        LOG.debug("Virtual attributes to be removed:\n{}", propByRes);
-
-        // 2. virtual attributes to be updated
-        for (AttributeMod vAttrToBeUpdated : vAttrsToBeUpdated) {
-            AbstractVirSchema virtualSchema = getVirtualSchema(
-                    vAttrToBeUpdated.getSchema(),
-                    attributableUtil.virtualSchemaClass());
-
-            if (virtualSchema != null) {
-                for (SchemaMapping mapping : resourceDAO.findAllMappings()) {
-                    if (virtualSchema.getName().equals(
-                            mapping.getIntAttrName())
-                            && mapping.getIntMappingType()
-                            == attributableUtil.virtualIntMappingType()
-                            && mapping.getResource() != null
-                            && attributable.getResources().
-                            contains(mapping.getResource())) {
-
-                        propByRes.add(PropagationOperation.UPDATE,
-                                mapping.getResource().getName());
-                    }
-                }
-
-                AbstractVirAttr virtualAttribute =
-                        attributable.getVirtualAttribute(
-                        virtualSchema.getName());
-                if (virtualAttribute == null) {
-                    virtualAttribute =
-                            attributableUtil.newVirtualAttribute();
-                    virtualAttribute.setVirtualSchema(virtualSchema);
-                    virtualAttribute.setOwner(attributable);
-
-                    attributable.addVirtualAttribute(virtualAttribute);
-                }
-                virtualAttribute.getValues().removeAll(
-                        vAttrToBeUpdated.getValuesToBeRemoved());
-                virtualAttribute.getValues().addAll(
-                        vAttrToBeUpdated.getValuesToBeAdded());
-            }
-        }
-
-        LOG.debug("Virtual attributes to be added:\n{}", propByRes);
-
-        return propByRes;
-    }
-
-    protected PropagationByResource fill(
+    protected ResourceOperations fill(
             final AbstractAttributable attributable,
             final AbstractAttributableMod attributableMod,
             final AttributableUtil attributableUtil,
             final SyncopeClientCompositeErrorException compositeErrorException)
             throws SyncopeClientCompositeErrorException {
 
-        PropagationByResource propByRes = new PropagationByResource();
+        ResourceOperations resourceOperations = new ResourceOperations();
 
         SyncopeClientException invalidValues = new SyncopeClientException(
                 SyncopeClientExceptionType.InvalidValues);
-
-        // 1. resources to be removed
-        ExternalResource resource;
-        for (String resourceToBeRemoved :
-                attributableMod.getResourcesToBeRemoved()) {
-
-            resource = getResource(resourceToBeRemoved);
-
-            if (resource != null) {
-                propByRes.add(PropagationOperation.DELETE, resource.getName());
-
-                attributable.removeResource(resource);
-            }
-        }
-
-        LOG.debug("Resources to be removed:\n{}", propByRes);
-
-        // 2. resources to be added
-        for (String resourceToBeAdded :
-                attributableMod.getResourcesToBeAdded()) {
-
-            resource = getResource(resourceToBeAdded);
-
-            if (resource != null) {
-                propByRes.add(PropagationOperation.CREATE, resource.getName());
-
-                attributable.addResource(resource);
-            }
-        }
-
-        LOG.debug("Resources to be added:\n{}", propByRes);
 
         AbstractSchema schema;
         AbstractAttr attribute;
         AbstractDerSchema derivedSchema;
         AbstractDerAttr derivedAttribute;
+        AbstractVirSchema virtualSchema;
+        AbstractVirAttr virtualAttribute;
 
-        // 3. attributes to be removed
+        // 1. attributes to be removed
         for (String attributeToBeRemoved :
                 attributableMod.getAttributesToBeRemoved()) {
 
@@ -459,7 +324,8 @@ public abstract class AbstractAttributableDataBinder {
                             getAttributesToBeUpdated()) {
 
                         if (schema.getName().equals(mod.getSchema())) {
-                            newValue = mod.getValuesToBeAdded().get(0);
+                            newValue = mod.getValuesToBeAdded().
+                                    iterator().next();
                         }
                     }
 
@@ -474,20 +340,20 @@ public abstract class AbstractAttributableDataBinder {
                 }
 
                 for (SchemaMapping mapping : resourceDAO.findAllMappings()) {
-                    if (schema.getName().equals(mapping.getIntAttrName())
-                            && mapping.getIntMappingType()
-                            == attributableUtil.intMappingType()
+                    if (mapping.getSourceAttrName().equals(schema.getName())
+                            && mapping.getSourceMappingType()
+                            == attributableUtil.sourceMappingType()
                             && mapping.getResource() != null
-                            && attributable.getResources().
+                            && attributable.getTargetResources().
                             contains(mapping.getResource())) {
 
-                        propByRes.add(PropagationOperation.UPDATE,
-                                mapping.getResource().getName());
+                        resourceOperations.add(ResourceOperationType.UPDATE,
+                                mapping.getResource());
 
                         if (mapping.isAccountid() && attribute != null
                                 && !attribute.getValuesAsStrings().isEmpty()) {
 
-                            propByRes.addOldAccountId(
+                            resourceOperations.addOldAccountId(
                                     mapping.getResource().getName(),
                                     attribute.getValuesAsStrings().
                                     iterator().next());
@@ -497,9 +363,9 @@ public abstract class AbstractAttributableDataBinder {
             }
         }
 
-        LOG.debug("Attributes to be removed:\n{}", propByRes);
+        LOG.debug("About attributes to be removed:\n{}", resourceOperations);
 
-        // 4. attributes to be updated
+        // 2. attributes to be updated
         Set<Long> valuesToBeRemoved;
         List<String> valuesToBeAdded;
         for (AttributeMod attributeMod :
@@ -510,15 +376,15 @@ public abstract class AbstractAttributableDataBinder {
 
             if (schema != null) {
                 for (SchemaMapping mapping : resourceDAO.findAllMappings()) {
-                    if (schema.getName().equals(mapping.getIntAttrName())
-                            && mapping.getIntMappingType()
-                            == attributableUtil.intMappingType()
+                    if (mapping.getSourceAttrName().equals(schema.getName())
+                            && mapping.getSourceMappingType()
+                            == attributableUtil.sourceMappingType()
                             && mapping.getResource() != null
-                            && attributable.getResources().
+                            && attributable.getTargetResources().
                             contains(mapping.getResource())) {
 
-                        propByRes.add(PropagationOperation.UPDATE,
-                                mapping.getResource().getName());
+                        resourceOperations.add(ResourceOperationType.UPDATE,
+                                mapping.getResource());
                     }
                 }
 
@@ -537,9 +403,7 @@ public abstract class AbstractAttributableDataBinder {
                         attributeMod.getValuesToBeRemoved()) {
 
                     if (attribute.getSchema().isUniqueConstraint()) {
-                        if (attribute.getUniqueValue() != null
-                                && valueToBeRemoved.equals(
-                                attribute.getUniqueValue().
+                        if (valueToBeRemoved.equals(attribute.getUniqueValue().
                                 getValueAsString())) {
 
                             valuesToBeRemoved.add(
@@ -580,13 +444,19 @@ public abstract class AbstractAttributableDataBinder {
             }
         }
 
-        if (!invalidValues.isEmpty()) {
+        if (!invalidValues.getElements().isEmpty()) {
             compositeErrorException.addException(invalidValues);
         }
 
-        LOG.debug("Attributes to be updated:\n{}", propByRes);
+        SyncopeClientException requiredValuesMissing =
+                checkMandatory(attributableUtil, attributable);
+        if (!requiredValuesMissing.getElements().isEmpty()) {
+            compositeErrorException.addException(requiredValuesMissing);
+        }
 
-        // 5. derived attributes to be removed
+        LOG.debug("About attributes to be updated:\n{}", resourceOperations);
+
+        // 3. derived attributes to be removed
         for (String derivedAttributeToBeRemoved :
                 attributableMod.getDerivedAttributesToBeRemoved()) {
 
@@ -594,6 +464,7 @@ public abstract class AbstractAttributableDataBinder {
                     attributableUtil.derivedSchemaClass());
 
             if (derivedSchema != null) {
+
                 derivedAttribute = attributable.getDerivedAttribute(
                         derivedSchema.getName());
 
@@ -601,26 +472,26 @@ public abstract class AbstractAttributableDataBinder {
                     LOG.debug("No derived attribute found for schema {}",
                             derivedSchema.getName());
                 } else {
-                    derAttrDAO.delete(derivedAttribute);
+                    derivedAttributeDAO.delete(derivedAttribute);
                 }
 
                 for (SchemaMapping mapping : resourceDAO.findAllMappings()) {
-                    if (derivedSchema.getName().equals(
-                            mapping.getIntAttrName())
-                            && mapping.getIntMappingType()
-                            == attributableUtil.derivedIntMappingType()
+                    if (mapping.getSourceAttrName().equals(
+                            derivedSchema.getName())
+                            && mapping.getSourceMappingType()
+                            == attributableUtil.derivedSourceMappingType()
                             && mapping.getResource() != null
-                            && attributable.getResources().
+                            && attributable.getTargetResources().
                             contains(mapping.getResource())) {
 
-                        propByRes.add(PropagationOperation.UPDATE,
-                                mapping.getResource().getName());
+                        resourceOperations.add(ResourceOperationType.UPDATE,
+                                mapping.getResource());
 
                         if (mapping.isAccountid() && derivedAttribute != null
                                 && !derivedAttribute.getValue(
                                 attributable.getAttributes()).isEmpty()) {
 
-                            propByRes.addOldAccountId(
+                            resourceOperations.addOldAccountId(
                                     mapping.getResource().getName(),
                                     derivedAttribute.getValue(
                                     attributable.getAttributes()));
@@ -630,10 +501,56 @@ public abstract class AbstractAttributableDataBinder {
             }
         }
 
-        LOG.debug("Derived attributes to be removed:\n{}",
-                propByRes);
+        LOG.debug("About derived attributes to be removed:\n{}",
+                resourceOperations);
 
-        // 6. derived attributes to be added
+        // 4. virtual attributes to be removed
+        for (String virtualAttributeToBeRemoved :
+                attributableMod.getVirtualAttributesToBeRemoved()) {
+
+            virtualSchema = getVirtualSchema(virtualAttributeToBeRemoved,
+                    attributableUtil.virtualSchemaClass());
+
+            if (virtualSchema != null) {
+
+                virtualAttribute = attributable.getVirtualAttribute(
+                        virtualSchema.getName());
+
+                if (virtualAttribute == null) {
+                    LOG.debug("No virtual attribute found for schema {}",
+                            virtualSchema.getName());
+                } else {
+                    virtualAttributeDAO.delete(virtualAttribute);
+                }
+
+                for (SchemaMapping mapping : resourceDAO.findAllMappings()) {
+                    if (mapping.getSourceAttrName().equals(
+                            virtualSchema.getName())
+                            && mapping.getSourceMappingType()
+                            == attributableUtil.virtualSourceMappingType()
+                            && mapping.getResource() != null
+                            && attributable.getTargetResources().
+                            contains(mapping.getResource())) {
+
+                        resourceOperations.add(ResourceOperationType.UPDATE,
+                                mapping.getResource());
+
+                        if (mapping.isAccountid() && virtualAttribute != null
+                                && !virtualAttribute.getValues().isEmpty()) {
+
+                            resourceOperations.addOldAccountId(
+                                    mapping.getResource().getName(),
+                                    virtualAttribute.getValues().get(0));
+                        }
+                    }
+                }
+            }
+        }
+
+        LOG.debug("About virtual attributes to be removed:\n{}",
+                resourceOperations);
+
+        // 5. derived attributes to be added
         for (String derivedAttributeToBeAdded :
                 attributableMod.getDerivedAttributesToBeAdded()) {
 
@@ -642,16 +559,16 @@ public abstract class AbstractAttributableDataBinder {
 
             if (derivedSchema != null) {
                 for (SchemaMapping mapping : resourceDAO.findAllMappings()) {
-                    if (derivedSchema.getName().equals(
-                            mapping.getIntAttrName())
-                            && mapping.getIntMappingType()
-                            == attributableUtil.derivedIntMappingType()
+                    if (mapping.getSourceAttrName().equals(
+                            derivedSchema.getName())
+                            && mapping.getSourceMappingType()
+                            == attributableUtil.derivedSourceMappingType()
                             && mapping.getResource() != null
-                            && attributable.getResources().
+                            && attributable.getTargetResources().
                             contains(mapping.getResource())) {
 
-                        propByRes.add(PropagationOperation.UPDATE,
-                                mapping.getResource().getName());
+                        resourceOperations.add(ResourceOperationType.UPDATE,
+                                mapping.getResource());
                     }
                 }
 
@@ -662,24 +579,85 @@ public abstract class AbstractAttributableDataBinder {
             }
         }
 
-        LOG.debug("Derived attributes to be added:\n{}",
-                propByRes);
+        LOG.debug("About derived attributes to be added:\n{}",
+                resourceOperations);
 
-        // 7. virtual attributes: for users this is delegated to 
-        // PropagationManager
-        if (AttributableUtil.USER != attributableUtil) {
-            fillVirtual(attributable,
-                    attributableMod.getVirtualAttributesToBeRemoved(),
-                    attributableMod.getVirtualAttributesToBeUpdated(),
-                    attributableUtil);
+        // 6. virtual attributes to be added
+        for (String virtualAttributeToBeAdded :
+                attributableMod.getVirtualAttributesToBeAdded()) {
+
+            virtualSchema = getVirtualSchema(virtualAttributeToBeAdded,
+                    attributableUtil.virtualSchemaClass());
+
+            if (virtualSchema != null) {
+                for (SchemaMapping mapping : resourceDAO.findAllMappings()) {
+                    if (mapping.getSourceAttrName().equals(
+                            virtualSchema.getName())
+                            && mapping.getSourceMappingType()
+                            == attributableUtil.virtualSourceMappingType()
+                            && mapping.getResource() != null
+                            && attributable.getTargetResources().
+                            contains(mapping.getResource())) {
+
+                        resourceOperations.add(ResourceOperationType.UPDATE,
+                                mapping.getResource());
+                    }
+                }
+
+                virtualAttribute = attributableUtil.newVirtualAttribute();
+                virtualAttribute.setVirtualSchema(virtualSchema);
+                virtualAttribute.setOwner(attributable);
+                attributable.addVirtualAttribute(virtualAttribute);
+            }
         }
 
-        // Finally, check if mandatory values are missing
-        SyncopeClientException requiredValuesMissing =
-                checkMandatory(attributableUtil, attributable);
-        if (!requiredValuesMissing.isEmpty()) {
-            compositeErrorException.addException(requiredValuesMissing);
+        LOG.debug("About virtual attributes to be added:\n{}",
+                resourceOperations);
+
+        // 7. resources to be removed
+        TargetResource resource;
+        for (String resourceToBeRemoved :
+                attributableMod.getResourcesToBeRemoved()) {
+
+            resource = getResource(resourceToBeRemoved);
+
+            if (resource != null) {
+                resourceOperations.add(ResourceOperationType.DELETE, resource);
+
+                attributable.removeTargetResource(resource);
+
+                if (attributableUtil == attributableUtil.USER) {
+                    resource.removeUser((SyncopeUser) attributable);
+                }
+                if (attributableUtil == attributableUtil.ROLE) {
+                    resource.removeRole((SyncopeRole) attributable);
+                }
+            }
         }
+
+        LOG.debug("About resources to be removed:\n{}", resourceOperations);
+
+        // 6. resources to be added
+        for (String resourceToBeAdded :
+                attributableMod.getResourcesToBeAdded()) {
+
+            resource = getResource(resourceToBeAdded);
+
+            if (resource != null) {
+                resourceOperations.add(ResourceOperationType.CREATE, resource);
+
+                attributable.addTargetResource(resource);
+
+                if (attributableUtil == attributableUtil.USER) {
+                    resource.addUser((SyncopeUser) attributable);
+                }
+                if (attributableUtil == attributableUtil.ROLE) {
+                    resource.addRole((SyncopeRole) attributable);
+                }
+            }
+        }
+
+        LOG.debug("About resources to be added:\n{}", resourceOperations);
 
         // Throw composite exception if there is at least one element set
         // in the composing exceptions
@@ -687,33 +665,13 @@ public abstract class AbstractAttributableDataBinder {
             throw compositeErrorException;
         }
 
-        return propByRes;
+        return resourceOperations;
     }
 
-    public void fillVirtual(final AbstractAttributable attributable,
-            final List<AttributeTO> vAttrs,
-            final AttributableUtil attributableUtil) {
-
-        for (AttributeTO attributeTO : vAttrs) {
-            AbstractVirSchema virtualSchema = getVirtualSchema(
-                    attributeTO.getSchema(),
-                    attributableUtil.virtualSchemaClass());
-
-            if (virtualSchema != null) {
-                AbstractVirAttr virtualAttribute =
-                        attributableUtil.newVirtualAttribute();
-                virtualAttribute.setVirtualSchema(virtualSchema);
-                virtualAttribute.setOwner(attributable);
-                virtualAttribute.setValues(attributeTO.getValues());
-                attributable.addVirtualAttribute(virtualAttribute);
-            }
-        }
-    }
-
-    protected void fill(final AbstractAttributable attributable,
-            final AbstractAttributableTO attributableTO,
-            final AttributableUtil attributableUtil,
-            final SyncopeClientCompositeErrorException compositeErrorException)
+    protected void fill(AbstractAttributable attributable,
+            AbstractAttributableTO attributableTO,
+            AttributableUtil attributableUtil,
+            SyncopeClientCompositeErrorException compositeErrorException)
             throws SyncopeClientCompositeErrorException {
 
         // 1. attributes
@@ -752,13 +710,13 @@ public abstract class AbstractAttributableDataBinder {
             }
         }
 
-        if (!invalidValues.isEmpty()) {
+        if (!invalidValues.getElements().isEmpty()) {
             compositeErrorException.addException(invalidValues);
         }
 
         SyncopeClientException requiredValuesMissing =
                 checkMandatory(attributableUtil, attributable);
-        if (!requiredValuesMissing.isEmpty()) {
+        if (!requiredValuesMissing.getElements().isEmpty()) {
             compositeErrorException.addException(requiredValuesMissing);
         }
 
@@ -778,20 +736,37 @@ public abstract class AbstractAttributableDataBinder {
             }
         }
 
-        // 3. virtual attributes: for users this is delegated to 
-        // PropagationManager
-        if (AttributableUtil.USER != attributableUtil) {
-            fillVirtual(attributable, attributableTO.getVirtualAttributes(),
-                    attributableUtil);
+        // 3. virtual attributes
+        AbstractVirSchema virtualSchema;
+        AbstractVirAttr virtualAttribute;
+        for (AttributeTO attributeTO : attributableTO.getVirtualAttributes()) {
+
+            virtualSchema = getVirtualSchema(attributeTO.getSchema(),
+                    attributableUtil.virtualSchemaClass());
+
+            if (virtualSchema != null) {
+                virtualAttribute = attributableUtil.newVirtualAttribute();
+                virtualAttribute.setVirtualSchema(virtualSchema);
+                virtualAttribute.setOwner(attributable);
+                virtualAttribute.setValues(attributeTO.getValues());
+                attributable.addVirtualAttribute(virtualAttribute);
+            }
         }
 
-        // 4. resources
-        ExternalResource resource;
+        // 3. resources
+        TargetResource resource;
         for (String resourceName : attributableTO.getResources()) {
             resource = getResource(resourceName);
 
             if (resource != null) {
-                attributable.addResource(resource);
+                attributable.addTargetResource(resource);
+
+                if (attributableUtil == attributableUtil.USER) {
+                    resource.addUser((SyncopeUser) attributable);
+                }
+                if (attributableUtil == attributableUtil.ROLE) {
+                    resource.addRole((SyncopeRole) attributable);
+                }
             }
         }
 
@@ -802,12 +777,12 @@ public abstract class AbstractAttributableDataBinder {
         }
     }
 
-    protected void fillTO(
-            final AbstractAttributableTO abstractAttributableTO,
-            final Collection<? extends AbstractAttr> attributes,
-            final Collection<? extends AbstractDerAttr> derivedAttributes,
-            final Collection<? extends AbstractVirAttr> virtualAttributes,
-            final Collection<ExternalResource> resources) {
+    public void fillTO(
+            AbstractAttributableTO abstractAttributableTO,
+            Collection<? extends AbstractAttr> attributes,
+            Collection<? extends AbstractDerAttr> derivedAttributes,
+            Collection<? extends AbstractVirAttr> virtualAttributes,
+            Collection<TargetResource> resources) {
 
         AttributeTO attributeTO;
         for (AbstractAttr attribute : attributes) {
@@ -830,6 +805,7 @@ public abstract class AbstractAttributableDataBinder {
         }
 
         for (AbstractVirAttr virtualAttribute : virtualAttributes) {
+
             attributeTO = new AttributeTO();
             attributeTO.setSchema(
                     virtualAttribute.getVirtualSchema().getName());
@@ -839,7 +815,7 @@ public abstract class AbstractAttributableDataBinder {
             abstractAttributableTO.addVirtualAttribute(attributeTO);
         }
 
-        for (ExternalResource resource : resources) {
+        for (TargetResource resource : resources) {
             abstractAttributableTO.addResource(resource.getName());
         }
     }

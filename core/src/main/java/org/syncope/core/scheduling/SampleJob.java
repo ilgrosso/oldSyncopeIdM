@@ -15,17 +15,11 @@ package org.syncope.core.scheduling;
 
 import org.quartz.JobExecutionException;
 import org.syncope.core.persistence.beans.SchedTask;
-import org.syncope.core.persistence.beans.TaskExec;
 
-/**
- * Sample implementation for execution a scheduled task.
- *
- * @see SchedTask
- */
 public class SampleJob extends AbstractJob {
 
     @Override
-    protected String doExecute(final boolean dryRun)
+    protected String doExecute()
             throws JobExecutionException {
 
         if (!(task instanceof SchedTask)) {
@@ -34,14 +28,8 @@ public class SampleJob extends AbstractJob {
         }
         final SchedTask schedTask = (SchedTask) this.task;
 
-        LOG.info("SampleJob {}running [SchedTask {}]",
-                (dryRun ? "dry " : ""), schedTask.getId());
+        LOG.info("SampleJob running");
 
-        return (dryRun ? "DRY " : "") + "RUNNING";
-    }
-
-    @Override
-    protected boolean hasToBeRegistered(final TaskExec execution) {
-        return true;
+        return "RUNNING";
     }
 }

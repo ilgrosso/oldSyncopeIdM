@@ -14,6 +14,7 @@
  */
 package org.syncope.console.pages.panels;
 
+import java.util.Iterator;
 import java.util.List;
 import javax.swing.tree.DefaultMutableTreeNode;
 import org.apache.wicket.Page;
@@ -37,39 +38,30 @@ import org.syncope.client.to.RoleTO;
 import org.syncope.client.to.UserTO;
 import org.syncope.console.commons.RoleTreeBuilder;
 import org.syncope.console.pages.MembershipModalPage;
-import org.syncope.console.pages.UserModalPage;
+import org.syncope.console.rest.RoleRestClient;
 import org.syncope.console.wicket.ajax.markup.html.IndicatingDeleteOnConfirmAjaxLink;
 
 public class RolesPanel extends Panel {
 
-    private static final long serialVersionUID = -2559791301973107191L;
+    @SpringBean
+    private RoleRestClient roleRestClient;
 
     @SpringBean
     private RoleTreeBuilder roleTreeBuilder;
 
-    private ListView<MembershipTO> membershipsView;
+    private WebMarkupContainer membershipsContainer;
 
-    private UserTO userTO = null;
-
-    public RolesPanel(final String id, final UserTO userTO,
-            final boolean templateMode) {
-
+    public RolesPanel(final String id, final UserTO userTO) {
         super(id);
-        this.userTO = userTO;
-
-        final WebMarkupContainer membershipsContainer =
-                new WebMarkupContainer("membershipsContainer");
-        membershipsContainer.setOutputMarkupId(true);
-        add(membershipsContainer);
 
         final ModalWindow membershipWin = new ModalWindow("membershipWin");
         membershipWin.setCssClassName(ModalWindow.CSS_CLASS_GRAY);
+        membershipWin.setPageMapName("create-membership-modal");
         membershipWin.setCookieName("create-membership-modal");
         add(membershipWin);
 
+        final List<RoleTO> roles = roleRestClient.getAllRoles();
         BaseTree tree = new LinkTree("treeTable", roleTreeBuilder.build()) {
-
-            private static final long serialVersionUID = -5514696922119256101L;
 
             @Override
             protected IModel getNodeTextModel(final IModel model) {
@@ -85,47 +77,29 @@ public class RolesPanel extends Panel {
 
                 membershipWin.setPageCreator(new ModalWindow.PageCreator() {
 
-                    private static final long serialVersionUID =
-                            7661763358801821185L;
-
                     private MembershipTO membershipTO;
 
                     @Override
                     public Page createPage() {
-
-                        for (MembershipTO memberTO :
-                                membershipsView.getList()) {
-
-                            if (memberTO.getRoleId() == roleTO.getId()) {
-                                return new MembershipModalPage(
-                                        getPage().getPageReference(),
-                                        membershipWin, memberTO, templateMode);
-                            }
-                        }
                         membershipTO = new MembershipTO();
                         membershipTO.setRoleId(roleTO.getId());
-                        membershipTO.setRoleName(roleTO.getName());
 
-                        return new MembershipModalPage(
-                                getPage().getPageReference(),
-                                membershipWin, membershipTO, templateMode);
+                        return new MembershipModalPage(getPage(),
+                                membershipWin, membershipTO, userTO);
                     }
                 });
                 membershipWin.show(target);
             }
         };
 
-        tree.setOutputMarkupId(
-                true);
         tree.getTreeState().expandAll();
+        tree.updateTree();
 
         add(tree);
 
-        membershipsView = new ListView<MembershipTO>(
+        ListView<MembershipTO> membershipsView = new ListView<MembershipTO>(
                 "memberships", new PropertyModel<List<? extends MembershipTO>>(
                 userTO, "memberships")) {
-
-            private static final long serialVersionUID = 9101744072914090143L;
 
             @Override
             protected void populateItem(final ListItem item) {
@@ -135,27 +109,24 @@ public class RolesPanel extends Panel {
                 item.add(new Label("roleId", new Model(
                         membershipTO.getRoleId())));
                 item.add(new Label("roleName", new Model(
-                        membershipTO.getRoleName())));
+                        getRoleName(membershipTO.getRoleId(), roles))));
 
                 AjaxLink editLink = new IndicatingAjaxLink("editLink") {
 
-                    private static final long serialVersionUID =
-                            -7978723352517770644L;
-
                     @Override
-                    public void onClick(final AjaxRequestTarget target) {
+                    public void onClick(AjaxRequestTarget target) {
                         membershipWin.setPageCreator(
                                 new ModalWindow.PageCreator() {
 
-                                    private static final long serialVersionUID =
-                                            -7834632442532690940L;
-
                                     @Override
                                     public Page createPage() {
-                                        return new MembershipModalPage(
-                                                getPage().getPageReference(),
-                                                membershipWin, membershipTO,
-                                                templateMode);
+                                        MembershipModalPage window =
+                                                new MembershipModalPage(
+                                                getPage(), membershipWin,
+                                                membershipTO,
+                                                userTO);
+
+                                        return window;
 
                                     }
                                 });
@@ -167,42 +138,49 @@ public class RolesPanel extends Panel {
                 AjaxLink deleteLink = new IndicatingDeleteOnConfirmAjaxLink(
                         "deleteLink") {
 
-                    private static final long serialVersionUID =
-                            -7978723352517770644L;
-
                     @Override
                     public void onClick(final AjaxRequestTarget target) {
                         userTO.removeMembership(membershipTO);
-                        target.add(membershipsContainer);
+                        target.addComponent(membershipsContainer);
                     }
                 };
                 item.add(deleteLink);
             }
         };
 
+        membershipsContainer = new WebMarkupContainer("membershipsContainer");
         membershipsContainer.add(membershipsView);
+        membershipsContainer.setOutputMarkupId(true);
+        add(membershipsContainer);
 
         setWindowClosedCallback(membershipWin, membershipsContainer);
     }
 
-    private void setWindowClosedCallback(
-            final ModalWindow window,
+    private String getRoleName(long roleId, List<RoleTO> roles) {
+        boolean found = false;
+        RoleTO roleTO;
+        String result = null;
+        for (Iterator<RoleTO> itor = roles.iterator();
+                itor.hasNext() && !found;) {
+
+            roleTO = itor.next();
+            if (roleTO.getId() == roleId) {
+                result = roleTO.getName();
+            }
+        }
+
+        return result;
+    }
+
+    private void setWindowClosedCallback(final ModalWindow window,
             final WebMarkupContainer container) {
 
         window.setWindowClosedCallback(
                 new ModalWindow.WindowClosedCallback() {
 
-                    private static final long serialVersionUID =
-                            8804221891699487139L;
-
                     @Override
                     public void onClose(final AjaxRequestTarget target) {
-                        final UserTO updatedUserTO =
-                                ((UserModalPage) getPage()).getUserTO();
-
-                        RolesPanel.this.userTO.setMemberships(
-                                updatedUserTO.getMemberships());
-                        target.add(container);
+                        target.addComponent(container);
                     }
                 });
     }

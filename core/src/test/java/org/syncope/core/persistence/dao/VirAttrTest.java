@@ -21,7 +21,7 @@ import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 import org.syncope.core.persistence.beans.user.SyncopeUser;
-import org.syncope.core.AbstractTest;
+import org.syncope.core.persistence.AbstractTest;
 import org.syncope.core.persistence.beans.membership.MVirAttr;
 import org.syncope.core.persistence.beans.membership.MVirSchema;
 import org.syncope.core.persistence.beans.membership.Membership;
@@ -59,7 +59,7 @@ public class VirAttrTest extends AbstractTest {
 
     @Test
     public final void findById() {
-        UVirAttr attribute = virAttrDAO.find(100L, UVirAttr.class);
+        UVirAttr attribute = virAttrDAO.find(1000L, UVirAttr.class);
         assertNotNull(
                 "did not find expected attribute schema",
                 attribute);
@@ -133,12 +133,12 @@ public class VirAttrTest extends AbstractTest {
 
     @Test
     public final void delete() {
-        UVirAttr attribute = virAttrDAO.find(100L, UVirAttr.class);
+        UVirAttr attribute = virAttrDAO.find(1000L, UVirAttr.class);
         String attributeSchemaName = attribute.getVirtualSchema().getName();
 
         virAttrDAO.delete(attribute.getId(), UVirAttr.class);
 
-        UVirAttr actual = virAttrDAO.find(100L, UVirAttr.class);
+        UVirAttr actual = virAttrDAO.find(1000L, UVirAttr.class);
         assertNull("delete did not work", actual);
 
         UVirSchema attributeSchema =

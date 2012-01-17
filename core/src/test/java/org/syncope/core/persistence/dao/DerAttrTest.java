@@ -24,7 +24,7 @@ import org.syncope.core.persistence.beans.user.SyncopeUser;
 import org.syncope.core.persistence.beans.user.UAttrValue;
 import org.syncope.core.persistence.beans.user.UDerAttr;
 import org.syncope.core.persistence.beans.user.UDerSchema;
-import org.syncope.core.AbstractTest;
+import org.syncope.core.persistence.AbstractTest;
 import org.syncope.core.persistence.beans.membership.MAttrValue;
 import org.syncope.core.persistence.beans.membership.MDerAttr;
 import org.syncope.core.persistence.beans.membership.MDerSchema;
@@ -62,7 +62,7 @@ public class DerAttrTest extends AbstractTest {
 
     @Test
     public final void findById() {
-        UDerAttr attribute = derAttrDAO.find(100L,
+        UDerAttr attribute = derAttrDAO.find(1000L,
                 UDerAttr.class);
         assertNotNull("did not find expected attribute schema",
                 attribute);
@@ -167,7 +167,7 @@ public class DerAttrTest extends AbstractTest {
 
     @Test
     public final void delete() {
-        UDerAttr attribute = derAttrDAO.find(100L,
+        UDerAttr attribute = derAttrDAO.find(1000L,
                 UDerAttr.class);
         String attributeSchemaName =
                 attribute.getDerivedSchema().getName();
@@ -175,7 +175,7 @@ public class DerAttrTest extends AbstractTest {
         derAttrDAO.delete(attribute.getId(),
                 UDerAttr.class);
 
-        UDerAttr actual = derAttrDAO.find(100L,
+        UDerAttr actual = derAttrDAO.find(1000L,
                 UDerAttr.class);
         assertNull("delete did not work", actual);
 

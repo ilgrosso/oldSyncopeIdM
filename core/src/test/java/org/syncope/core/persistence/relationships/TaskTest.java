@@ -24,19 +24,17 @@ import org.identityconnectors.framework.common.objects.AttributeBuilder;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
-import org.syncope.core.AbstractTest;
-import org.syncope.core.persistence.beans.ExternalResource;
+import org.syncope.core.persistence.AbstractTest;
+import org.syncope.core.persistence.beans.TargetResource;
 import org.syncope.core.persistence.beans.PropagationTask;
 import org.syncope.core.persistence.beans.TaskExec;
 import org.syncope.core.persistence.beans.SyncTask;
-import org.syncope.core.persistence.beans.user.SyncopeUser;
 import org.syncope.core.persistence.dao.ResourceDAO;
 import org.syncope.core.persistence.dao.TaskDAO;
 import org.syncope.core.persistence.dao.TaskExecDAO;
-import org.syncope.core.persistence.dao.UserDAO;
 import org.syncope.types.PropagationMode;
 import org.syncope.types.PropagationTaskExecStatus;
-import org.syncope.types.PropagationOperation;
+import org.syncope.types.ResourceOperationType;
 
 @Transactional
 public class TaskTest extends AbstractTest {
@@ -50,9 +48,6 @@ public class TaskTest extends AbstractTest {
     @Autowired
     private ResourceDAO resourceDAO;
 
-    @Autowired
-    private UserDAO userDAO;
-
     @Test
     public final void read() {
         PropagationTask task = taskDAO.find(1L);
@@ -65,17 +60,13 @@ public class TaskTest extends AbstractTest {
 
     @Test
     public final void save() {
-        ExternalResource resource = resourceDAO.find("ws-target-resource-1");
+        TargetResource resource = resourceDAO.find("ws-target-resource-1");
         assertNotNull(resource);
-
-        SyncopeUser user = userDAO.find(2L);
-        assertNotNull(user);
 
         PropagationTask task = new PropagationTask();
         task.setResource(resource);
-        task.setSyncopeUser(user);
-        task.setPropagationMode(PropagationMode.TWO_PHASES);
-        task.setPropagationOperation(PropagationOperation.CREATE);
+        task.setPropagationMode(PropagationMode.ASYNC);
+        task.setResourceOperationType(ResourceOperationType.CREATE);
         task.setAccountId("one@two.com");
 
         Set<Attribute> attributes = new HashSet<Attribute>();
@@ -107,7 +98,7 @@ public class TaskTest extends AbstractTest {
 
         TaskExec execution = new TaskExec();
         execution.setTask(task);
-        execution.setStatus(PropagationTaskExecStatus.CREATED.name());
+        execution.setStatus(PropagationTaskExecStatus.CREATED.toString());
         task.addExec(execution);
         execution.setStartDate(new Date());
 

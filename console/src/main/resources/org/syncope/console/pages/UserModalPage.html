@@ -46,77 +46,59 @@
         #tabs-5 table{
             font-size: 1.1em;
         }
-
-        #tabs-6 table{
-            font-size: 1.1em;
-        }
     </style>
 </wicket:head>
 
 <wicket:extend>
+    <div style="margin:10px">
+        <p class="ui-widget ui-corner-all ui-widget-header">
+        <wicket:message key="title"/>&nbsp;<span wicket:id="id"/>
+        </p>
 
-    <span wicket:id="userModalFrag"/>
+        <form wicket:id="UserForm">
+            <div id="tabs">
+                <ul>
+                    <li  class="tabs-selected"><a href="#tabs-1"><span><wicket:message key="tab1"/></span></a></li>
+                    <li><a href="#tabs-2"><span><wicket:message key="tab2"/></span></a></li>
+                    <li><a href="#tabs-3"><span><wicket:message key="tab3"/></span></a></li>
+                    <li><a href="#tabs-4"><span><wicket:message key="tab4"/></span></a></li>
+                    <li><a href="#tabs-5"><span><wicket:message key="tab5"/></span></a></li>
+                </ul>
+                <div id="tabs-1">
+                    <span wicket:id="attributes">[user attributes]</span>
 
-    <wicket:fragment wicket:id="userModalEditFrag">
+                    <wicket:message key="password"/>
 
-        <div style="margin:10px">
-            <p class="ui-widget ui-corner-all ui-widget-header">
-                <span wicket:id="new"/>&nbsp;<wicket:message key="title"/>&nbsp;<span wicket:id="id"/>
-            </p>
+                    <input type="password"
+                           class="text ui-widget-content ui-corner-all"
+                           size="40px" style="margin-bottom:10px;padding:.4em;"
+                           wicket:id="password"/>
 
-            <form wicket:id="UserForm">
-                <div id="tabs">
-                    <ul>
-                        <li  class="tabs-selected"><a href="#tabs-1"><span><wicket:message key="tab1"/></span></a></li>
-                        <li><a href="#tabs-2"><span><wicket:message key="tab2"/></span></a></li>
-                        <li><a href="#tabs-3"><span><wicket:message key="tab3"/></span></a></li>
-                        <li><a href="#tabs-4"><span><wicket:message key="tab4"/></span></a></li>
-                        <li><a href="#tabs-5"><span><wicket:message key="tab5"/></span></a></li>
-                        <li><a href="#tabs-6"><span><wicket:message key="tab6"/></span></a></li>
-                    </ul>
-                    <div id="tabs-1">
-                        <span wicket:id="details">[user details]</span>
-                    </div>
-                    <div id="tabs-2">
-                        <div id="formtable">
-                            <span wicket:id="attributes">[user attributes]</span>
-                        </div>
-                    </div>
-
-                    <div id="tabs-3">
-                        <span wicket:id="derivedAttributes">[user derived attributes]</span>
-                    </div>
-
-                    <div id="tabs-4">
-                        <span wicket:id="virtualAttributes">[user virtual attributes]</span>
-                    </div>
-
-                    <div id="tabs-5">
-                        <span wicket:id="resources">[resources]</span>
-                    </div>
-
-                    <div id="tabs-6">
-                        <span wicket:id="roles">[roles]</span>
-                    </div>
+                    <span wicket:id="mandatory_pwd">*</span>
                 </div>
 
-                <script type="text/javascript">
-                    $(function() {
-                        $('#formtable div.tablerow:even').addClass("alt");
-                    });
-                </script>
-
-                <div style="margin: 20px 10px 0">
-                    <input type="submit"
-                           class="ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only"
-                           wicket:id="apply"/>
+                <div id="tabs-2">
+                    <span wicket:id="derivedAttributes">[user derived attributes]</span>
                 </div>
-            </form>
-        </div>
-    </wicket:fragment>
 
-    <wicket:fragment wicket:id="userModalResultFrag">
-        <span wicket:id="userModalPageResult"/>
-    </wicket:fragment>
+                <div id="tabs-3">
+                    <span wicket:id="virtualAttributes">[user virtual attributes]</span>
+                </div>
 
+                <div id="tabs-4">
+                    <span wicket:id="resources">[resources]</span>
+                </div>
+
+                <div id="tabs-5">
+                    <span wicket:id="roles">[roles]</span>
+                </div>
+            </div>
+            <div>
+                &nbsp;
+            </div>
+            <div style="bottom:0">
+                <input type="submit" class="ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only" wicket:id="submit"/>
+            </div>
+        </form>
+    </div>
 </wicket:extend>

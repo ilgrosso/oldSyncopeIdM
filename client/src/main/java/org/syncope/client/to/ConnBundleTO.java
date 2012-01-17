@@ -21,8 +21,6 @@ import org.syncope.client.AbstractBaseBean;
 
 public class ConnBundleTO extends AbstractBaseBean {
 
-    private static final long serialVersionUID = 7215115961910138005L;
-
     private String displayName;
 
     private String bundleName;

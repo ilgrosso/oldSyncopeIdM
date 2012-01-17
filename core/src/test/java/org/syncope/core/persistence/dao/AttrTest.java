@@ -14,9 +14,9 @@
  */
 package org.syncope.core.persistence.dao;
 
+import org.syncope.core.persistence.validation.entity.InvalidEntityException;
 import static org.junit.Assert.*;
 
-import org.syncope.core.persistence.validation.entity.InvalidEntityException;
 import java.util.List;
 import javax.validation.ValidationException;
 import org.junit.Test;
@@ -24,7 +24,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 import org.syncope.core.persistence.beans.user.UAttr;
 import org.syncope.core.persistence.beans.user.USchema;
-import org.syncope.core.AbstractTest;
+import org.syncope.core.persistence.AbstractTest;
 import org.syncope.core.persistence.beans.user.SyncopeUser;
 import org.syncope.core.persistence.beans.user.UAttrUniqueValue;
 import org.syncope.core.util.AttributableUtil;
@@ -150,8 +150,8 @@ public class AttrTest extends AbstractTest {
         UAttr actual = attrDAO.find(attribute.getId(), UAttr.class);
         assertNotNull("expected save to work", actual);
         assertEquals(attribute, actual);
-        assertEquals(actual.getSchema(), gender);
-        assertEquals(actual.getValues().size(), 1);
+        assertEquals(actual.getSchema(),gender);
+        assertEquals(actual.getValues().size(),1);
     }
 
     @Test
@@ -160,16 +160,16 @@ public class AttrTest extends AbstractTest {
                 userSchemaDAO.find("email", USchema.class);
         assertNotNull(emailSchema);
 
-        final USchema fullnameSchema =
-                userSchemaDAO.find("fullname", USchema.class);
-        assertNotNull(fullnameSchema);
+        final USchema usernameSchema =
+                userSchemaDAO.find("username", USchema.class);
+        assertNotNull(usernameSchema);
 
         UAttr attribute = new UAttr();
         attribute.setSchema(emailSchema);
 
         UAttrUniqueValue uauv = new UAttrUniqueValue();
         uauv.setAttribute(attribute);
-        uauv.setSchema(fullnameSchema);
+        uauv.setSchema(usernameSchema);
         uauv.setStringValue("a value");
 
         attribute.setUniqueValue(uauv);
@@ -184,7 +184,7 @@ public class AttrTest extends AbstractTest {
         // for attribute
         assertTrue(iee.hasViolation(EntityViolationType.InvalidValueList));
         // for uauv
-        assertTrue(iee.hasViolation(EntityViolationType.InvalidUSchema));
+        assertTrue(iee.hasViolation(EntityViolationType.InvalidSchema));
     }
 
     @Test

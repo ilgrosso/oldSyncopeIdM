@@ -21,9 +21,7 @@ import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 import org.syncope.core.persistence.beans.role.SyncopeRole;
-import org.syncope.core.AbstractTest;
-import org.syncope.core.persistence.beans.AccountPolicy;
-import org.syncope.core.persistence.beans.PasswordPolicy;
+import org.syncope.core.persistence.AbstractTest;
 
 @Transactional
 public class RoleTest extends AbstractTest {
@@ -31,13 +29,10 @@ public class RoleTest extends AbstractTest {
     @Autowired
     private RoleDAO roleDAO;
 
-    @Autowired
-    private PolicyDAO policyDAO;
-
     @Test
     public final void findAll() {
         List<SyncopeRole> list = roleDAO.findAll();
-        assertEquals("did not get expected number of roles ", 9, list.size());
+        assertEquals("did not get expected number of roles ", 8, list.size());
     }
 
     @Test
@@ -57,7 +52,7 @@ public class RoleTest extends AbstractTest {
     public final void inheritedAttributes() {
         SyncopeRole director = roleDAO.find(7L);
 
-        assertEquals(1, director.findInheritedAttributes().size());
+        assertEquals(2, director.findInheritedAttributes().size());
     }
 
     @Test
@@ -75,37 +70,9 @@ public class RoleTest extends AbstractTest {
     }
 
     @Test
-    public final void inheritedPolicy() {
-        SyncopeRole role = roleDAO.find(7L);
-
-        assertNotNull(role);
-
-        assertNotNull(role.getAccountPolicy());
-        assertNotNull(role.getPasswordPolicy());
-
-        assertEquals(4L, (long) role.getPasswordPolicy().getId());
-
-        role = roleDAO.find(5L);
-
-        assertNotNull(role);
-
-        assertNull(role.getAccountPolicy());
-        assertNull(role.getPasswordPolicy());
-    }
-
-    @Test
     public final void save() {
         SyncopeRole role = new SyncopeRole();
         role.setName("secondChild");
-
-        // verify inheritance password and account policies
-        role.setInheritAccountPolicy(false);
-        // not inherited so setter execution shouldn't be ignored
-        role.setAccountPolicy((AccountPolicy) policyDAO.find(6L));
-
-        role.setInheritPasswordPolicy(true);
-        // inherited so setter execution should be ignored
-        role.setPasswordPolicy((PasswordPolicy) policyDAO.find(4L));
 
         SyncopeRole rootRole = roleDAO.find("root", null);
         role.setParent(rootRole);
@@ -114,10 +81,6 @@ public class RoleTest extends AbstractTest {
 
         SyncopeRole actual = roleDAO.find(role.getId());
         assertNotNull("expected save to work", actual);
-
-        assertNull(role.getPasswordPolicy());
-        assertNotNull(role.getAccountPolicy());
-        assertEquals(6L, (long) role.getAccountPolicy().getId());
     }
 
     @Test

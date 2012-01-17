@@ -13,17 +13,17 @@
  */
 package org.syncope.core.persistence.beans;
 
+import java.util.ArrayList;
+import java.util.List;
 import javax.persistence.Basic;
 import javax.persistence.Entity;
-import javax.persistence.Lob;
 import javax.persistence.ManyToOne;
+import javax.persistence.OneToMany;
 import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
-import org.hibernate.annotations.Type;
-import org.syncope.client.to.UserTO;
+import org.syncope.core.persistence.beans.role.SyncopeRole;
 import org.syncope.core.persistence.validation.entity.SyncTaskCheck;
 import org.syncope.core.scheduling.SyncJob;
-import org.syncope.core.util.XMLSerializer;
 
 @Entity
 @SyncTaskCheck
@@ -32,31 +32,21 @@ public class SyncTask extends SchedTask {
     private static final long serialVersionUID = -4141057723006682562L;
 
     /**
-     * ExternalResource to which the sync happens.
+     * TargetResource to which the sync happens.
      */
     @ManyToOne
-    private ExternalResource resource;
+    private TargetResource resource;
 
-    @Lob
-    @Type(type = "org.hibernate.type.StringClobType")
-    private String userTemplate;
+    @OneToMany
+    private List<TargetResource> defaultResources;
 
-    @Basic
-    @Min(0)
-    @Max(1)
-    private Integer performCreate;
+    @OneToMany
+    private List<SyncopeRole> defaultRoles;
 
     @Basic
     @Min(0)
     @Max(1)
-    private Integer performUpdate;
-
-    @Basic
-    @Min(0)
-    @Max(1)
-    private Integer performDelete;
-
-    private String jobActionsClassName;
+    private Integer updateIdentities;
 
     /**
      * Default constructor.
@@ -64,6 +54,8 @@ public class SyncTask extends SchedTask {
     public SyncTask() {
         super();
 
+        defaultResources = new ArrayList<TargetResource>();
+        defaultRoles = new ArrayList<SyncopeRole>();
         super.setJobClassName(SyncJob.class.getName());
     }
 
@@ -71,53 +63,59 @@ public class SyncTask extends SchedTask {
     public void setJobClassName(String jobClassName) {
     }
 
-    public ExternalResource getResource() {
+    public TargetResource getResource() {
         return resource;
     }
 
-    public void setResource(ExternalResource resource) {
+    public void setResource(TargetResource resource) {
         this.resource = resource;
     }
 
-    public UserTO getUserTemplate() {
-        return userTemplate == null
-                ? new UserTO()
-                : XMLSerializer.<UserTO>deserialize(userTemplate);
+    public boolean addDefaultResource(TargetResource resource) {
+        return resource != null && !defaultResources.contains(resource)
+                && defaultResources.add(resource);
     }
 
-    public void setUserTemplate(final UserTO userTemplate) {
-        this.userTemplate = XMLSerializer.serialize(userTemplate);
+    public boolean removeDefaultResource(TargetResource resource) {
+        return resource != null && defaultResources.remove(resource);
     }
 
-    public boolean isPerformCreate() {
-        return isBooleanAsInteger(performCreate);
+    public List<TargetResource> getDefaultResources() {
+        return defaultResources;
     }
 
-    public void setPerformCreate(final boolean performCreate) {
-        this.performCreate = getBooleanAsInteger(performCreate);
+    public void setDefaultResources(List<TargetResource> defaultResources) {
+        this.defaultResources.clear();
+        if (defaultResources != null && !defaultResources.isEmpty()) {
+            this.defaultResources.addAll(defaultResources);
+        }
     }
 
-    public boolean isPerformUpdate() {
-        return isBooleanAsInteger(performUpdate);
+    public boolean addDefaultRole(SyncopeRole role) {
+        return role != null && !defaultRoles.contains(role)
+                && defaultRoles.add(role);
     }
 
-    public void setPerformUpdate(final boolean performUpdate) {
-        this.performUpdate = getBooleanAsInteger(performUpdate);
+    public boolean removeDefaultRole(SyncopeRole role) {
+        return role != null && defaultRoles.remove(role);
     }
 
-    public boolean isPerformDelete() {
-        return isBooleanAsInteger(performDelete);
+    public List<SyncopeRole> getDefaultRoles() {
+        return defaultRoles;
     }
 
-    public void setPerformDelete(boolean performDelete) {
-        this.performDelete = getBooleanAsInteger(performDelete);
+    public void setDefaultRoles(List<SyncopeRole> defaultRoles) {
+        this.defaultRoles.clear();
+        if (defaultRoles != null && !defaultRoles.isEmpty()) {
+            this.defaultRoles.addAll(defaultRoles);
+        }
     }
 
-    public String getJobActionsClassName() {
-        return jobActionsClassName;
+    public boolean isUpdateIdentities() {
+        return isBooleanAsInteger(updateIdentities);
     }
 
-    public void setJobActionsClassName(String jobActionsClassName) {
-        this.jobActionsClassName = jobActionsClassName;
+    public void setUpdateIdentities(boolean updateIdentities) {
+        this.updateIdentities = getBooleanAsInteger(updateIdentities);
     }
 }

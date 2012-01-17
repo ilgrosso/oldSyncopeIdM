@@ -22,7 +22,7 @@ import javax.persistence.ManyToOne;
 import org.syncope.core.persistence.beans.AbstractAttributable;
 import org.syncope.core.persistence.beans.AbstractVirAttr;
 import org.syncope.core.persistence.beans.AbstractVirSchema;
-import org.syncope.types.IntMappingType;
+import org.syncope.types.SourceMappingType;
 
 @Entity
 public class UVirAttr extends AbstractVirAttr {
@@ -69,15 +69,13 @@ public class UVirAttr extends AbstractVirAttr {
         final List<Object> retrievedValues =
                 retrieveValues(getOwner(),
                 getVirtualSchema().getName(),
-                IntMappingType.UserVirtualSchema);
+                SourceMappingType.UserVirtualSchema);
 
         LOG.debug("Retrieved external values {}", retrievedValues);
 
         List<String> stringValues = new ArrayList<String>();
         for (Object value : retrievedValues) {
-            if (value != null) {
-                stringValues.add(value.toString());
-            }
+            stringValues.add(value.toString());
         }
 
         return stringValues;

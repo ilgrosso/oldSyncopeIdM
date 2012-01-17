@@ -14,28 +14,60 @@
  */
 package org.syncope.client.to;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class SyncTaskTO extends SchedTaskTO {
 
     private static final long serialVersionUID = -2143537546915809016L;
 
     private String resource;
 
-    private UserTO userTemplate;
+    private List<String> defaultResources;
 
-    private boolean performCreate;
+    private List<Long> defaultRoles;
 
-    private boolean performUpdate;
+    private boolean updateIdentities;
 
-    private boolean performDelete;
+    public SyncTaskTO() {
+        super();
 
-    private String jobActionsClassName;
-
-    public UserTO getUserTemplate() {
-        return userTemplate;
+        defaultResources = new ArrayList<String>();
+        defaultRoles = new ArrayList<Long>();
     }
 
-    public void setUserTemplate(UserTO userTemplate) {
-        this.userTemplate = userTemplate;
+    public boolean addDefaultResource(String resource) {
+        return resource != null && !defaultResources.contains(resource)
+                && defaultResources.add(resource);
+    }
+
+    public boolean removeDefaultResource(String resource) {
+        return resource != null && defaultResources.remove(resource);
+    }
+
+    public List<String> getDefaultResources() {
+        return defaultResources;
+    }
+
+    public void setDefaultResources(List<String> defaultResources) {
+        this.defaultResources = defaultResources;
+    }
+
+    public boolean addDefaultRole(Long role) {
+        return role != null && !defaultRoles.contains(role)
+                && defaultRoles.add(role);
+    }
+
+    public boolean removeDefaultRole(Long role) {
+        return role != null && defaultRoles.remove(role);
+    }
+
+    public List<Long> getDefaultRoles() {
+        return defaultRoles;
+    }
+
+    public void setDefaultRoles(List<Long> defaultRoles) {
+        this.defaultRoles = defaultRoles;
     }
 
     public String getResource() {
@@ -46,35 +78,11 @@ public class SyncTaskTO extends SchedTaskTO {
         this.resource = resource;
     }
 
-    public boolean isPerformCreate() {
-        return performCreate;
+    public boolean isUpdateIdentities() {
+        return updateIdentities;
     }
 
-    public void setPerformCreate(boolean performCreate) {
-        this.performCreate = performCreate;
-    }
-
-    public boolean isPerformUpdate() {
-        return performUpdate;
-    }
-
-    public void setPerformUpdate(boolean performUpdate) {
-        this.performUpdate = performUpdate;
-    }
-
-    public boolean isPerformDelete() {
-        return performDelete;
-    }
-
-    public void setPerformDelete(boolean performDelete) {
-        this.performDelete = performDelete;
-    }
-
-    public String getJobActionsClassName() {
-        return jobActionsClassName;
-    }
-
-    public void setJobActionsClassName(String jobActionsClassName) {
-        this.jobActionsClassName = jobActionsClassName;
+    public void setUpdateIdentities(boolean updateIdentities) {
+        this.updateIdentities = updateIdentities;
     }
 }

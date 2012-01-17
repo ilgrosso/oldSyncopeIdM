@@ -14,8 +14,8 @@
  */
 package org.syncope.console.pages;
 
+import org.apache.wicket.PageParameters;
 import org.apache.wicket.markup.html.WebPage;
-import org.apache.wicket.request.mapper.parameter.PageParameters;
 import org.apache.wicket.spring.injection.annot.SpringBean;
 import org.syncope.console.SyncopeApplication;
 import org.syncope.console.commons.XMLRolesReader;
@@ -24,8 +24,6 @@ import org.syncope.console.commons.XMLRolesReader;
  * Welcome page to display after successful login.
  */
 public class WelcomePage extends WebPage {
-
-    private static final long serialVersionUID = 8851399358753120581L;
 
     @SpringBean
     private XMLRolesReader xmlRolesReader;
@@ -37,6 +35,6 @@ public class WelcomePage extends WebPage {
         super(parameters);
 
         ((SyncopeApplication) getApplication()).setupNavigationPane(
-                this, xmlRolesReader, false, version);
+                this, xmlRolesReader, version);
     }
 }

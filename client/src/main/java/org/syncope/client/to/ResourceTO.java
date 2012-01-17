@@ -15,18 +15,12 @@
 package org.syncope.client.to;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
-
 import org.syncope.client.AbstractBaseBean;
-import org.syncope.types.ConnConfProperty;
 import org.syncope.types.PropagationMode;
 import org.syncope.types.TraceLevel;
 
 public class ResourceTO extends AbstractBaseBean {
-
-    private static final long serialVersionUID = -9193551354041698963L;
 
     /**
      * The resource identifier is the name.
@@ -45,11 +39,10 @@ public class ResourceTO extends AbstractBaseBean {
 
     private String accountLink;
 
-    private boolean propagationPrimary;
-
-    private int propagationPriority;
-
-    private PropagationMode propagationMode;
+    /**
+     * Propagation mode to be used when not mandatory in propagation.
+     */
+    private PropagationMode optionalPropagationMode;
 
     /**
      * Force mandatory constraint.
@@ -58,32 +51,16 @@ public class ResourceTO extends AbstractBaseBean {
 
     private TraceLevel createTraceLevel;
 
-    private TraceLevel updateTraceLevel;
-
     private TraceLevel deleteTraceLevel;
 
-    private TraceLevel syncTraceLevel;
-
-    private Long passwordPolicy;
-
-    private Long accountPolicy;
-
-    private Long syncPolicy;
-
-    private Set<ConnConfProperty> connectorConfigurationProperties;
-
-    private String syncToken;
+    private TraceLevel updateTraceLevel;
 
     public ResourceTO() {
         mappings = new ArrayList<SchemaMappingTO>();
-        connectorConfigurationProperties = new HashSet<ConnConfProperty>();
-        propagationMode = PropagationMode.TWO_PHASES;
-        propagationPriority = 0;
-
+        optionalPropagationMode = PropagationMode.ASYNC;
         createTraceLevel = TraceLevel.ALL;
-        updateTraceLevel = TraceLevel.ALL;
         deleteTraceLevel = TraceLevel.ALL;
-        syncTraceLevel = TraceLevel.ALL;
+        updateTraceLevel = TraceLevel.ALL;
     }
 
     public boolean isForceMandatoryConstraint() {
@@ -134,28 +111,14 @@ public class ResourceTO extends AbstractBaseBean {
         this.name = name;
     }
 
-    public boolean isPropagationPrimary() {
-        return propagationPrimary;
+    public PropagationMode getOptionalPropagationMode() {
+        return optionalPropagationMode;
     }
 
-    public void setPropagationPrimary(boolean propagationPrimary) {
-        this.propagationPrimary = propagationPrimary;
-    }
+    public void setOptionalPropagationMode(
+            PropagationMode optionalPropagationMode) {
 
-    public int getPropagationPriority() {
-        return propagationPriority;
-    }
-
-    public void setPropagationPriority(int propagationPriority) {
-        this.propagationPriority = propagationPriority;
-    }
-
-    public PropagationMode getPropagationMode() {
-        return propagationMode;
-    }
-
-    public void setPropagationMode(PropagationMode propagationMode) {
-        this.propagationMode = propagationMode;
+        this.optionalPropagationMode = optionalPropagationMode;
     }
 
     public TraceLevel getCreateTraceLevel() {
@@ -180,55 +143,5 @@ public class ResourceTO extends AbstractBaseBean {
 
     public void setUpdateTraceLevel(TraceLevel updateTraceLevel) {
         this.updateTraceLevel = updateTraceLevel;
-    }
-
-    public Long getPasswordPolicy() {
-        return passwordPolicy;
-    }
-
-    public void setPasswordPolicy(Long passwordPolicy) {
-        this.passwordPolicy = passwordPolicy;
-    }
-
-    public Long getAccountPolicy() {
-        return accountPolicy;
-    }
-
-    public void setAccountPolicy(Long accountPolicy) {
-        this.accountPolicy = accountPolicy;
-    }
-
-    public Long getSyncPolicy() {
-        return syncPolicy;
-    }
-
-    public void setSyncPolicy(Long syncPolicy) {
-        this.syncPolicy = syncPolicy;
-    }
-
-    public Set<ConnConfProperty> getConnectorConfigurationProperties() {
-        return connectorConfigurationProperties;
-    }
-
-    public void setConnectorConfigurationProperties(
-            final Set<ConnConfProperty> connectorConfigurationProperties) {
-        this.connectorConfigurationProperties =
-                connectorConfigurationProperties;
-    }
-
-    public TraceLevel getSyncTraceLevel() {
-        return syncTraceLevel;
-    }
-
-    public void setSyncTraceLevel(TraceLevel syncTraceLevel) {
-        this.syncTraceLevel = syncTraceLevel;
-    }
-
-    public String getSyncToken() {
-        return syncToken;
-    }
-
-    public void setSyncToken(String syncToken) {
-        this.syncToken = syncToken;
     }
 }

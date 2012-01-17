@@ -16,9 +16,7 @@ package org.syncope.core.scheduling;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Date;
-import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
-import org.quartz.StatefulJob;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,24 +25,7 @@ import org.syncope.core.persistence.beans.TaskExec;
 import org.syncope.core.persistence.dao.TaskDAO;
 import org.syncope.core.persistence.dao.TaskExecDAO;
 
-/**
- * Base job implementation that delegates to concrete implementation the actual
- * job execution and provides some background settings (like as the
- * corresponding Task, for example).
- */
-public abstract class AbstractJob implements StatefulJob {
-
-    public static final String DRY_RUN_JOBDETAIL_KEY = "dryRun";
-
-    /**
-     * Task execution status.
-     */
-    public enum Status {
-
-        SUCCESS,
-        FAILURE
-
-    }
+public abstract class AbstractJob implements Job {
 
     /**
      * Logger.
@@ -52,39 +33,26 @@ public abstract class AbstractJob implements StatefulJob {
     protected static final Logger LOG = LoggerFactory.getLogger(
             AbstractJob.class);
 
-    /**
-     * Task DAO.
-     */
+    protected static final String SUCCESS = "SUCCESS";
+
+    protected static final String FAILURE = "FAILURE";
+
     @Autowired
     protected TaskDAO taskDAO;
 
-    /**
-     * Task execution DAO.
-     */
     @Autowired
     private TaskExecDAO taskExecDAO;
 
-    /**
-     * Id, set by the caller, for identifying the task to be executed.
-     */
     protected Long taskId;
 
-    /**
-     * The actual task to be executed.
-     */
     protected Task task;
 
-    /**
-     * Task id setter.
-     *
-     * @param taskId to be set
-     */
-    public void setTaskId(final Long taskId) {
+    public void setTaskId(Long taskId) {
         this.taskId = taskId;
     }
 
     @Override
-    public final void execute(final JobExecutionContext context)
+    public final void execute()
             throws JobExecutionException {
 
         task = taskDAO.find(taskId);
@@ -97,11 +65,9 @@ public abstract class AbstractJob implements StatefulJob {
         execution.setTask(task);
 
         try {
-            execution.setMessage(doExecute(
-                    context.getMergedJobDataMap().
-                    getBoolean(DRY_RUN_JOBDETAIL_KEY)));
+            execution.setMessage(doExecute());
 
-            execution.setStatus(Status.SUCCESS.name());
+            execution.setStatus(SUCCESS);
         } catch (JobExecutionException e) {
             LOG.error("While executing task " + taskId, e);
 
@@ -110,31 +76,13 @@ public abstract class AbstractJob implements StatefulJob {
             e.printStackTrace(new PrintWriter(exceptionWriter));
             execution.setMessage(exceptionWriter.toString());
 
-            execution.setStatus(Status.FAILURE.name());
+            execution.setStatus(FAILURE);
         }
         execution.setEndDate(new Date());
-        if (hasToBeRegistered(execution)) {
-            taskExecDAO.save(execution);
-        }
+
+        taskExecDAO.save(execution);
     }
 
-    /**
-     * The actual execution, delegated to child classes.
-     * 
-     * @param dryRun whether to actually touch the data
-     * @return the task execution status to be set
-     * @throws JobExecutionException if anything goes wrong
-     */
-    protected abstract String doExecute(boolean dryRun)
+    protected abstract String doExecute()
             throws JobExecutionException;
-
-    /**
-     * Template method to determine whether this job's task execution has
-     * to be persisted or not.
-     * @param execution task execution
-     * @return wether to persist or not
-     */
-    protected boolean hasToBeRegistered(final TaskExec execution) {
-        return false;
-    }
 }

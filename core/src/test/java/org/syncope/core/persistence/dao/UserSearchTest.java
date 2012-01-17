@@ -28,8 +28,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.syncope.client.search.AttributeCond;
 import org.syncope.client.search.MembershipCond;
 import org.syncope.client.search.NodeCond;
-import org.syncope.client.search.ResourceCond;
-import org.syncope.client.search.SyncopeUserCond;
 import org.syncope.core.persistence.beans.user.SyncopeUser;
 import org.syncope.core.util.EntitlementUtil;
 
@@ -44,37 +42,17 @@ import org.syncope.core.util.EntitlementUtil;
 public class UserSearchTest {
 
     @Autowired
-    private UserDAO userDAO;
-
-    @Autowired
     private UserSearchDAO searchDAO;
 
     @Autowired
     private EntitlementDAO entitlementDAO;
 
     @Test
-    public final void matches() {
-        SyncopeUser user = userDAO.find(1L);
-        assertNotNull(user);
-
-        MembershipCond membershipCond = new MembershipCond();
-        membershipCond.setRoleId(5L);
-
-        assertFalse(searchDAO.matches(user,
-                NodeCond.getLeafCond(membershipCond)));
-
-        membershipCond.setRoleId(1L);
-
-        assertTrue(searchDAO.matches(user,
-                NodeCond.getLeafCond(membershipCond)));
-    }
-
-    @Test
     public final void searchWithLikeCondition() {
-        AttributeCond fullnameLeafCond =
+        AttributeCond usernameLeafCond =
                 new AttributeCond(AttributeCond.Type.LIKE);
-        fullnameLeafCond.setSchema("fullname");
-        fullnameLeafCond.setExpression("%o%");
+        usernameLeafCond.setSchema("username");
+        usernameLeafCond.setExpression("%o%");
 
         MembershipCond membershipCond = new MembershipCond();
         membershipCond.setRoleId(1L);
@@ -84,7 +62,7 @@ public class UserSearchTest {
         loginDateCond.setExpression("2009-05-26");
 
         NodeCond subCond = NodeCond.getAndCond(
-                NodeCond.getLeafCond(fullnameLeafCond),
+                NodeCond.getLeafCond(usernameLeafCond),
                 NodeCond.getLeafCond(membershipCond));
 
         assertTrue(subCond.checkValidity());
@@ -102,12 +80,12 @@ public class UserSearchTest {
 
     @Test
     public final void searchWithNotCondition() {
-        final AttributeCond fullnameLeafCond =
+        final AttributeCond usernameLeafCond =
                 new AttributeCond(AttributeCond.Type.EQ);
-        fullnameLeafCond.setSchema("fullname");
-        fullnameLeafCond.setExpression("fabio.martelli");
+        usernameLeafCond.setSchema("username");
+        usernameLeafCond.setExpression("fabio.martelli");
 
-        final NodeCond cond = NodeCond.getNotLeafCond(fullnameLeafCond);
+        final NodeCond cond = NodeCond.getNotLeafCond(usernameLeafCond);
         assertTrue(cond.checkValidity());
 
         final List<SyncopeUser> users = searchDAO.search(
@@ -142,10 +120,10 @@ public class UserSearchTest {
 
     @Test
     public final void searchByPageAndSize() {
-        AttributeCond fullnameLeafCond =
+        AttributeCond usernameLeafCond =
                 new AttributeCond(AttributeCond.Type.LIKE);
-        fullnameLeafCond.setSchema("fullname");
-        fullnameLeafCond.setExpression("%o%");
+        usernameLeafCond.setSchema("username");
+        usernameLeafCond.setExpression("%o%");
 
         MembershipCond membershipCond = new MembershipCond();
         membershipCond.setRoleId(1L);
@@ -155,7 +133,7 @@ public class UserSearchTest {
         loginDateCond.setExpression("2009-05-26");
 
         NodeCond subCond = NodeCond.getAndCond(
-                NodeCond.getLeafCond(fullnameLeafCond),
+                NodeCond.getLeafCond(usernameLeafCond),
                 NodeCond.getLeafCond(membershipCond));
 
         assertTrue(subCond.checkValidity());
@@ -197,7 +175,7 @@ public class UserSearchTest {
                 EntitlementUtil.getRoleIds(entitlementDAO.findAll()),
                 NodeCond.getNotLeafCond(membershipCond));
         assertNotNull(users);
-        assertEquals(4, users.size());
+        assertEquals(3, users.size());
     }
 
     @Test
@@ -206,7 +184,8 @@ public class UserSearchTest {
                 new AttributeCond(AttributeCond.Type.ISNULL);
         coolLeafCond.setSchema("cool");
 
-        List<SyncopeUser> users = searchDAO.search(
+        List<SyncopeUser> users =
+                searchDAO.search(
                 EntitlementUtil.getRoleIds(entitlementDAO.findAll()),
                 NodeCond.getLeafCond(coolLeafCond));
         assertNotNull(users);
@@ -216,154 +195,11 @@ public class UserSearchTest {
                 new AttributeCond(AttributeCond.Type.ISNOTNULL);
         coolLeafCond.setSchema("cool");
 
-        users = searchDAO.search(
+        users =
+                searchDAO.search(
                 EntitlementUtil.getRoleIds(entitlementDAO.findAll()),
                 NodeCond.getLeafCond(coolLeafCond));
         assertNotNull(users);
         assertEquals(1, users.size());
-    }
-
-    @Test
-    public void searchByResource() {
-        ResourceCond ws2 = new ResourceCond();
-        ws2.setResourceName("ws-target-resource-2");
-
-        ResourceCond ws1 = new ResourceCond();
-        ws1.setResourceName("ws-target-resource-list-mappings-2");
-
-        NodeCond searchCondition = NodeCond.getAndCond(
-                NodeCond.getNotLeafCond(ws2),
-                NodeCond.getLeafCond(ws1));
-
-        assertTrue(searchCondition.checkValidity());
-
-        List<SyncopeUser> users = searchDAO.search(
-                EntitlementUtil.getRoleIds(entitlementDAO.findAll()),
-                searchCondition);
-
-        assertNotNull(users);
-        assertEquals(1, users.size());
-    }
-
-    @Test
-    public void searchByUsernameAndId() {
-        final SyncopeUserCond usernameLeafCond =
-                new SyncopeUserCond(SyncopeUserCond.Type.EQ);
-        usernameLeafCond.setSchema("username");
-        usernameLeafCond.setExpression("user1");
-
-        final SyncopeUserCond idRightCond =
-                new SyncopeUserCond(SyncopeUserCond.Type.LT);
-        idRightCond.setSchema("id");
-        idRightCond.setExpression("2");
-
-        final NodeCond searchCondition = NodeCond.getOrCond(
-                NodeCond.getLeafCond(usernameLeafCond),
-                NodeCond.getLeafCond(idRightCond));
-
-        final List<SyncopeUser> matchingUsers = searchDAO.search(
-                EntitlementUtil.getRoleIds(entitlementDAO.findAll()),
-                searchCondition);
-
-        assertNotNull(matchingUsers);
-        assertEquals(1, matchingUsers.size());
-        assertEquals("user1", matchingUsers.iterator().next().getUsername());
-        assertEquals(1L, matchingUsers.iterator().next().getId().longValue());
-    }
-
-    @Test
-    public void searchByUsernameAndFullname() {
-        final SyncopeUserCond usernameLeafCond =
-                new SyncopeUserCond(SyncopeUserCond.Type.EQ);
-        usernameLeafCond.setSchema("username");
-        usernameLeafCond.setExpression("user1");
-
-        final AttributeCond idRightCond =
-                new AttributeCond(AttributeCond.Type.LIKE);
-        idRightCond.setSchema("fullname");
-        idRightCond.setExpression("fabio.mart%");
-
-        final NodeCond searchCondition = NodeCond.getOrCond(
-                NodeCond.getLeafCond(usernameLeafCond),
-                NodeCond.getLeafCond(idRightCond));
-
-        final List<SyncopeUser> matchingUsers = searchDAO.search(
-                EntitlementUtil.getRoleIds(entitlementDAO.findAll()),
-                searchCondition);
-
-        assertNotNull(matchingUsers);
-        assertEquals(2, matchingUsers.size());
-    }
-
-    @Test
-    public void searchById() {
-        SyncopeUserCond idLeafCond =
-                new SyncopeUserCond(SyncopeUserCond.Type.LT);
-        idLeafCond.setSchema("id");
-        idLeafCond.setExpression("2");
-
-        NodeCond searchCondition = NodeCond.getLeafCond(idLeafCond);
-        assertTrue(searchCondition.checkValidity());
-
-        List<SyncopeUser> matchingUsers = searchDAO.search(
-                EntitlementUtil.getRoleIds(entitlementDAO.findAll()),
-                searchCondition);
-
-        assertNotNull(matchingUsers);
-        assertEquals(1, matchingUsers.size());
-        assertEquals(1L, matchingUsers.iterator().next().getId().longValue());
-
-        idLeafCond = new SyncopeUserCond(SyncopeUserCond.Type.LT);
-        idLeafCond.setSchema("id");
-        idLeafCond.setExpression("4");
-
-        searchCondition = NodeCond.getNotLeafCond(idLeafCond);
-        assertTrue(searchCondition.checkValidity());
-
-        matchingUsers = searchDAO.search(
-                EntitlementUtil.getRoleIds(entitlementDAO.findAll()),
-                searchCondition);
-
-        assertNotNull(matchingUsers);
-        assertEquals(1, matchingUsers.size());
-        assertEquals(4L, matchingUsers.iterator().next().getId().longValue());
-    }
-
-    @Test
-    public final void issue202() {
-        final ResourceCond ws2 = new ResourceCond();
-        ws2.setResourceName("ws-target-resource-2");
-
-        final ResourceCond ws1 = new ResourceCond();
-        ws1.setResourceName("ws-target-resource-list-mappings-1");
-
-        final NodeCond searchCondition = NodeCond.getAndCond(
-                NodeCond.getNotLeafCond(ws2),
-                NodeCond.getNotLeafCond(ws1));
-        assertTrue(searchCondition.checkValidity());
-
-        final List<SyncopeUser> users = searchDAO.search(
-                EntitlementUtil.getRoleIds(entitlementDAO.findAll()),
-                searchCondition);
-        assertNotNull(users);
-        assertEquals(1, users.size());
-        assertEquals(4L, users.iterator().next().getId().longValue());
-    }
-
-    @Test
-    public final void issue242() {
-        final SyncopeUserCond cond =
-                new SyncopeUserCond(AttributeCond.Type.LIKE);
-        cond.setSchema("id");
-        cond.setExpression("test%");
-
-        final NodeCond searchCondition = NodeCond.getLeafCond(cond);
-        assertTrue(searchCondition.checkValidity());
-
-        final List<SyncopeUser> users = searchDAO.search(
-                EntitlementUtil.getRoleIds(entitlementDAO.findAll()),
-                searchCondition);
-        assertNotNull(users);
-        assertTrue(users.isEmpty());
     }
 }

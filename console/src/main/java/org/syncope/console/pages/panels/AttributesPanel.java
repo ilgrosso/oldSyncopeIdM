@@ -14,14 +14,24 @@
  */
 package org.syncope.console.pages.panels;
 
-import org.syncope.console.wicket.markup.html.form.MultiValueSelectorPanel;
+import java.io.Serializable;
+import java.text.DateFormat;
+import java.text.Format;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.apache.wicket.ajax.AjaxRequestTarget;
+import org.apache.wicket.ajax.markup.html.form.AjaxButton;
+import org.apache.wicket.extensions.ajax.markup.html.IndicatingAjaxButton;
+import org.apache.wicket.markup.html.WebMarkupContainer;
 import org.apache.wicket.markup.html.basic.Label;
+import org.apache.wicket.markup.html.form.ChoiceRenderer;
 import org.apache.wicket.markup.html.form.Form;
 import org.apache.wicket.markup.html.list.ListItem;
 import org.apache.wicket.markup.html.list.ListView;
@@ -31,7 +41,9 @@ import org.apache.wicket.model.LoadableDetachableModel;
 import org.apache.wicket.model.Model;
 import org.apache.wicket.model.PropertyModel;
 import org.apache.wicket.spring.injection.annot.SpringBean;
-import org.syncope.client.SyncopeConstants;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.util.StringUtils;
 import org.syncope.client.to.AbstractAttributableTO;
 import org.syncope.client.to.AttributeTO;
 import org.syncope.client.to.RoleTO;
@@ -42,34 +54,28 @@ import org.syncope.console.rest.SchemaRestClient;
 import org.syncope.console.wicket.markup.html.form.AjaxCheckBoxPanel;
 import org.syncope.console.wicket.markup.html.form.AjaxDropDownChoicePanel;
 import org.syncope.console.wicket.markup.html.form.AjaxTextFieldPanel;
-import org.syncope.console.wicket.markup.html.form.DateTextFieldPanel;
-import org.syncope.console.wicket.markup.html.form.DateTimeFieldPanel;
-import org.syncope.console.wicket.markup.html.form.FieldPanel;
+import org.syncope.console.wicket.markup.html.form.DateFieldPanel;
 import org.syncope.types.SchemaType;
 
 public class AttributesPanel extends Panel {
 
-    private static final long serialVersionUID = 552437609667518888L;
+    /**
+     * Logger.
+     */
+    protected static final Logger LOG =
+            LoggerFactory.getLogger(AttributesPanel.class);
 
     @SpringBean
     private SchemaRestClient schemaRestClient;
 
-    private final boolean templateMode;
+    final WebMarkupContainer attributesContainer;
 
     public <T extends AbstractAttributableTO> AttributesPanel(
-            final String id,
-            final T entityTO,
-            final Form form,
-            final boolean templateMode) {
-
+            final String id, final T entityTO, final Form form) {
         super(id);
-        this.templateMode = templateMode;
 
         final IModel<Map<String, SchemaTO>> schemas =
                 new LoadableDetachableModel<Map<String, SchemaTO>>() {
-
-                    private static final long serialVersionUID =
-                            -2012833443695917883L;
 
                     @Override
                     protected Map<String, SchemaTO> load() {
@@ -96,43 +102,90 @@ public class AttributesPanel extends Panel {
                     }
                 };
 
+        attributesContainer = new WebMarkupContainer("container");
+        attributesContainer.setOutputMarkupId(true);
+        add(attributesContainer);
+
         initEntityData(entityTO, schemas.getObject().values());
 
         final ListView<AttributeTO> attributeView = new ListView<AttributeTO>(
                 "schemas", new PropertyModel<List<? extends AttributeTO>>(
                 entityTO, "attributes")) {
 
-            private static final long serialVersionUID = 9101744072914090143L;
-
             @Override
-            protected void populateItem(final ListItem item) {
+            protected void populateItem(ListItem item) {
                 final AttributeTO attributeTO =
                         (AttributeTO) item.getDefaultModelObject();
 
-                item.add(new Label("name", templateMode
-                        ? attributeTO.getSchema() + " (JEXL)"
-                        : attributeTO.getSchema()));
+                item.add(new Label("name", attributeTO.getSchema()));
 
-                final FieldPanel panel = getFieldPanel(
-                        schemas.getObject().get(attributeTO.getSchema()),
-                        form, attributeTO);
+                item.add(new ListView(
+                        "fields", attributeTO.getValues()) {
 
-                if (templateMode
-                        || !schemas.getObject().get(attributeTO.getSchema()).
-                        isMultivalue()) {
+                    @Override
+                    protected void populateItem(final ListItem item) {
+                        item.add(getFieldPanel(schemas.getObject().get(
+                                attributeTO.getSchema()), form, item));
+                    }
+                });
 
-                    item.add(panel);
-                } else {
-                    item.add(new MultiValueSelectorPanel<String>(
-                            "panel",
-                            new PropertyModel(attributeTO, "values"),
-                            String.class,
-                            panel));
+                final AjaxButton addButton =
+                        new IndicatingAjaxButton("add",
+                        new Model(getString("add"))) {
+
+                            @Override
+                            protected void onSubmit(
+                                    final AjaxRequestTarget target,
+                                    final Form form) {
+                                attributeTO.getValues().add("");
+                                target.addComponent(attributesContainer);
+                            }
+                        };
+
+                final AjaxButton dropButton =
+                        new IndicatingAjaxButton("drop",
+                        new Model(getString("drop"))) {
+
+                            @Override
+                            protected void onSubmit(
+                                    final AjaxRequestTarget target,
+                                    final Form form) {
+                                //Drop the last component added
+                                attributeTO.getValues().remove(
+                                        attributeTO.getValues().size() - 1);
+
+                                target.addComponent(attributesContainer);
+                            }
+                        };
+
+                if (schemas.getObject().get(attributeTO.getSchema()).
+                        getType() == SchemaType.Boolean) {
+                    addButton.setVisible(false);
+                    dropButton.setVisible(false);
                 }
+
+                addButton.setVisible(
+                        schemas.getObject().get(
+                        attributeTO.getSchema()).isMultivalue());
+                dropButton.setVisible(
+                        schemas.getObject().get(
+                        attributeTO.getSchema()).isMultivalue());
+
+                dropButton.setVisible(
+                        attributeTO.getValues().size() > 1);
+
+                addButton.setEnabled(!attributeTO.isReadonly());
+                dropButton.setEnabled(!attributeTO.isReadonly());
+
+                addButton.setDefaultFormProcessing(false);
+                dropButton.setDefaultFormProcessing(false);
+
+                item.add(addButton);
+                item.add(dropButton);
             }
         };
 
-        add(attributeView);
+        attributesContainer.add(attributeView);
     }
 
     private List<AttributeTO> initEntityData(
@@ -141,25 +194,28 @@ public class AttributesPanel extends Panel {
 
         final List<AttributeTO> entityData = new ArrayList<AttributeTO>();
 
-        final Map<String, AttributeTO> attrMap = entityTO.getAttributeMap();
+        final Map<String, List<String>> attributeMap =
+                entityTO.getAttributeMap();
+
+        AttributeTO attributeTO;
+        List<String> values;
 
         for (SchemaTO schema : schemas) {
-            AttributeTO attributeTO = new AttributeTO();
+            attributeTO = new AttributeTO();
             attributeTO.setSchema(schema.getName());
 
-            if (attrMap.get(schema.getName()) == null
-                    || attrMap.get(schema.getName()).
-                    getValues().isEmpty()) {
+            if (attributeMap.get(schema.getName()) == null
+                    || attributeMap.get(schema.getName()).isEmpty()) {
 
-                List<String> values = new ArrayList<String>();
+                values = new ArrayList<String>();
                 values.add("");
                 attributeTO.setValues(values);
 
                 // is important to set readonly only after valus setting
                 attributeTO.setReadonly(schema.isReadonly());
+
             } else {
-                attributeTO.setValues(
-                        attrMap.get(schema.getName()).getValues());
+                attributeTO.setValues(attributeMap.get(schema.getName()));
             }
             entityData.add(attributeTO);
         }
@@ -169,83 +225,103 @@ public class AttributesPanel extends Panel {
         return entityData;
     }
 
-    private FieldPanel getFieldPanel(
+    private Panel getFieldPanel(
             final SchemaTO schemaTO,
             final Form form,
-            final AttributeTO attributeTO) {
+            final ListItem item) {
+        Panel panel;
 
-        final FieldPanel panel;
+        boolean required =
+                schemaTO.getMandatoryCondition().equalsIgnoreCase("true");
 
-        final boolean required = templateMode
-                ? false
-                : schemaTO.getMandatoryCondition().equalsIgnoreCase("true");
-
-        final boolean readOnly = templateMode ? false : schemaTO.isReadonly();
-
-        final SchemaType type = templateMode
-                ? SchemaType.String : schemaTO.getType();
-        switch (type) {
+        switch (schemaTO.getType()) {
             case Boolean:
                 panel = new AjaxCheckBoxPanel(
-                        "panel", schemaTO.getName(), new Model(), true);
-                panel.setRequired(required);
+                        "panel", schemaTO.getName(), new Model() {
+
+                    @Override
+                    public Serializable getObject() {
+                        return (String) item.getModelObject();
+                    }
+
+                    @Override
+                    public void setObject(Serializable object) {
+                        item.setModelObject(((Boolean) object).toString());
+                    }
+                }, required, schemaTO.isReadonly());
+
                 break;
-
             case Date:
-                final String dataPattern = schemaTO.getConversionPattern() != null
-                        ? schemaTO.getConversionPattern()
-                        : SyncopeConstants.DEFAULT_DATE_PATTERN;
+                panel = new DateFieldPanel(
+                        "panel", schemaTO.getName(), new Model() {
 
-                if (!dataPattern.contains("H")) {
-
-                    panel = new DateTextFieldPanel(
-                            "panel",
-                            schemaTO.getName(),
-                            new Model(),
-                            true,
-                            dataPattern);
-
-                    if (required) {
-                        panel.addRequiredLabel();
+                    @Override
+                    public Serializable getObject() {
+                        final DateFormat formatter = new SimpleDateFormat(
+                                schemaTO.getConversionPattern());
+                        Date date = null;
+                        try {
+                            String dateValue = (String) item.getModelObject();
+                            //Default value:yyyy-MM-dd
+                            if (StringUtils.hasText(dateValue)) {
+                                date = formatter.parse(dateValue);
+                            }
+                        } catch (ParseException e) {
+                            LOG.error("While parsing date", e);
+                        }
+                        return date;
                     }
-                } else {
 
-                    panel = new DateTimeFieldPanel(
-                            "panel",
-                            schemaTO.getName(),
-                            new Model(),
-                            true,
-                            dataPattern);
-
-                    if (required) {
-                        panel.addRequiredLabel();
-                        ((DateTimeFieldPanel) panel).setFormValidator(form);
+                    @Override
+                    public void setObject(Serializable object) {
+                        if (object != null) {
+                            final Format formatter = new SimpleDateFormat(
+                                    schemaTO.getConversionPattern());
+                            item.setModelObject(formatter.format((Date) object));
+                        } else {
+                            item.setModelObject(object);
+                        }
                     }
-                    panel.setStyleShet("ui-widget-content ui-corner-all");
-                }
+                }, schemaTO.getConversionPattern(),
+                        required,
+                        schemaTO.isReadonly(),
+                        form);
                 break;
 
             case Enum:
-                panel = new AjaxDropDownChoicePanel<String>(
-                        "panel", schemaTO.getName(), new Model(), true);
-                ((AjaxDropDownChoicePanel) panel).setChoices(
-                        Arrays.asList(schemaTO.getEnumerationValues().
-                        split(Schema.enumValuesSeparator)));
-                if (required) {
-                    panel.addRequiredLabel();
-                }
+                panel = new AjaxDropDownChoicePanel(
+                        "panel", schemaTO.getName(), new Model() {
+
+                    @Override
+                    public Serializable getObject() {
+                        return (String) item.getModelObject();
+                    }
+
+                    @Override
+                    public void setObject(Serializable object) {
+                        item.setModelObject((String) object);
+                    }
+                }, Arrays.asList(schemaTO.getEnumerationValues().
+                        split(Schema.enumValuesSeparator)),
+                        new ChoiceRenderer(),
+                        required);
                 break;
 
             default:
                 panel = new AjaxTextFieldPanel(
-                        "panel", schemaTO.getName(), new Model(), true);
-                if (required) {
-                    panel.addRequiredLabel();
-                }
-        }
+                        "panel", schemaTO.getName(), new Model() {
 
-        panel.setReadOnly(readOnly);
-        panel.setNewModel(attributeTO.getValues());
+                    @Override
+                    public Serializable getObject() {
+                        return (String) item.getModelObject();
+                    }
+
+                    @Override
+                    public void setObject(Serializable object) {
+                        item.setModelObject((String) object);
+                    }
+                }, required, schemaTO.isReadonly());
+        }
 
         return panel;
     }

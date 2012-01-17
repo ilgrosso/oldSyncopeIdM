@@ -71,33 +71,33 @@ public abstract class AbstractAttributableTO extends AbstractBaseBean {
     }
 
     @JsonIgnore
-    public Map<String, AttributeTO> getAttributeMap() {
-        Map<String, AttributeTO> result =
-                new HashMap<String, AttributeTO>(attributes.size());
+    public Map<String, List<String>> getAttributeMap() {
+        Map<String, List<String>> result =
+                new HashMap<String, List<String>>(attributes.size());
         for (AttributeTO attributeTO : attributes) {
-            result.put(attributeTO.getSchema(), attributeTO);
+            result.put(attributeTO.getSchema(), attributeTO.getValues());
         }
 
         return result;
     }
 
     @JsonIgnore
-    public Map<String, AttributeTO> getDerivedAttributeMap() {
-        Map<String, AttributeTO> result =
-                new HashMap<String, AttributeTO>(derivedAttributes.size());
+    public Map<String, List<String>> getDerivedAttributeMap() {
+        Map<String, List<String>> result =
+                new HashMap<String, List<String>>(derivedAttributes.size());
         for (AttributeTO attributeTO : derivedAttributes) {
-            result.put(attributeTO.getSchema(), attributeTO);
+            result.put(attributeTO.getSchema(), attributeTO.getValues());
         }
 
         return result;
     }
 
     @JsonIgnore
-    public Map<String, AttributeTO> getVirtualAttributeMap() {
-        Map<String, AttributeTO> result =
-                new HashMap<String, AttributeTO>(virtualAttributes.size());
+    public Map<String, List<String>> getVirtualAttributeMap() {
+        Map<String, List<String>> result =
+                new HashMap<String, List<String>>(virtualAttributes.size());
         for (AttributeTO attributeTO : virtualAttributes) {
-            result.put(attributeTO.getSchema(), attributeTO);
+            result.put(attributeTO.getSchema(), attributeTO.getValues());
         }
 
         return result;

@@ -20,27 +20,11 @@ public enum EntityViolationType {
     MultivalueAndUniqueConstraint(
     "org.syncope.core.validation.schema.multivalueAndUniqueConstraint"),
     InvalidAccountIdCount(
-    "org.syncope.core.validation.externalresource.invalidAccountIdCount"),
+    "org.syncope.core.validation.targetresource.invalidAccountIdCount"),
     MoreThanOneNonNull(
     "org.syncope.core.validation.attrvalue.moreThanOneNonNull"),
-    InvalidUSchema(
-    "org.syncope.core.validation.attrvalue.invalidUSchema"),
-    InvalidUDerSchema(
-    "org.syncope.core.validation.attrvalue.invalidUDerSchema"),
-    InvalidUVirSchema(
-    "org.syncope.core.validation.attrvalue.invalidUVirSchema"),
-    InvalidRSchema(
-    "org.syncope.core.validation.attrvalue.invalidRSchema"),
-    InvalidRDerSchema(
-    "org.syncope.core.validation.attrvalue.invalidRDerSchema"),
-    InvalidRVirSchema(
-    "org.syncope.core.validation.attrvalue.invalidRVirSchema"),
-    InvalidMSchema(
-    "org.syncope.core.validation.attrvalue.invalidMSchema"),
-    InvalidMDerSchema(
-    "org.syncope.core.validation.attrvalue.invalidMDerSchema"),
-    InvalidMVirSchema(
-    "org.syncope.core.validation.attrvalue.invalidMVirSchema"),
+    InvalidSchema(
+    "org.syncope.core.validation.attrvalue.invalidSchema"),
     InvalidSchemaTypeSpecification(
     "org.syncope.core.validation.attrvalue.invalidSchemaTypeSpecification"),
     InvalidValueList(
@@ -54,21 +38,7 @@ public enum EntityViolationType {
     InvalidSyncTask(
     "org.syncope.core.validation.synctask.invalid"),
     InvalidPassword(
-    "org.syncope.core.validation.password.invalid"),
-    InvalidUsername(
-    "org.syncope.core.validation.username.invalid"),
-    InvalidPolicy(// not throwable using rest interface because the TO is typed
-    "org.syncope.core.validation.policy.invalid"),
-    InvalidPasswordPolicy(
-    "org.syncope.core.validation.policy.invalid"),
-    InvalidAccountPolicy(
-    "org.syncope.core.validation.policy.invalid"),
-    InvalidSyncPolicy(
-    "org.syncope.core.validation.policy.invalid"),
-    InvalidNotification(
-    "org.syncope.core.validation.notification.invalid"),
-    InvalidSchemaMapping(
-    "org.syncope.core.validation.mapping.invalid");
+    "org.syncope.core.validation.password.invalid");
 
     private String message;
 

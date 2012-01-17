@@ -29,9 +29,9 @@ import org.syncope.core.persistence.dao.DerSchemaDAO;
 import org.syncope.core.persistence.dao.ResourceDAO;
 import org.syncope.core.persistence.dao.SchemaDAO;
 import org.syncope.core.persistence.dao.UserDAO;
-import org.syncope.core.AbstractTest;
+import org.syncope.core.persistence.AbstractTest;
 import org.syncope.core.util.AttributableUtil;
-import org.syncope.types.IntMappingType;
+import org.syncope.types.SourceMappingType;
 
 @Transactional
 public class SchemaTest extends AbstractTest {
@@ -53,39 +53,39 @@ public class SchemaTest extends AbstractTest {
 
     @Test
     public final void test1() {
-        // search for user schema fullname
-        USchema schema = schemaDAO.find("fullname", USchema.class);
+        // search for user schema username
+        USchema schema = schemaDAO.find("username", USchema.class);
 
         assertNotNull(schema);
 
         // check for associated mappings
         Set<SchemaMapping> mappings = new HashSet<SchemaMapping>();
         for (SchemaMapping mapping : resourceDAO.findAllMappings()) {
-            if (schema.getName().equals(mapping.getIntAttrName())
-                    && mapping.getIntMappingType()
-                    == IntMappingType.UserSchema) {
+            if (mapping.getSourceAttrName().equals(schema.getName())
+                    && mapping.getSourceMappingType()
+                    == SourceMappingType.UserSchema) {
 
                 mappings.add(mapping);
             }
         }
         assertFalse(mappings.isEmpty());
 
-        // delete user schema fullname
-        schemaDAO.delete("fullname", AttributableUtil.USER);
+        // delete user schema username
+        schemaDAO.delete("username", AttributableUtil.USER);
 
         schemaDAO.flush();
 
         // check for schema deletion
-        schema = schemaDAO.find("fullname", USchema.class);
+        schema = schemaDAO.find("username", USchema.class);
 
         assertNull(schema);
 
         // check for mappings deletion
         mappings = new HashSet<SchemaMapping>();
         for (SchemaMapping mapping : resourceDAO.findAllMappings()) {
-            if ("fullname".equals(mapping.getIntAttrName())
-                    && mapping.getIntMappingType()
-                    == IntMappingType.UserSchema) {
+            if (mapping.getSourceAttrName().equals("username")
+                    && mapping.getSourceMappingType()
+                    == SourceMappingType.UserSchema) {
 
                 mappings.add(mapping);
             }
@@ -94,14 +94,14 @@ public class SchemaTest extends AbstractTest {
 
         assertNull(attrDAO.find(100L, UAttr.class));
         assertNull(attrDAO.find(300L, UAttr.class));
-        assertNull(userDAO.find(1L).getAttribute("fullname"));
-        assertNull(userDAO.find(3L).getAttribute("fullname"));
+        assertNull(userDAO.find(1L).getAttribute("username"));
+        assertNull(userDAO.find(3L).getAttribute("username"));
     }
 
     @Test
     public void test2() {
 
-        // search for user schema fullname
+        // search for user schema username
         USchema schema = schemaDAO.find("surname", USchema.class);
 
         assertNotNull(schema);
@@ -109,16 +109,16 @@ public class SchemaTest extends AbstractTest {
         // check for associated mappings
         Set<SchemaMapping> mappings = new HashSet<SchemaMapping>();
         for (SchemaMapping mapping : resourceDAO.findAllMappings()) {
-            if (schema.getName().equals(mapping.getIntAttrName())
-                    && mapping.getIntMappingType()
-                    == IntMappingType.UserSchema) {
+            if (mapping.getSourceAttrName().equals(schema.getName())
+                    && mapping.getSourceMappingType()
+                    == SourceMappingType.UserSchema) {
 
                 mappings.add(mapping);
             }
         }
         assertFalse(mappings.isEmpty());
 
-        // delete user schema fullname
+        // delete user schema username
         schemaDAO.delete("surname", AttributableUtil.USER);
 
         schemaDAO.flush();

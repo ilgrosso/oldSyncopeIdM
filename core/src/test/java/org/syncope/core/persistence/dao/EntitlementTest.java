@@ -23,7 +23,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 import org.syncope.core.persistence.beans.Entitlement;
 import org.syncope.core.persistence.beans.role.SyncopeRole;
-import org.syncope.core.AbstractTest;
+import org.syncope.core.persistence.AbstractTest;
 
 @Transactional
 public class EntitlementTest extends AbstractTest {
@@ -34,9 +34,9 @@ public class EntitlementTest extends AbstractTest {
     @Test
     public final void findAll() {
         List<Entitlement> list = entitlementDAO.findAll();
-        // 59 real entitlements + 9 role entitlements
+        // 41 real entitlements + 8 role entitlements
         assertEquals("did not get expected number of entitlements ",
-                68, list.size());
+                50, list.size());
     }
 
     @Test

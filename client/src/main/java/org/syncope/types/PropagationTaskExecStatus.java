@@ -35,4 +35,8 @@ public enum PropagationTaskExecStatus {
     public boolean isSuccessful() {
         return this == SUCCESS || this == SUBMITTED;
     }
+
+    public boolean isFinal() {
+        return this == SUCCESS || this == FAILURE;
+    }
 }

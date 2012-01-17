@@ -30,7 +30,7 @@ import org.syncope.core.persistence.beans.AbstractAttributable;
 import org.syncope.core.persistence.beans.AbstractAttr;
 import org.syncope.core.persistence.beans.AbstractDerAttr;
 import org.syncope.core.persistence.beans.AbstractVirAttr;
-import org.syncope.core.persistence.beans.ExternalResource;
+import org.syncope.core.persistence.beans.TargetResource;
 import org.syncope.core.persistence.beans.role.SyncopeRole;
 import org.syncope.core.persistence.beans.user.SyncopeUser;
 
@@ -71,16 +71,12 @@ public class Membership extends AbstractAttributable {
         attributes = new ArrayList<MAttr>();
         derivedAttributes = new ArrayList<MDerAttr>();
         virtualAttributes = new ArrayList<MVirAttr>();
+        targetResources = Collections.EMPTY_SET;
     }
 
     @Override
     public Long getId() {
         return id;
-    }
-
-    @Override
-    protected Set<ExternalResource> resources() {
-        return Collections.EMPTY_SET;
     }
 
     public SyncopeRole getSyncopeRole() {
@@ -175,27 +171,22 @@ public class Membership extends AbstractAttributable {
     }
 
     @Override
-    public boolean addResource(final ExternalResource resource) {
+    public boolean addTargetResource(TargetResource resource) {
         return false;
     }
 
     @Override
-    public boolean removeResource(final ExternalResource resource) {
+    public boolean removeTargetResource(TargetResource resource) {
         return false;
     }
 
     @Override
-    public Set<ExternalResource> getResources() {
+    public Set<TargetResource> getTargetResources() {
         return Collections.EMPTY_SET;
     }
 
     @Override
-    public Set<String> getResourceNames() {
-        return Collections.EMPTY_SET;
-    }
-
-    @Override
-    public void setResources(final Set<ExternalResource> resources) {
+    public void setResources(Set<TargetResource> resources) {
     }
 
     @Override

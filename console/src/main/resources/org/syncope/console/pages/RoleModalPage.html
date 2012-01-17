@@ -26,9 +26,6 @@
         #tabs-5 table{
             font-size: 1.1em;
         }
-        #tabs-6 table{
-            font-size: 1.1em;
-        }
     </style>
 </wicket:head>
 
@@ -45,11 +42,57 @@
                     <li><a href="#tabs-3"><span><wicket:message key="tab3"/></span></a></li>
                     <li><a href="#tabs-4"><span><wicket:message key="tab4"/></span></a></li>
                     <li><a href="#tabs-5"><span><wicket:message key="tab5"/></span></a></li>
-                    <li><a href="#tabs-6"><span><wicket:message key="tab6"/></span></a></li>
                 </ul>
-                <div wicket:id="attributesPanel"></div>
+                <div id="tabs-1">
+                    <wicket:message key="name"/>
+
+                    <input type="text" class="text ui-widget-content ui-corner-all"
+                           style="margin-bottom:10px;width:95%;padding:.4em;"
+                           wicket:id="name"/><span>*</span>
+
+                    <span wicket:id="attributes">[role attributes]</span>
+
+                    <div>
+                        &nbsp;
+                    </div>
+
+                    <label for="inheritAttributes"><wicket:message key="inheritAttributes"/></label>
+                    <input type="checkbox" class="checkbox"  wicket:id="inheritAttributes"/>
+                </div>
+
+                <div id="tabs-2">
+                    <span wicket:id="derivedAttributes">[role derived attributes]</span>
+
+                    <div>
+                        &nbsp;
+                    </div>
+
+                    <label for="inheritDerivedAttributes"><wicket:message key="inheritDerivedAttributes"/></label>
+                    <input type="checkbox" class="checkbox"  wicket:id="inheritDerivedAttributes"/>
+                </div>
+
+                <div id="tabs-3">
+                    <span wicket:id="virtualAttributes">[role virtual attributes]</span>
+
+                    <div>
+                        &nbsp;
+                    </div>
+
+                    <label for="inheritVirtualAttributes"><wicket:message key="inheritVirtualAttributes"/></label>
+                    <input type="checkbox" class="checkbox"  wicket:id="inheritVirtualAttributes"/>
+                </div>
+
+                <div id="tabs-4">
+                    <span wicket:id="resources">[resources]</span>
+                </div>
+                <div id="tabs-5">
+                    <span wicket:id="entitlementsPalette"/>
+                </div>
             </div>
-            <div style="bottom:0;margin:10px">
+            <div>
+                &nbsp;
+            </div>
+            <div style="bottom:0">
                 <input type="submit"
                        class="ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only"
                        wicket:id="submit"/>

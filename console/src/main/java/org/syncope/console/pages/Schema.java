@@ -14,34 +14,34 @@
  */
 package org.syncope.console.pages;
 
-import org.syncope.console.commons.SchemaModalPageFactory;
+import org.syncope.console.SchemaModalPageFactory;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import org.apache.wicket.Page;
+import org.apache.wicket.PageParameters;
 import org.apache.wicket.ajax.AjaxRequestTarget;
 import org.apache.wicket.ajax.form.AjaxFormComponentUpdatingBehavior;
 import org.apache.wicket.ajax.markup.html.AjaxLink;
-import org.apache.wicket.authroles.authorization.strategies.role.metadata.MetaDataRoleAuthorizationStrategy;
+import org.apache.wicket.authorization.strategies.role.metadata.MetaDataRoleAuthorizationStrategy;
 import org.apache.wicket.extensions.ajax.markup.html.IndicatingAjaxLink;
 import org.apache.wicket.extensions.ajax.markup.html.modal.ModalWindow;
 import org.apache.wicket.extensions.ajax.markup.html.repeater.data.table.AjaxFallbackDefaultDataTable;
 import org.apache.wicket.extensions.markup.html.repeater.data.grid.ICellPopulator;
-import org.apache.wicket.extensions.markup.html.repeater.data.sort.SortOrder;
 import org.apache.wicket.extensions.markup.html.repeater.data.table.AbstractColumn;
 import org.apache.wicket.extensions.markup.html.repeater.data.table.IColumn;
 import org.apache.wicket.extensions.markup.html.repeater.data.table.PropertyColumn;
 import org.apache.wicket.extensions.markup.html.repeater.util.SortableDataProvider;
 import org.apache.wicket.markup.html.WebMarkupContainer;
+import org.apache.wicket.markup.html.form.ChoiceRenderer;
 import org.apache.wicket.markup.html.form.DropDownChoice;
 import org.apache.wicket.markup.html.form.Form;
 import org.apache.wicket.markup.repeater.Item;
 import org.apache.wicket.model.CompoundPropertyModel;
 import org.apache.wicket.model.IModel;
+import org.apache.wicket.model.Model;
 import org.apache.wicket.model.PropertyModel;
-import org.apache.wicket.model.ResourceModel;
-import org.apache.wicket.request.mapper.parameter.PageParameters;
 import org.apache.wicket.spring.injection.annot.SpringBean;
 import org.syncope.client.AbstractBaseBean;
 import org.syncope.client.to.DerivedSchemaTO;
@@ -66,7 +66,6 @@ public class Schema extends BasePage {
         RoleSchema,
         UserSchema,
         MembershipSchema
-
     };
 
     private enum SchemaDerivedType {
@@ -74,7 +73,6 @@ public class Schema extends BasePage {
         RoleDerivedSchema,
         UserDerivedSchema,
         MembershipDerivedSchema
-
     };
 
     private enum SchemaVirtualType {
@@ -82,10 +80,9 @@ public class Schema extends BasePage {
         RoleVirtualSchema,
         UserVirtualSchema,
         MembershipVirtualSchema
-
     };
 
-    private static final int WIN_WIDTH = 550;
+    private static final int WIN_WIDTH = 400;
 
     private static final int WIN_HEIGHT = 200;
 
@@ -207,17 +204,17 @@ public class Schema extends BasePage {
         add(createRoleSchemaWin = new ModalWindow("createRoleSchemaWin"));
         add(editRoleSchemaWin = new ModalWindow("editRoleSchemaWin"));
 
-        add(createRoleDerivedSchemaWin =
-                new ModalWindow("createRoleDerivedSchemaWin"));
+        add(createRoleDerivedSchemaWin = new ModalWindow(
+                "createRoleDerivedSchemaWin"));
 
-        add(createRoleVirtualSchemaWin =
-                new ModalWindow("createRoleVirtualSchemaWin"));
+        add(createRoleVirtualSchemaWin = new ModalWindow(
+                "createRoleVirtualSchemaWin"));
 
-        add(editRoleDerivedSchemaWin =
-                new ModalWindow("editRoleDerivedSchemaWin"));
+        add(editRoleDerivedSchemaWin = new ModalWindow(
+                "editRoleDerivedSchemaWin"));
 
-        add(editRoleVirtualSchemaWin =
-                new ModalWindow("editRoleVirtualSchemaWin"));
+        add(editRoleVirtualSchemaWin = new ModalWindow(
+                "editRoleVirtualSchemaWin"));
 
         add(createUserSchemaWin = new ModalWindow("createUserSchemaWin"));
 
@@ -249,39 +246,39 @@ public class Schema extends BasePage {
                 "editMembershipVirSchemaWin"));
 
         rolePageRows = prefMan.getPaginatorRows(
-                getRequest(),
+                getWebRequestCycle().getWebRequest(),
                 Constants.PREF_ROLE_SCHEMA_PAGINATOR_ROWS);
 
         roleDerPageRows = prefMan.getPaginatorRows(
-                getRequest(),
+                getWebRequestCycle().getWebRequest(),
                 Constants.PREF_ROLE_DER_SCHEMA_PAGINATOR_ROWS);
 
         roleVirPageRows = prefMan.getPaginatorRows(
-                getRequest(),
+                getWebRequestCycle().getWebRequest(),
                 Constants.PREF_ROLE_VIR_SCHEMA_PAGINATOR_ROWS);
 
         userSchemaPageRows = prefMan.getPaginatorRows(
-                getRequest(),
+                getWebRequestCycle().getWebRequest(),
                 Constants.PREF_USER_SCHEMA_PAGINATOR_ROWS);
 
         userDerSchemaPageRows = prefMan.getPaginatorRows(
-                getRequest(),
+                getWebRequestCycle().getWebRequest(),
                 Constants.PREF_USER_DER_SCHEMA_PAGINATOR_ROWS);
 
         userVirSchemaPageRows = prefMan.getPaginatorRows(
-                getRequest(),
+                getWebRequestCycle().getWebRequest(),
                 Constants.PREF_USER_VIR_SCHEMA_PAGINATOR_ROWS);
 
         membershipPageRows = prefMan.getPaginatorRows(
-                getRequest(),
+                getWebRequestCycle().getWebRequest(),
                 Constants.PREF_MEMBERSHIP_SCHEMA_PAGINATOR_ROWS);
 
         membershipDerPageRows = prefMan.getPaginatorRows(
-                getRequest(),
+                getWebRequestCycle().getWebRequest(),
                 Constants.PREF_MEMBERSHIP_DER_SCHEMA_PAGINATOR_ROWS);
 
         membershipVirPageRows = prefMan.getPaginatorRows(
-                getRequest(),
+                getWebRequestCycle().getWebRequest(),
                 Constants.PREF_MEMBERSHIP_VIR_SCHEMA_PAGINATOR_ROWS);
 
         final String allowedCreateRoles = xmlRolesReader.getAllAllowedRoles(
@@ -528,90 +525,108 @@ public class Schema extends BasePage {
 
         createUserSchemaWin.setCssClassName(ModalWindow.CSS_CLASS_GRAY);
         createUserSchemaWin.setInitialWidth(WIN_WIDTH);
+        createUserSchemaWin.setPageMapName("modal-1");
         createUserSchemaWin.setCookieName("modal-1");
         createUserSchemaWin.setMarkupId("createUserSchemaWin");
 
         editUserSchemaWin.setCssClassName(ModalWindow.CSS_CLASS_GRAY);
         editUserSchemaWin.setInitialWidth(WIN_WIDTH);
+        editUserSchemaWin.setPageMapName("modal-2");
         editUserSchemaWin.setCookieName("modal-2");
         editUserSchemaWin.setMarkupId("editUserSchemaWin");
 
         createUserDerivedSchemaWin.setCssClassName(ModalWindow.CSS_CLASS_GRAY);
         createUserDerivedSchemaWin.setInitialWidth(WIN_WIDTH);
         createUserDerivedSchemaWin.setInitialHeight(WIN_HEIGHT);
+        createUserDerivedSchemaWin.setPageMapName("modal-3");
         createUserDerivedSchemaWin.setCookieName("modal-3");
 
         editUserDerivedSchemaWin.setCssClassName(ModalWindow.CSS_CLASS_GRAY);
         editUserDerivedSchemaWin.setInitialWidth(WIN_WIDTH);
         editUserDerivedSchemaWin.setInitialHeight(WIN_HEIGHT);
+        editUserDerivedSchemaWin.setPageMapName("modal-4");
         editUserDerivedSchemaWin.setCookieName("modal-4");
 
         createUserVirtualSchemaWin.setCssClassName(ModalWindow.CSS_CLASS_GRAY);
         createUserVirtualSchemaWin.setInitialWidth(WIN_WIDTH);
         createUserVirtualSchemaWin.setInitialHeight(WIN_HEIGHT);
+        createUserVirtualSchemaWin.setPageMapName("modal-5");
         createUserVirtualSchemaWin.setCookieName("modal-5");
 
         editUserVirtualSchemaWin.setCssClassName(ModalWindow.CSS_CLASS_GRAY);
         editUserVirtualSchemaWin.setInitialWidth(WIN_WIDTH);
         editUserVirtualSchemaWin.setInitialHeight(WIN_HEIGHT);
+        editUserVirtualSchemaWin.setPageMapName("modal-6");
         editUserVirtualSchemaWin.setCookieName("modal-7");
 
         createRoleSchemaWin.setCssClassName(ModalWindow.CSS_CLASS_GRAY);
         createRoleSchemaWin.setInitialWidth(WIN_WIDTH);
+        createRoleSchemaWin.setPageMapName("modal-7");
         createRoleSchemaWin.setCookieName("modal-7");
 
         editRoleSchemaWin.setCssClassName(ModalWindow.CSS_CLASS_GRAY);
         editRoleSchemaWin.setInitialWidth(WIN_WIDTH);
+        editRoleSchemaWin.setPageMapName("modal-8");
         editRoleSchemaWin.setCookieName("modal-8");
 
         createRoleDerivedSchemaWin.setCssClassName(ModalWindow.CSS_CLASS_GRAY);
         createRoleDerivedSchemaWin.setInitialWidth(WIN_WIDTH);
         createRoleDerivedSchemaWin.setInitialHeight(WIN_HEIGHT);
+        createRoleDerivedSchemaWin.setPageMapName("modal-9");
         createRoleDerivedSchemaWin.setCookieName("modal-9");
 
         editRoleDerivedSchemaWin.setCssClassName(ModalWindow.CSS_CLASS_GRAY);
         editRoleDerivedSchemaWin.setInitialWidth(WIN_WIDTH);
         editRoleDerivedSchemaWin.setInitialHeight(WIN_HEIGHT);
+        editRoleDerivedSchemaWin.setPageMapName("modal-10");
         editRoleDerivedSchemaWin.setCookieName("modal-10");
 
         createRoleVirtualSchemaWin.setCssClassName(ModalWindow.CSS_CLASS_GRAY);
         createRoleVirtualSchemaWin.setInitialWidth(WIN_WIDTH);
         createRoleVirtualSchemaWin.setInitialHeight(WIN_HEIGHT);
+        createRoleVirtualSchemaWin.setPageMapName("modal-11");
         createRoleVirtualSchemaWin.setCookieName("modal-11");
 
         editRoleVirtualSchemaWin.setCssClassName(ModalWindow.CSS_CLASS_GRAY);
         editRoleVirtualSchemaWin.setInitialWidth(WIN_WIDTH);
         editRoleVirtualSchemaWin.setInitialHeight(WIN_HEIGHT);
+        editRoleVirtualSchemaWin.setPageMapName("modal-12");
         editRoleVirtualSchemaWin.setCookieName("modal-12");
 
         createMembershipSchemaWin.setCssClassName(ModalWindow.CSS_CLASS_GRAY);
         createMembershipSchemaWin.setInitialWidth(WIN_WIDTH);
+        createMembershipSchemaWin.setPageMapName("modal-13");
         createMembershipSchemaWin.setCookieName("modal-13");
 
         editMembershipSchemaWin.setCssClassName(ModalWindow.CSS_CLASS_GRAY);
         editMembershipSchemaWin.setInitialWidth(WIN_WIDTH);
+        editMembershipSchemaWin.setPageMapName("modal-14");
         editMembershipSchemaWin.setCookieName("modal-14");
 
         createMembershipDerivedSchemaWin.setCssClassName(
                 ModalWindow.CSS_CLASS_GRAY);
         createMembershipDerivedSchemaWin.setInitialWidth(WIN_WIDTH);
         createMembershipDerivedSchemaWin.setInitialHeight(WIN_HEIGHT);
+        createMembershipDerivedSchemaWin.setPageMapName("modal-15");
         createMembershipDerivedSchemaWin.setCookieName("modal-15");
 
         editMembershipSchemaWin.setCssClassName(ModalWindow.CSS_CLASS_GRAY);
         editMembershipSchemaWin.setInitialWidth(WIN_WIDTH);
+        editMembershipSchemaWin.setPageMapName("modal-16");
         editMembershipSchemaWin.setCookieName("modal-16");
 
         createMembershipVirtualSchemaWin.setCssClassName(
                 ModalWindow.CSS_CLASS_GRAY);
         createMembershipVirtualSchemaWin.setInitialWidth(WIN_WIDTH);
         createMembershipVirtualSchemaWin.setInitialHeight(WIN_HEIGHT);
+        createMembershipVirtualSchemaWin.setPageMapName("modal-17");
         createMembershipVirtualSchemaWin.setCookieName("modal-17");
 
         editMembershipVirtualSchemaWin.setCssClassName(
                 ModalWindow.CSS_CLASS_GRAY);
         editMembershipVirtualSchemaWin.setInitialWidth(WIN_WIDTH);
         editMembershipVirtualSchemaWin.setInitialHeight(WIN_HEIGHT);
+        editMembershipVirtualSchemaWin.setPageMapName("modal-18");
         editMembershipVirtualSchemaWin.setCookieName("modal-18");
 
         setWindowClosedCallback(createUserSchemaWin, userSchemasContainer);
@@ -737,9 +752,34 @@ public class Schema extends BasePage {
                 allowedCreateRoles));
     }
 
-    private class SchemaProvider extends SortableDataProvider<SchemaTO> {
+    /**
+     * Set a WindowClosedCallback for a ModalWindow instance.
+     * @param window
+     * @param container
+     */
+    public void setWindowClosedCallback(final ModalWindow window,
+            final WebMarkupContainer container) {
 
-        private static final long serialVersionUID = 712816496206559637L;
+        window.setWindowClosedCallback(
+                new ModalWindow.WindowClosedCallback() {
+
+                    @Override
+                    public void onClose(final AjaxRequestTarget target) {
+                        target.addComponent(container);
+                        if (operationResult) {
+                            info(getString("operation_succeded"));
+                            target.addComponent(feedbackPanel);
+                            operationResult = false;
+                        }
+                    }
+                });
+    }
+
+    public void setOperationResult(boolean operationResult) {
+        this.operationResult = operationResult;
+    }
+
+    private class SchemaProvider extends SortableDataProvider<SchemaTO> {
 
         private final SortableDataProviderComparator<SchemaTO> comparator;
 
@@ -750,7 +790,7 @@ public class Schema extends BasePage {
             this.schemaType = schemaType;
 
             //Default sorting
-            setSort("name", SortOrder.ASCENDING);
+            setSort("name", true);
 
             comparator = new SortableDataProviderComparator<SchemaTO>(this);
         }
@@ -800,8 +840,6 @@ public class Schema extends BasePage {
     private class DerivedSchemaProvider
             extends SortableDataProvider<DerivedSchemaTO> {
 
-        private static final long serialVersionUID = -8518694430295937917L;
-
         private SortableDataProviderComparator<DerivedSchemaTO> comparator;
 
         private SchemaDerivedType schema;
@@ -811,7 +849,7 @@ public class Schema extends BasePage {
             this.schema = schema;
 
             //Default sorting
-            setSort("name", SortOrder.ASCENDING);
+            setSort("name", true);
             comparator =
                     new SortableDataProviderComparator<DerivedSchemaTO>(this);
         }
@@ -854,8 +892,6 @@ public class Schema extends BasePage {
     private class VirtualSchemaProvider
             extends SortableDataProvider<VirtualSchemaTO> {
 
-        private static final long serialVersionUID = -5431560608852987760L;
-
         private SortableDataProviderComparator<VirtualSchemaTO> comparator;
 
         private SchemaVirtualType schema;
@@ -865,7 +901,7 @@ public class Schema extends BasePage {
             this.schema = schema;
 
             //Default sorting
-            setSort("name", SortOrder.ASCENDING);
+            setSort("name", true);
             comparator =
                     new SortableDataProviderComparator<VirtualSchemaTO>(this);
         }
@@ -918,15 +954,13 @@ public class Schema extends BasePage {
 
         for (String field : fields) {
             columns.add(
-                    new PropertyColumn(new ResourceModel(field),
+                    new PropertyColumn(new Model(getString(field)),
                     field,
                     field));
         }
 
         columns.add(new AbstractColumn<AbstractBaseBean>(
-                new ResourceModel("edit")) {
-
-            private static final long serialVersionUID = 2054811145491901166L;
+                new Model<String>(getString("edit"))) {
 
             @Override
             public void populateItem(
@@ -938,27 +972,19 @@ public class Schema extends BasePage {
 
                 AjaxLink editLink = new IndicatingAjaxLink("editLink") {
 
-                    private static final long serialVersionUID =
-                            -7978723352517770644L;
-
                     @Override
                     public void onClick(final AjaxRequestTarget target) {
 
                         modalWindow.setPageCreator(
                                 new ModalWindow.PageCreator() {
 
-                                    private static final long serialVersionUID =
-                                            -7834632442532690940L;
-
                                     @Override
                                     public Page createPage() {
                                         AbstractSchemaModalPage page =
-                                                SchemaModalPageFactory.
-                                                getSchemaModalPage(entity,
-                                                schemaType);
+                                                SchemaModalPageFactory.getSchemaModalPage(entity, schemaType);
 
                                         page.setSchemaModalPage(
-                                                Schema.this.getPageReference(),
+                                                Schema.this,
                                                 modalWindow,
                                                 schemaTO,
                                                 false);
@@ -983,9 +1009,7 @@ public class Schema extends BasePage {
         });
 
         columns.add(new AbstractColumn<AbstractBaseBean>(
-                new ResourceModel("delete")) {
-
-            private static final long serialVersionUID = 2054811145491901166L;
+                new Model<String>(getString("delete"))) {
 
             @Override
             public void populateItem(
@@ -997,9 +1021,6 @@ public class Schema extends BasePage {
 
                 AjaxLink deleteLink = new IndicatingDeleteOnConfirmAjaxLink(
                         "deleteLink") {
-
-                    private static final long serialVersionUID =
-                            -7978723352517770644L;
 
                     @Override
                     public void onClick(final AjaxRequestTarget target) {
@@ -1023,9 +1044,9 @@ public class Schema extends BasePage {
                         }
 
                         info(getString("operation_succeded"));
-                        target.add(feedbackPanel);
+                        target.addComponent(feedbackPanel);
 
-                        target.add(webContainer);
+                        target.addComponent(webContainer);
                     }
                 };
 
@@ -1058,22 +1079,21 @@ public class Schema extends BasePage {
                 prefMan.getPaginatorChoices(),
                 new SelectChoiceRenderer());
 
-        rowChooser.add(new AjaxFormComponentUpdatingBehavior("onchange") {
+        rowChooser.add(
+                new AjaxFormComponentUpdatingBehavior("onchange") {
 
-            private static final long serialVersionUID = -1107858522700306810L;
+                    @Override
+                    protected void onUpdate(final AjaxRequestTarget target) {
+                        prefMan.set(getWebRequestCycle().getWebRequest(),
+                                getWebRequestCycle().getWebResponse(),
+                                rowsPerPagePrefName,
+                                String.valueOf(rowChooser.getInput()));
+                        dataTable.setRowsPerPage(
+                                Integer.parseInt(rowChooser.getInput()));
 
-            @Override
-            protected void onUpdate(final AjaxRequestTarget target) {
-                prefMan.set(getRequest(),
-                        getResponse(),
-                        rowsPerPagePrefName,
-                        String.valueOf(rowChooser.getInput()));
-                dataTable.setItemsPerPage(
-                        Integer.parseInt(rowChooser.getInput()));
-
-                target.add(webContainer);
-            }
-        });
+                        target.addComponent(webContainer);
+                    }
+                });
 
         usersPaginatorForm.add(rowChooser);
 
@@ -1090,31 +1110,25 @@ public class Schema extends BasePage {
 
         AjaxLink createSchemaWinLink = new IndicatingAjaxLink(winLinkName) {
 
-            private static final long serialVersionUID = -7978723352517770644L;
-
             @Override
             public void onClick(final AjaxRequestTarget target) {
 
-                createSchemaWin.setPageCreator(new ModalWindow.PageCreator() {
+                createSchemaWin.setPageCreator(
+                        new ModalWindow.PageCreator() {
 
-                    private static final long serialVersionUID =
-                            -7834632442532690940L;
+                            public Page createPage() {
+                                AbstractSchemaModalPage page =
+                                        SchemaModalPageFactory.getSchemaModalPage(entity, schemaType);
 
-                    @Override
-                    public Page createPage() {
-                        AbstractSchemaModalPage page =
-                                SchemaModalPageFactory.getSchemaModalPage(
-                                entity, schemaType);
+                                page.setSchemaModalPage(
+                                        Schema.this,
+                                        new ModalWindow(winName),
+                                        null,
+                                        true);
 
-                        page.setSchemaModalPage(
-                                Schema.this.getPageReference(),
-                                new ModalWindow(winName),
-                                null,
-                                true);
-
-                        return page;
-                    }
-                });
+                                return page;
+                            }
+                        });
 
                 createSchemaWin.show(target);
             }

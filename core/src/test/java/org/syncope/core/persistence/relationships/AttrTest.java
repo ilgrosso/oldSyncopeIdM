@@ -23,19 +23,13 @@ import org.syncope.core.persistence.beans.user.UAttr;
 import org.syncope.core.persistence.beans.user.UAttrValue;
 import org.syncope.core.persistence.dao.AttrDAO;
 import org.syncope.core.persistence.dao.AttrValueDAO;
-import org.syncope.core.AbstractTest;
+import org.syncope.core.persistence.AbstractTest;
 import org.syncope.core.persistence.beans.AbstractSchema;
 import org.syncope.core.persistence.beans.membership.MAttr;
 import org.syncope.core.persistence.beans.membership.MSchema;
 import org.syncope.core.persistence.beans.membership.Membership;
-import org.syncope.core.persistence.beans.user.SyncopeUser;
-import org.syncope.core.persistence.beans.user.UDerAttr;
-import org.syncope.core.persistence.beans.user.UDerSchema;
-import org.syncope.core.persistence.dao.DerAttrDAO;
-import org.syncope.core.persistence.dao.DerSchemaDAO;
 import org.syncope.core.persistence.dao.MembershipDAO;
 import org.syncope.core.persistence.dao.SchemaDAO;
-import org.syncope.core.persistence.dao.UserDAO;
 import org.syncope.core.util.AttributableUtil;
 import org.syncope.types.SchemaType;
 
@@ -43,50 +37,41 @@ import org.syncope.types.SchemaType;
 public class AttrTest extends AbstractTest {
 
     @Autowired
-    private AttrDAO attrDAO;
+    private AttrDAO attributeDAO;
 
     @Autowired
-    private DerAttrDAO derAttrDAO;
-
-    @Autowired
-    private AttrValueDAO attrValueDAO;
+    private AttrValueDAO attributeValueDAO;
 
     @Autowired
     private SchemaDAO schemaDAO;
 
     @Autowired
-    private DerSchemaDAO derSchemaDAO;
-
-    @Autowired
     private MembershipDAO membershipDAO;
-
-    @Autowired
-    private UserDAO userDAO;
 
     @Test
     public final void deleteAttribute() {
-        attrDAO.delete(550L, UAttr.class);
+        attributeDAO.delete(550L, UAttr.class);
 
-        attrDAO.flush();
+        attributeDAO.flush();
 
-        assertNull(attrDAO.find(550L, UAttr.class));
-        assertNull(attrValueDAO.find(22L, UAttrValue.class));
+        assertNull(attributeDAO.find(550L, UAttr.class));
+        assertNull(attributeValueDAO.find(22L, UAttrValue.class));
     }
 
     @Test
     public final void deleteAttributeValue() {
         UAttrValue value =
-                attrValueDAO.find(20L, UAttrValue.class);
+                attributeValueDAO.find(20L, UAttrValue.class);
         int attributeValueNumber =
                 value.getAttribute().getValues().size();
 
-        attrValueDAO.delete(20L, UAttrValue.class);
+        attributeValueDAO.delete(20L, UAttrValue.class);
 
-        attrValueDAO.flush();
+        attributeValueDAO.flush();
 
-        assertNull(attrValueDAO.find(20L, UAttrValue.class));
+        assertNull(attributeValueDAO.find(20L, UAttrValue.class));
 
-        UAttr attribute = attrDAO.find(200L, UAttr.class);
+        UAttr attribute = attributeDAO.find(200L, UAttr.class);
         assertEquals(attribute.getValues().size(),
                 attributeValueNumber - 1);
     }
@@ -111,7 +96,7 @@ public class AttrTest extends AbstractTest {
         attribute.addValue("yellow", AttributableUtil.MEMBERSHIP);
         membership.addAttribute(attribute);
 
-        MAttr actualAttribute = attrDAO.save(attribute);
+        MAttr actualAttribute = attributeDAO.save(attribute);
         assertNotNull(actualAttribute);
 
         membership = membershipDAO.find(1L);
@@ -122,37 +107,5 @@ public class AttrTest extends AbstractTest {
         assertEquals(
                 membership.getAttribute(schema.getName()).getValues().size(),
                 1);
-    }
-
-    public void derAttrFromSpecialAttrs() {
-        UDerSchema sderived = new UDerSchema();
-        sderived.setName("sderived");
-        sderived.setExpression("username - creationDate[failedLogins]");
-
-        derSchemaDAO.save(sderived);
-        derSchemaDAO.flush();
-
-        UDerSchema actual = derSchemaDAO.find("sderived", UDerSchema.class);
-        assertNotNull("expected save to work", actual);
-        assertEquals(sderived, actual);
-
-        SyncopeUser owner = userDAO.find(3L);
-        assertNotNull("did not get expected user", owner);
-
-        UDerAttr derAttr = new UDerAttr();
-        derAttr.setOwner(owner);
-        derAttr.setDerivedSchema(sderived);
-
-        derAttr = derAttrDAO.save(derAttr);
-        derAttrDAO.flush();
-
-        derAttr = derAttrDAO.find(derAttr.getId(), UDerAttr.class);
-        assertNotNull("expected save to work", derAttr);
-
-        String value = derAttr.getValue(owner.getAttributes());
-        assertNotNull(value);
-        assertFalse(value.isEmpty());
-        assertTrue(value.startsWith("user3 - 2010-10-20T11:00:00"));
-        assertTrue(value.endsWith("[]"));
     }
 }

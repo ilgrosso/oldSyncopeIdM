@@ -14,15 +14,12 @@
  */
 package org.syncope.core.persistence.beans.user;
 
-import javax.persistence.Cacheable;
 import javax.persistence.Entity;
+import org.hibernate.annotations.Cache;
+import org.hibernate.annotations.CacheConcurrencyStrategy;
 import org.syncope.core.persistence.beans.AbstractVirSchema;
-import org.syncope.core.persistence.validation.entity.USchemaCheck;
 
 @Entity
-@Cacheable
-@USchemaCheck
+@Cache(usage = CacheConcurrencyStrategy.TRANSACTIONAL)
 public class UVirSchema extends AbstractVirSchema {
-
-    private static final long serialVersionUID = 1089308700791426201L;
 }
