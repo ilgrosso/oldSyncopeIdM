@@ -19,6 +19,7 @@ import static org.junit.Assert.*;
 import java.util.Arrays;
 import java.util.List;
 import org.junit.Test;
+import org.springframework.test.annotation.ExpectedException;
 import org.syncope.client.to.AccountPolicyTO;
 import org.syncope.client.to.PasswordPolicyTO;
 import org.syncope.client.to.PolicyTO;
@@ -27,7 +28,6 @@ import org.syncope.client.validation.SyncopeClientCompositeErrorException;
 import org.syncope.types.PasswordPolicySpec;
 import org.syncope.types.PolicyType;
 import org.syncope.types.SyncPolicySpec;
-import org.syncope.types.SyncopeClientExceptionType;
 
 public class PolicyTestITCase extends AbstractTest {
 
@@ -71,40 +71,28 @@ public class PolicyTestITCase extends AbstractTest {
     }
 
     @Test
+    @ExpectedException(value = SyncopeClientCompositeErrorException.class)
     public final void createWithException() {
+
         PasswordPolicyTO policy = new PasswordPolicyTO(true);
         policy.setSpecification(new PasswordPolicySpec());
         policy.setDescription("global password policy");
 
-        Throwable t = null;
-        try {
-            restTemplate.postForObject(
-                    BASE_URL + "policy/password/create",
-                    policy, PasswordPolicyTO.class);
-            fail();
-        } catch (SyncopeClientCompositeErrorException sccee) {
-            t = sccee.getException(
-                    SyncopeClientExceptionType.InvalidPasswordPolicy);
-        }
-        assertNotNull(t);
+        restTemplate.postForObject(
+                BASE_URL + "policy/password/create",
+                policy, PasswordPolicyTO.class);
     }
 
     @Test
+    @ExpectedException(value = SyncopeClientCompositeErrorException.class)
     public final void createMissingDescription() {
+
         SyncPolicyTO policy = new SyncPolicyTO();
         policy.setSpecification(new SyncPolicySpec());
 
-        Throwable t = null;
-        try {
-            restTemplate.postForObject(
-                    BASE_URL + "policy/sync/create",
-                    policy, PasswordPolicyTO.class);
-            fail();
-        } catch (SyncopeClientCompositeErrorException sccee) {
-            t = sccee.getException(
-                    SyncopeClientExceptionType.InvalidSyncPolicy);
-        }
-        assertNotNull(t);
+        restTemplate.postForObject(
+                BASE_URL + "policy/sync/create",
+                policy, PasswordPolicyTO.class);
     }
 
     @Test

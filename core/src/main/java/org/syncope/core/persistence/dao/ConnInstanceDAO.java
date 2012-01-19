@@ -16,6 +16,7 @@ package org.syncope.core.persistence.dao;
 
 import java.util.List;
 import org.syncope.core.persistence.beans.ConnInstance;
+import org.syncope.core.persistence.beans.ExternalResource;
 import org.syncope.core.persistence.validation.entity.InvalidEntityException;
 
 public interface ConnInstanceDAO extends DAO {
@@ -23,6 +24,8 @@ public interface ConnInstanceDAO extends DAO {
     ConnInstance find(Long id);
 
     List<ConnInstance> findAll();
+
+    List<ExternalResource> findExternalResources(ConnInstance connector);
 
     ConnInstance save(ConnInstance connector)
             throws InvalidEntityException;

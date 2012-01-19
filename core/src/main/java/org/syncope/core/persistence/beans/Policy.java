@@ -14,12 +14,14 @@
  */
 package org.syncope.core.persistence.beans;
 
+import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
 import javax.persistence.Id;
 import javax.persistence.Lob;
-import javax.validation.constraints.NotNull;
+
+import org.hibernate.annotations.Type;
 import org.syncope.core.persistence.validation.entity.PolicyCheck;
 import org.syncope.core.util.XMLSerializer;
 import org.syncope.types.AbstractPolicySpec;
@@ -34,18 +36,23 @@ public abstract class Policy extends AbstractBaseBean {
     @Id
     private Long id;
 
-    @NotNull
+    @Column(nullable = false)
     private String description;
 
-    @NotNull
+    @Column(nullable = false)
     @Enumerated(EnumType.STRING)
     protected PolicyType type;
 
     @Lob
+    @Type(type = "org.hibernate.type.StringClobType")
     private String specification;
 
     public Long getId() {
         return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
     }
 
     public String getDescription() {

@@ -64,7 +64,8 @@ public class PolicyTest extends AbstractTest {
         assertEquals(PolicyType.GLOBAL_PASSWORD, policy.getType());
 
         assertEquals("invalid policy values",
-                8, ((PasswordPolicySpec) policy.getSpecification()).getMinLength());
+                8,
+                ((PasswordPolicySpec) policy.getSpecification()).getMinLength());
     }
 
     @Test

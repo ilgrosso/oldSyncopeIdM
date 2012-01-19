@@ -24,11 +24,10 @@ import java.util.Set;
 import javax.persistence.Basic;
 import javax.persistence.Cacheable;
 import javax.persistence.CascadeType;
+import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
 import javax.persistence.Id;
-import javax.persistence.JoinColumn;
-import javax.persistence.JoinTable;
 import javax.persistence.ManyToMany;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
@@ -37,7 +36,6 @@ import javax.persistence.UniqueConstraint;
 import javax.validation.Valid;
 import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
-import javax.validation.constraints.NotNull;
 import org.syncope.core.persistence.beans.AbstractAttributable;
 import org.syncope.core.persistence.beans.AbstractAttr;
 import org.syncope.core.persistence.beans.AbstractDerAttr;
@@ -47,7 +45,6 @@ import org.syncope.core.persistence.beans.AbstractVirAttr;
 import org.syncope.core.persistence.beans.AbstractVirSchema;
 import org.syncope.core.persistence.beans.AccountPolicy;
 import org.syncope.core.persistence.beans.Entitlement;
-import org.syncope.core.persistence.beans.ExternalResource;
 import org.syncope.core.persistence.beans.PasswordPolicy;
 
 @Entity
@@ -64,7 +61,7 @@ public class SyncopeRole extends AbstractAttributable {
     @Id
     private Long id;
 
-    @NotNull
+    @Column(nullable = false)
     private String name;
 
     @ManyToOne(optional = true)
@@ -116,17 +113,6 @@ public class SyncopeRole extends AbstractAttributable {
     @ManyToOne(fetch = FetchType.EAGER, optional = true)
     private AccountPolicy accountPolicy;
 
-    /**
-     * Provisioning external resources.
-     */
-    @ManyToMany(fetch = FetchType.EAGER)
-    @JoinTable(joinColumns =
-    @JoinColumn(name = "role_id"),
-    inverseJoinColumns =
-    @JoinColumn(name = "resource_name"))
-    @Valid
-    private Set<ExternalResource> resources;
-
     public SyncopeRole() {
         super();
 
@@ -139,17 +125,11 @@ public class SyncopeRole extends AbstractAttributable {
         inheritVirtualAttributes = getBooleanAsInteger(false);
         inheritPasswordPolicy = getBooleanAsInteger(false);
         inheritAccountPolicy = getBooleanAsInteger(false);
-        resources = new HashSet<ExternalResource>();
     }
 
     @Override
     public Long getId() {
         return id;
-    }
-
-    @Override
-    protected Set<ExternalResource> resources() {
-        return resources;
     }
 
     public String getName() {
@@ -273,7 +253,7 @@ public class SyncopeRole extends AbstractAttributable {
         final Map<RSchema, RAttr> result = new HashMap<RSchema, RAttr>();
 
         if (isInheritAttributes() && getParent() != null) {
-            final Map<AbstractSchema, AbstractAttr> attrMap = getAttrMap();
+            final Map<AbstractSchema, AbstractAttr> attrMap = getAttributesMap();
 
             // Add attributes not specialized
             for (RAttr attr : (Collection<RAttr>) getParent().getAttributes()) {
@@ -314,7 +294,7 @@ public class SyncopeRole extends AbstractAttributable {
 
         if (isInheritDerivedAttributes() && getParent() != null) {
             final Map<AbstractDerSchema, AbstractDerAttr> attrMap =
-                    getDerAttrMap();
+                    getDerivedAttributesMap();
 
             // Add attributes not specialized
             for (RDerAttr attr :
@@ -357,7 +337,7 @@ public class SyncopeRole extends AbstractAttributable {
 
         if (isInheritVirtualAttributes() && getParent() != null) {
             final Map<AbstractVirSchema, AbstractVirAttr> attrMap =
-                    getVirAttrMap();
+                    getVirtualAttributesMap();
 
             // Add attributes not specialized
             for (RVirAttr attr :

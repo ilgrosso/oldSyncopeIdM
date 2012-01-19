@@ -24,13 +24,10 @@ import org.syncope.core.persistence.beans.AbstractDerSchema;
 @Entity
 public class MDerAttr extends AbstractDerAttr {
 
-    private static final long serialVersionUID = -443509121923448129L;
-
     @ManyToOne
     private Membership owner;
-
     @ManyToOne(fetch = FetchType.EAGER)
-    private MDerSchema derivedSchema;
+    MDerSchema derivedSchema;
 
     @Override
     public <T extends AbstractAttributable> T getOwner() {

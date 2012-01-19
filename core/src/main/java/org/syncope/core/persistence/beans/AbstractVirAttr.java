@@ -30,6 +30,7 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.syncope.core.init.ConnInstanceLoader;
 import org.syncope.core.propagation.ConnectorFacadeProxy;
 import org.syncope.core.util.ApplicationContextManager;
+import org.syncope.core.util.JexlUtil;
 import org.syncope.types.IntMappingType;
 
 @MappedSuperclass
@@ -59,6 +60,8 @@ public abstract class AbstractVirAttr extends AbstractBaseBean {
         LOG.debug("{}: retrieving external values for {}",
                 new Object[]{attributable, attributeName});
 
+        List<Object> virAttrValues;
+
         ConfigurableApplicationContext context =
                 ApplicationContextManager.getApplicationContext();
         ConnInstanceLoader connInstanceLoader =
@@ -66,11 +69,13 @@ public abstract class AbstractVirAttr extends AbstractBaseBean {
         if (connInstanceLoader == null) {
             LOG.error("Could not get to ConnInstanceLoader");
             return null;
+        } else {
+            virAttrValues = new ArrayList<Object>();
         }
 
-        List<Object> virAttrValues = new ArrayList<Object>();
+        JexlUtil jexlUtil = context.getBean(JexlUtil.class);
 
-        for (ExternalResource resource : attributable.getResources()) {
+        for (ExternalResource resource : attributable.getExternalResources()) {
             LOG.debug("Retrieving attribute mapped on {}", resource);
 
             Set<String> attributeNames = new HashSet<String>();

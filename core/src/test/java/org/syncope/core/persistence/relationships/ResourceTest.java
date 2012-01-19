@@ -17,6 +17,7 @@ package org.syncope.core.persistence.relationships;
 import static org.junit.Assert.*;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -38,6 +39,8 @@ import org.syncope.core.rest.data.ResourceDataBinder;
 import org.syncope.core.AbstractTest;
 import org.syncope.core.persistence.beans.PasswordPolicy;
 import org.syncope.core.persistence.beans.PropagationTask;
+import org.syncope.core.persistence.beans.user.UDerSchema;
+import org.syncope.core.persistence.dao.DerSchemaDAO;
 import org.syncope.core.persistence.dao.PolicyDAO;
 import org.syncope.core.persistence.dao.TaskDAO;
 import org.syncope.types.PropagationMode;
@@ -53,7 +56,10 @@ public class ResourceTest extends AbstractTest {
     private SchemaDAO schemaDAO;
 
     @Autowired
-    private ConnInstanceDAO connInstanceDAO;
+    private DerSchemaDAO derSchemaDAO;
+
+    @Autowired
+    private ConnInstanceDAO connectorInstanceDAO;
 
     @Autowired
     private UserDAO userDAO;
@@ -68,11 +74,11 @@ public class ResourceTest extends AbstractTest {
     private PolicyDAO policyDAO;
 
     public final void createWithPasswordPolicy() {
-        final String resourceName = "resourceWithPasswordPolicy";
+        final String RESOURCE_NAME = "resourceWithPasswordPolicy";
 
         PasswordPolicy policy = (PasswordPolicy) policyDAO.find(4L);
         ExternalResource resource = new ExternalResource();
-        resource.setName(resourceName);
+        resource.setName(RESOURCE_NAME);
         resource.setPasswordPolicy(policy);
 
         ExternalResource actual = resourceDAO.save(resource);
@@ -82,8 +88,8 @@ public class ResourceTest extends AbstractTest {
         assertNotNull(actual);
         assertNotNull(actual.getPasswordPolicy());
 
-        resourceDAO.delete(resourceName);
-        assertNull(resourceDAO.find(resourceName));
+        resourceDAO.delete(RESOURCE_NAME);
+        assertNull(resourceDAO.find(RESOURCE_NAME));
 
         assertNotNull(policyDAO.find(4L));
     }
@@ -126,11 +132,9 @@ public class ResourceTest extends AbstractTest {
 
         ExternalResource resource = resourceDataBinder.create(resourceTO);
         resource = resourceDAO.save(resource);
-
         resourceDAO.flush();
 
         ExternalResource actual = resourceDAO.find("resource-issue42");
-        assertNotNull(actual);
         assertEquals(resource, actual);
 
         userId = schemaDAO.find("userId", USchema.class);
@@ -150,22 +154,28 @@ public class ResourceTest extends AbstractTest {
     }
 
     @Test
-    public final void save() {
+    public final void save()
+            throws ClassNotFoundException {
         ExternalResource resource = new ExternalResource();
         resource.setName("ws-target-resource-save");
 
         // specify the connector
-        ConnInstance connector = connInstanceDAO.find(100L);
+        ConnInstance connector = connectorInstanceDAO.find(100L);
+
         assertNotNull("connector not found", connector);
 
         resource.setConnector(connector);
+        connector.addResource(resource);
 
-        // specify mappings
+        // search for the user schema
+        final USchema userSchema = schemaDAO.find("fullname", USchema.class);
+
         SchemaMapping mapping = null;
+
         for (int i = 0; i < 3; i++) {
             mapping = new SchemaMapping();
             mapping.setExtAttrName("test" + i);
-            mapping.setIntAttrName("nonexistent" + i);
+            mapping.setIntAttrName(userSchema.getName());
             mapping.setIntMappingType(IntMappingType.UserSchema);
             mapping.setMandatoryCondition("false");
 
@@ -175,74 +185,81 @@ public class ResourceTest extends AbstractTest {
         SchemaMapping accountId = new SchemaMapping();
         accountId.setAccountid(true);
         accountId.setExtAttrName("username");
-        accountId.setIntAttrName("username");
+        accountId.setIntAttrName(userSchema.getName());
         accountId.setIntMappingType(IntMappingType.SyncopeUserId);
 
         accountId.setResource(resource);
         resource.addMapping(accountId);
 
+        // search for the derived attribute schema
+        UDerSchema derivedSchema =
+                derSchemaDAO.find("cn", UDerSchema.class);
+
+        assertNotNull(derivedSchema);
+
         // map a derived attribute
         SchemaMapping derived = new SchemaMapping();
+        derived.setResource(resource);
         derived.setAccountid(false);
         derived.setExtAttrName("fullname");
-        derived.setIntAttrName("cn");
-        derived.setIntMappingType(IntMappingType.UserDerivedSchema);
+        derived.setIntAttrName(derivedSchema.getName());
+        derived.setIntMappingType(IntMappingType.UserSchema);
 
-        derived.setResource(resource);
         resource.addMapping(derived);
+
+        // specify an user schema
+        SyncopeUser user = userDAO.find(1L);
+
+        assertNotNull("user not found", user);
+
+        resource.addUser(user);
+        user.addExternalResource(resource);
 
         // save the resource
         ExternalResource actual = resourceDAO.save(resource);
+
         assertNotNull(actual);
-
-        resourceDAO.flush();
-        resourceDAO.detach(actual);
-        resourceDAO.detach(connector);
-
-        // assign the new resource to an user
-        SyncopeUser user = userDAO.find(1L);
-        assertNotNull("user not found", user);
-
-        actual.addUser(user);
-        user.addResource(actual);
 
         resourceDAO.flush();
 
         // retrieve resource
         resource = resourceDAO.find(actual.getName());
+
         assertNotNull(resource);
 
         // check connector
-        connector = connInstanceDAO.find(100L);
+        connector = connectorInstanceDAO.find(100L);
+
         assertNotNull(connector);
 
-        assertNotNull(connector.getResources());
+        List<ExternalResource> resources = connector.getResources();
+
+        assertNotNull(resources);
+
         assertTrue(connector.getResources().contains(resource));
 
         assertNotNull(resource.getConnector());
+
         assertTrue(resource.getConnector().equals(connector));
 
         // check mappings
         Set<SchemaMapping> schemaMappings = resource.getMappings();
+
         assertNotNull(schemaMappings);
         assertEquals(5, schemaMappings.size());
-
-        // check user
-        user = userDAO.find(1L);
-        assertNotNull(user);
-        assertNotNull(user.getResources());
-        assertTrue(user.getResources().contains(actual));
     }
 
     @Test
     public final void delete() {
         ExternalResource resource = resourceDAO.find("ws-target-resource-2");
+
         assertNotNull("find to delete did not work", resource);
 
         // -------------------------------------
         // Get originally associated connector
         // -------------------------------------
         ConnInstance connector = resource.getConnector();
+
         assertNotNull(connector);
 
         Long connectorId = connector.getId();
@@ -252,6 +269,7 @@ public class ResourceTest extends AbstractTest {
         // Get originally associated users
         // -------------------------------------
         Set<SyncopeUser> users = resource.getUsers();
+
         assertNotNull(users);
 
         Set<Long> userIds = new HashSet<Long>();
@@ -276,18 +294,23 @@ public class ResourceTest extends AbstractTest {
         assertNull("delete did not work", actual);
 
         // resource must be not referenced any more from users
+        SyncopeUser actualUser;
+        Collection<ExternalResource> resources;
         for (Long id : userIds) {
-            SyncopeUser actualUser = userDAO.find(id);
+            actualUser = userDAO.find(id);
             assertNotNull(actualUser);
-            for (ExternalResource res : actualUser.getResources()) {
+            resources = actualUser.getExternalResources();
+            for (ExternalResource res : resources) {
                 assertFalse(res.getName().equalsIgnoreCase(resource.getName()));
             }
         }
 
         // resource must be not referenced any more from the connector
-        ConnInstance actualConnector = connInstanceDAO.find(connectorId);
+        ConnInstance actualConnector =
+                connectorInstanceDAO.find(connectorId);
         assertNotNull(actualConnector);
-        for (ExternalResource res : actualConnector.getResources()) {
+        resources = actualConnector.getResources();
+        for (ExternalResource res : resources) {
             assertFalse(res.getName().equalsIgnoreCase(resource.getName()));
         }
 
@@ -315,8 +338,6 @@ public class ResourceTest extends AbstractTest {
         csv = resourceDAO.find("resource-csv");
         assertNotNull(csv);
         assertEquals(origMappings + 1, csv.getMappings().size());
-
-        resourceDAO.clear();
 
         int currentMappings = 0;
         List<SchemaMapping> allMappings = resourceDAO.findAllMappings();

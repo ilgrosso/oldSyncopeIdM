@@ -52,9 +52,4 @@ public abstract class AbstractDAOImpl implements DAO {
     public void flush() {
         entityManager.flush();
     }
-
-    @Override
-    public void clear() {
-        entityManager.clear();
-    }
 }

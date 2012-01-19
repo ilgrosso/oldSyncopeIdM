@@ -14,13 +14,14 @@
  */
 package org.syncope.core.persistence.beans.user;
 
-import javax.persistence.Cacheable;
 import javax.persistence.Entity;
+import org.hibernate.annotations.Cache;
+import org.hibernate.annotations.CacheConcurrencyStrategy;
 import org.syncope.core.persistence.beans.AbstractVirSchema;
 import org.syncope.core.persistence.validation.entity.USchemaCheck;
 
 @Entity
-@Cacheable
+@Cache(usage = CacheConcurrencyStrategy.TRANSACTIONAL)
 @USchemaCheck
 public class UVirSchema extends AbstractVirSchema {
 

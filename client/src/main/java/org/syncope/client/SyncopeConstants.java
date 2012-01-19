@@ -19,9 +19,7 @@ public class SyncopeConstants {
         "yyyy-MM-dd'T'HH:mm:ssZ",
         "EEE, dd MMM yyyy HH:mm:ss z",
         "yyyy-MM-dd'T'HH:mm:ssz",
-        "yyyy-MM-dd HH:mm:ss",
-        "yyyy-MM-dd"};
+        "yyyy-MM-dd HH:mm:ss"};
 
     public static String DEFAULT_DATE_PATTERN = "yyyy-MM-dd'T'HH:mm:ssZ";
-
 }

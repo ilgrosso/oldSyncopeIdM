@@ -200,14 +200,11 @@ public class UserDAOImpl extends AbstractDAOImpl
         query.setParameter("schemaName", schemaName);
         query.setParameter("stringValue", attrValue.getStringValue());
         query.setParameter("booleanValue",
-                attrValue.getBooleanValue() == null ? null
+                attrValue.getBooleanValue() == null
+                ? null
                 : attrValue.getBooleanAsInteger(attrValue.getBooleanValue()));
-        if (attrValue.getDateValue() != null) {
-            query.setParameter("dateValue",
-                    attrValue.getDateValue(), TemporalType.TIMESTAMP);
-        } else {
-            query.setParameter("dateValue", null);
-        }
+        query.setParameter("dateValue", attrValue.getDateValue(),
+                TemporalType.TIMESTAMP);
         query.setParameter("longValue", attrValue.getLongValue());
         query.setParameter("doubleValue", attrValue.getDoubleValue());
 
@@ -344,7 +341,8 @@ public class UserDAOImpl extends AbstractDAOImpl
 
         for (AbstractVirAttr virtual : merged.getVirtualAttributes()) {
             virtual.setValues(user.getVirtualAttribute(
-                    virtual.getVirtualSchema().getName()).getValues());
+                    virtual.getVirtualSchema().getName()).
+                    getValues());
         }
 
         return merged;

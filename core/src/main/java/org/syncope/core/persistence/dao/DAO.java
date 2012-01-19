@@ -23,6 +23,4 @@ public interface DAO {
     void detach(Object object);
 
     void flush();
-
-    void clear();
 }

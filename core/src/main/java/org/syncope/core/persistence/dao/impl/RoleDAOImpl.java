@@ -66,12 +66,12 @@ public class RoleDAOImpl extends AbstractDAOImpl implements RoleDAO {
         if (parentId != null) {
             query = entityManager.createQuery(
                     "SELECT r FROM SyncopeRole r WHERE "
-                    + "r.name=:name AND r.parent.id=:parentId");
+                    + "name=:name AND parent.id=:parentId");
             query.setParameter("parentId", parentId);
         } else {
             query = entityManager.createQuery(
                     "SELECT r FROM SyncopeRole r WHERE "
-                    + "r.name=:name AND r.parent IS NULL");
+                    + "name=:name AND parent IS NULL");
         }
         query.setParameter("name", name);
 
@@ -83,7 +83,7 @@ public class RoleDAOImpl extends AbstractDAOImpl implements RoleDAO {
     public List<SyncopeRole> findChildren(final Long roleId) {
         Query query = entityManager.createQuery(
                 "SELECT r FROM SyncopeRole r WHERE "
-                + "r.parent.id=:roleId");
+                + "parent.id=:roleId");
         query.setParameter("roleId", roleId);
         return query.getResultList();
     }
@@ -130,7 +130,8 @@ public class RoleDAOImpl extends AbstractDAOImpl implements RoleDAO {
         }
 
         Query query = entityManager.createQuery(
-                "SELECT r FROM SyncopeRole r WHERE r.parent.id=:id");
+                "SELECT r FROM SyncopeRole r WHERE "
+                + "parent_id=:id");
         query.setParameter("id", id);
         List<SyncopeRole> childrenRoles = query.getResultList();
         for (SyncopeRole child : childrenRoles) {

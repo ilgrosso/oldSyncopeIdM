@@ -24,13 +24,10 @@ import org.syncope.core.persistence.beans.AbstractDerSchema;
 @Entity
 public class RDerAttr extends AbstractDerAttr {
 
-    private static final long serialVersionUID = 8007080005675899946L;
-
     @ManyToOne
     private SyncopeRole owner;
-
     @ManyToOne(fetch = FetchType.EAGER, optional = false)
-    private RDerSchema derivedSchema;
+    RDerSchema derivedSchema;
 
     @Override
     public <T extends AbstractAttributable> T getOwner() {

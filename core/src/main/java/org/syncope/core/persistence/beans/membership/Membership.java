@@ -71,16 +71,12 @@ public class Membership extends AbstractAttributable {
         attributes = new ArrayList<MAttr>();
         derivedAttributes = new ArrayList<MDerAttr>();
         virtualAttributes = new ArrayList<MVirAttr>();
+        externalResources = Collections.EMPTY_SET;
     }
 
     @Override
     public Long getId() {
         return id;
-    }
-
-    @Override
-    protected Set<ExternalResource> resources() {
-        return Collections.EMPTY_SET;
     }
 
     public SyncopeRole getSyncopeRole() {
@@ -175,27 +171,27 @@ public class Membership extends AbstractAttributable {
     }
 
     @Override
-    public boolean addResource(final ExternalResource resource) {
+    public boolean addExternalResource(ExternalResource resource) {
         return false;
     }
 
     @Override
-    public boolean removeResource(final ExternalResource resource) {
+    public boolean removeExternalResource(ExternalResource resource) {
         return false;
     }
 
     @Override
-    public Set<ExternalResource> getResources() {
+    public Set<ExternalResource> getExternalResources() {
         return Collections.EMPTY_SET;
     }
 
     @Override
-    public Set<String> getResourceNames() {
+    public Set<String> getExternalResourceNames() {
         return Collections.EMPTY_SET;
     }
 
     @Override
-    public void setResources(final Set<ExternalResource> resources) {
+    public void setExternalResources(Set<ExternalResource> resources) {
     }
 
     @Override

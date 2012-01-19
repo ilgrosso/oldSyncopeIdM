@@ -272,7 +272,6 @@ public class NotificationTest {
         }
 
         confDAO.flush();
-        confDAO.clear();
 
         // 3. create user
         UserTO userTO = getSampleTO(mailAddress);

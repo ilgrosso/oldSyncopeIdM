@@ -229,7 +229,7 @@ public class UserDataBinder extends AbstractAttributableDataBinder {
         // when requesting to add user to new resources, either directly or
         // through role subscription, password is mandatory (issue 147)
         // first, let's take current resources into account
-        Set<String> currentResources = user.getResourceNames();
+        Set<String> currentResources = user.getExternalResourceNames();
 
         // password
         if (userMod.getPassword() != null) {
@@ -248,7 +248,7 @@ public class UserDataBinder extends AbstractAttributableDataBinder {
             user.setChangePwdDate(new Date());
 
             propByRes.addAll(PropagationOperation.UPDATE,
-                    user.getResourceNames());
+                    user.getExternalResourceNames());
         }
 
         // username
@@ -259,9 +259,9 @@ public class UserDataBinder extends AbstractAttributableDataBinder {
 
             user.setUsername(userMod.getUsername());
             propByRes.addAll(PropagationOperation.UPDATE,
-                    user.getResourceNames());
+                    user.getExternalResourceNames());
 
-            for (ExternalResource resource : user.getResources()) {
+            for (ExternalResource resource : user.getExternalResources()) {
                 for (SchemaMapping mapping : resource.getMappings()) {
                     if (mapping.isAccountid() && mapping.getIntMappingType()
                             == IntMappingType.Username) {
@@ -293,7 +293,7 @@ public class UserDataBinder extends AbstractAttributableDataBinder {
                         membershipId);
             } else {
                 for (ExternalResource resource :
-                        membership.getSyncopeRole().getResources()) {
+                        membership.getSyncopeRole().getExternalResources()) {
 
                     if (!membershipToBeAddedRoleIds.contains(
                             membership.getSyncopeRole().getId())) {
@@ -370,7 +370,7 @@ public class UserDataBinder extends AbstractAttributableDataBinder {
                     user.addMembership(membership);
 
                     propByRes.addAll(PropagationOperation.UPDATE,
-                            role.getResourceNames());
+                            role.getExternalResourceNames());
                 }
 
                 propByRes.merge(fill(membership, membershipMod,
@@ -380,7 +380,7 @@ public class UserDataBinder extends AbstractAttributableDataBinder {
 
         // now, let's see if there are new resource subscriptions without
         // providing password
-        Set<String> updatedResources = user.getResourceNames();
+        Set<String> updatedResources = user.getExternalResourceNames();
         updatedResources.removeAll(currentResources);
         if (!updatedResources.isEmpty()
                 && StringUtils.isBlank(userMod.getPassword())) {
@@ -407,7 +407,7 @@ public class UserDataBinder extends AbstractAttributableDataBinder {
                 user.getAttributes(),
                 user.getDerivedAttributes(),
                 user.getVirtualAttributes(),
-                user.getResources());
+                user.getExternalResources());
 
         MembershipTO membershipTO;
         for (Membership membership : user.getMemberships()) {
@@ -420,12 +420,12 @@ public class UserDataBinder extends AbstractAttributableDataBinder {
                     membership.getAttributes(),
                     membership.getDerivedAttributes(),
                     membership.getVirtualAttributes(),
-                    membership.getResources());
+                    membership.getExternalResources());
 
             userTO.addMembership(membershipTO);
         }
 
-        for (ExternalResource resource : user.getResources()) {
+        for (ExternalResource resource : user.getExternalResources()) {
             for (PropagationTask task : taskDAO.findAll(resource, user)) {
                 TaskExec exec = taskExecDAO.findLatestStarted(task);
                 userTO.addPropagationStatus(resource.getName(),

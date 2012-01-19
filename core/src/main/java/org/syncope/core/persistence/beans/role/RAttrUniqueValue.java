@@ -16,7 +16,6 @@ package org.syncope.core.persistence.beans.role;
 
 import javax.persistence.Entity;
 import javax.persistence.Id;
-import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToOne;
 import org.syncope.core.persistence.beans.AbstractAttr;
@@ -35,7 +34,6 @@ public class RAttrUniqueValue extends AbstractAttrUniqueValue {
     private RAttr attribute;
 
     @ManyToOne(optional = false)
-    @JoinColumn(name = "schema_name")
     private RSchema schema;
 
     @Override

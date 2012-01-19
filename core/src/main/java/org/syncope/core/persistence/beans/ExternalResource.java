@@ -33,17 +33,17 @@ import javax.persistence.OneToMany;
 import javax.validation.Valid;
 import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
-import javax.validation.constraints.NotNull;
 import org.apache.commons.lang.StringUtils;
+import org.hibernate.annotations.Type;
 import org.identityconnectors.framework.common.objects.SyncToken;
 import org.syncope.core.persistence.beans.role.SyncopeRole;
 import org.syncope.core.persistence.beans.user.SyncopeUser;
 import org.syncope.core.persistence.validation.entity.ExternalResourceCheck;
-import org.syncope.core.util.XMLSerializer;
 import org.syncope.types.ConnConfProperty;
-import org.syncope.types.IntMappingType;
 import org.syncope.types.PropagationMode;
+import org.syncope.types.IntMappingType;
 import org.syncope.types.TraceLevel;
+import org.syncope.core.util.XMLSerializer;
 
 /**
  * A resource to which propagation occurs.
@@ -73,36 +73,35 @@ public class ExternalResource extends AbstractBaseBean {
     /**
      * The resource type is identified by the associated connector.
      */
-    @ManyToOne(fetch = FetchType.EAGER, cascade = {CascadeType.MERGE})
-    @NotNull
+    @ManyToOne(fetch = FetchType.EAGER)
     private ConnInstance connector;
 
     /**
      * Users associated to this resource.
      */
-    @ManyToMany(fetch = FetchType.EAGER, mappedBy = "resources")
+    @ManyToMany(fetch = FetchType.EAGER, mappedBy = "externalResources")
     private Set<SyncopeUser> users;
 
     /**
      * Roles associated to this resource.
      */
-    @ManyToMany(fetch = FetchType.EAGER, mappedBy = "resources")
+    @ManyToMany(fetch = FetchType.EAGER, mappedBy = "externalResources")
     private Set<SyncopeRole> roles;
 
     /**
      * Attribute mappings.
-     *
-     * List type cannot be used. Please, take a look at
+     * 
+     * List type canno be used. Please, take a look at 
      * https://hibernate.onjira.com/browse/HHH-1718
      */
-    @OneToMany(cascade = {CascadeType.ALL}, orphanRemoval = true,
-    fetch = FetchType.EAGER, mappedBy = "resource")
+    @OneToMany(cascade = {CascadeType.MERGE, CascadeType.REMOVE},
+    orphanRemoval = true, fetch = FetchType.EAGER, mappedBy = "resource")
     @Valid
     private Set<SchemaMapping> mappings;
 
     /**
-     * A JEXL expression for determining how to link user account id in Syncope
-     * DB to user account id in target resource's DB.
+     * A JEXL expression for determining how to link user account id in
+     * Syncope DB to user account id in target resource's DB.
      */
     private String accountLink;
 
@@ -154,12 +153,14 @@ public class ExternalResource extends AbstractBaseBean {
      * Configuration properties that are overridden from the connector instance.
      */
     @Lob
+    @Type(type = "org.hibernate.type.StringClobType")
     private String xmlConfiguration;
 
     /**
      * SyncToken for calling ConnId's sync().
      */
     @Lob
+    @Type(type = "org.hibernate.type.StringClobType")
     private String serializedSyncToken;
 
     /**

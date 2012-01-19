@@ -14,12 +14,19 @@
  */
 package org.syncope.core.persistence.beans.role;
 
+import java.util.ArrayList;
+import java.util.List;
 import javax.persistence.Entity;
+import javax.persistence.OneToMany;
 import org.syncope.core.persistence.beans.AbstractDerSchema;
 
 @Entity
 public class RDerSchema extends AbstractDerSchema {
 
-    private static final long serialVersionUID = -6868889736207576372L;
+    @OneToMany(mappedBy = "derivedSchema")
+    private List<RDerAttr> derivedAttributes;
 
+    public RDerSchema() {
+        derivedAttributes = new ArrayList<RDerAttr>();
+    }
 }

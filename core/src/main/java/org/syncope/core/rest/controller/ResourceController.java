@@ -76,9 +76,9 @@ public class ResourceController extends AbstractController {
         if (resourceTO.getName() != null
                 && resourceDAO.find(resourceTO.getName()) != null) {
             SyncopeClientException ex = new SyncopeClientException(
-                    SyncopeClientExceptionType.DataIntegrityViolation);
+                    SyncopeClientExceptionType.DuplicateUniqueValue);
 
-            ex.addElement("Existing " + resourceTO.getName());
+            ex.addElement(resourceTO.getName());
             scce.addException(ex);
 
             throw scce;
@@ -220,7 +220,7 @@ public class ResourceController extends AbstractController {
 
         List<SchemaMappingTO> roleMappings = new ArrayList<SchemaMappingTO>();
 
-        Set<ExternalResource> resources = role.getResources();
+        Set<ExternalResource> resources = role.getExternalResources();
 
         List<SchemaMappingTO> resourceMappings;
         for (ExternalResource resource : resources) {

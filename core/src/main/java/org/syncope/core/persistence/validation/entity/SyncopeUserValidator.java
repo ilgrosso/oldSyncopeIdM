@@ -135,7 +135,7 @@ public class SyncopeUserValidator extends AbstractValidator
         }
 
         // add resource policies
-        for (ExternalResource resource : user.getResources()) {
+        for (ExternalResource resource : user.getExternalResources()) {
             policy = resource.getPasswordPolicy();
             if (policy != null) {
                 policies.add(policy);
@@ -163,7 +163,7 @@ public class SyncopeUserValidator extends AbstractValidator
         }
 
         // add resource policies
-        for (ExternalResource resource : user.getResources()) {
+        for (ExternalResource resource : user.getExternalResources()) {
             policy = resource.getAccountPolicy();
             if (policy != null) {
                 policies.add(policy);

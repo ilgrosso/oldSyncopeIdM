@@ -20,7 +20,6 @@ import javax.persistence.CascadeType;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
 import javax.persistence.Id;
-import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
 import javax.persistence.OneToOne;
@@ -42,7 +41,6 @@ public class RAttr extends AbstractAttr {
     private SyncopeRole owner;
 
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "schema_name")
     private RSchema schema;
 
     @OneToMany(cascade = CascadeType.MERGE, orphanRemoval = true,

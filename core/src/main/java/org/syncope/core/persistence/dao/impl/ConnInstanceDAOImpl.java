@@ -14,9 +14,7 @@
  */
 package org.syncope.core.persistence.dao.impl;
 
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import javassist.NotFoundException;
 import javax.persistence.Query;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,14 +23,10 @@ import org.syncope.core.init.ConnInstanceLoader;
 import org.syncope.core.persistence.beans.ConnInstance;
 import org.syncope.core.persistence.beans.ExternalResource;
 import org.syncope.core.persistence.dao.ConnInstanceDAO;
-import org.syncope.core.persistence.dao.ResourceDAO;
 
 @Repository
 public class ConnInstanceDAOImpl extends AbstractDAOImpl
         implements ConnInstanceDAO {
-
-    @Autowired
-    private ResourceDAO resourceDAO;
 
     @Autowired
     private ConnInstanceLoader connInstanceLoader;
@@ -50,10 +44,25 @@ public class ConnInstanceDAOImpl extends AbstractDAOImpl
     }
 
     @Override
+    public List<ExternalResource> findExternalResources(
+            final ConnInstance connector) {
+
+        final Query query = entityManager.createQuery("SELECT e "
+                + "FROM " + ExternalResource.class.getSimpleName() + " e "
+                + "WHERE connector=:connector");
+
+        query.setParameter("connector", connector);
+
+        return query.getResultList();
+    }
+
+    @Override
     public ConnInstance save(final ConnInstance connector) {
         final ConnInstance merged = entityManager.merge(connector);
 
-        for (ExternalResource resource : merged.getResources()) {
+        final List<ExternalResource> resources = findExternalResources(merged);
+
+        for (ExternalResource resource : resources) {
             try {
                 connInstanceLoader.registerConnector(resource);
             } catch (NotFoundException e) {
@@ -66,21 +75,7 @@ public class ConnInstanceDAOImpl extends AbstractDAOImpl
 
     @Override
     public void delete(final Long id) {
-        ConnInstance connInstance = find(id);
-        if (connInstance == null) {
-            return;
-        }
-
-        Set<String> resourceNames =
-                new HashSet<String>(connInstance.getResources().size());
-        for (ExternalResource resource: connInstance.getResources()) {
-            resourceNames.add(resource.getName());
-        }
-        for (String resourceName : resourceNames) {
-            resourceDAO.delete(resourceName);
-        }
-
-        entityManager.remove(connInstance);
+        entityManager.remove(find(id));
 
         connInstanceLoader.unregisterConnector(id.toString());
     }

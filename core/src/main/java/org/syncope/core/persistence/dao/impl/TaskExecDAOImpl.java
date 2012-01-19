@@ -18,8 +18,6 @@ import java.util.List;
 import javax.persistence.Query;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
-import org.syncope.core.persistence.beans.SchedTask;
-import org.syncope.core.persistence.beans.SyncTask;
 import org.syncope.core.persistence.beans.Task;
 import org.syncope.core.persistence.beans.TaskExec;
 import org.syncope.core.persistence.dao.TaskExecDAO;
@@ -50,27 +48,22 @@ public class TaskExecDAOImpl extends AbstractDAOImpl
 
     @Override
     public <T extends Task> TaskExec findLatestStarted(final T task) {
+
         return findLatest(task, "startDate");
     }
 
     @Override
     public <T extends Task> TaskExec findLatestEnded(final T task) {
+
         return findLatest(task, "endDate");
     }
 
     @Override
     public <T extends Task> List<TaskExec> findAll(Class<T> reference) {
-        StringBuilder queryString = new StringBuilder("SELECT e FROM ").append(
-                TaskExec.class.getSimpleName()).append(" e WHERE e.task IN (").
-                append("SELECT t FROM ").append(reference.getSimpleName()).
-                append(" t");
-        if (SchedTask.class.equals(reference)) {
-            queryString.append(" WHERE t.id NOT IN (SELECT t.id FROM ").
-                    append(SyncTask.class.getSimpleName()).append(" t) ");
-        }
-        queryString.append(')');
-
-        Query query = entityManager.createQuery(queryString.toString());
+        Query query = entityManager.createQuery("SELECT e "
+                + "FROM " + TaskExec.class.getSimpleName() + " e "
+                + "WHERE e.task.class=:taskClass");
+        query.setParameter("taskClass", reference.getSimpleName());
         return query.getResultList();
     }
 

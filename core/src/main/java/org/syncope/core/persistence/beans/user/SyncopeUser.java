@@ -38,12 +38,8 @@ import javax.persistence.ElementCollection;
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
-import javax.persistence.FetchType;
 import javax.persistence.Id;
-import javax.persistence.JoinColumn;
-import javax.persistence.JoinTable;
 import javax.persistence.Lob;
-import javax.persistence.ManyToMany;
 import javax.persistence.OneToMany;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
@@ -54,7 +50,8 @@ import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.RandomStringUtils;
-import org.springframework.security.crypto.codec.Base64;
+import org.hibernate.annotations.Type;
+import org.springframework.security.core.codec.Base64;
 import org.syncope.core.persistence.beans.AbstractAttributable;
 import org.syncope.core.persistence.beans.AbstractAttr;
 import org.syncope.core.persistence.beans.AbstractDerAttr;
@@ -114,6 +111,7 @@ public class SyncopeUser extends AbstractAttributable {
     private String status;
 
     @Lob
+    @Type(type = "org.hibernate.type.StringClobType")
     private String token;
 
     @Temporal(TemporalType.TIMESTAMP)
@@ -165,16 +163,6 @@ public class SyncopeUser extends AbstractAttributable {
     @Max(1)
     private Integer suspended;
 
-    /**
-     * Provisioning external resources.
-     */
-    @ManyToMany(fetch = FetchType.EAGER)
-    @JoinTable(joinColumns =
-    @JoinColumn(name = "user_id"),
-    inverseJoinColumns =
-    @JoinColumn(name = "resource_name"))
-    private Set<ExternalResource> resources;
-
     public SyncopeUser() {
         super();
 
@@ -185,17 +173,11 @@ public class SyncopeUser extends AbstractAttributable {
         passwordHistory = new ArrayList<String>();
         failedLogins = 0;
         suspended = getBooleanAsInteger(Boolean.FALSE);
-        resources = new HashSet<ExternalResource>();
     }
 
     @Override
     public Long getId() {
         return id;
-    }
-
-    @Override
-    protected Set<ExternalResource> resources() {
-        return resources;
     }
 
     public boolean addMembership(final Membership membership) {
@@ -258,11 +240,23 @@ public class SyncopeUser extends AbstractAttributable {
     }
 
     @Override
-    public Set<ExternalResource> getResources() {
+    public Set<ExternalResource> getExternalResources() {
         Set<ExternalResource> result = new HashSet<ExternalResource>();
-        result.addAll(super.getResources());
+        result.addAll(super.getExternalResources());
         for (SyncopeRole role : getRoles()) {
-            result.addAll(role.getResources());
+            result.addAll(role.getExternalResources());
+        }
+
+        return result;
+    }
+
+    @Override
+    public Set<String> getExternalResourceNames() {
+        Set<ExternalResource> resources = getExternalResources();
+
+        Set<String> result = new HashSet<String>(resources.size());
+        for (ExternalResource resource : resources) {
+            result.add(resource.getName());
         }
 
         return result;
@@ -280,8 +274,10 @@ public class SyncopeUser extends AbstractAttributable {
         clearPassword = null;
     }
 
-    public void setPassword(final String password,
-            final CipherAlgorithm cipherAlgoritm, final int historySize) {
+    public void setPassword(
+            final String password,
+            final CipherAlgorithm cipherAlgoritm,
+            final int historySize) {
 
         // clear password
         clearPassword = password;
@@ -312,10 +308,7 @@ public class SyncopeUser extends AbstractAttributable {
 
     @Override
     public void setAttributes(final List<? extends AbstractAttr> attributes) {
-        this.attributes.clear();
-        if (attributes != null && !attributes.isEmpty()) {
-            this.attributes.addAll((List<UAttr>) attributes);
-        }
+        this.attributes = (List<UAttr>) attributes;
     }
 
     @Override
@@ -341,10 +334,7 @@ public class SyncopeUser extends AbstractAttributable {
     public void setDerivedAttributes(
             final List<? extends AbstractDerAttr> derivedAttributes) {
 
-        this.derivedAttributes.clear();
-        if (derivedAttributes != null && !derivedAttributes.isEmpty()) {
-            this.derivedAttributes.addAll((List<UDerAttr>) derivedAttributes);
-        }
+        this.derivedAttributes = (List<UDerAttr>) derivedAttributes;
     }
 
     @Override
@@ -370,10 +360,7 @@ public class SyncopeUser extends AbstractAttributable {
     public void setVirtualAttributes(
             final List<? extends AbstractVirAttr> virtualAttributes) {
 
-        this.virtualAttributes.clear();
-        if (virtualAttributes != null && !virtualAttributes.isEmpty()) {
-            this.virtualAttributes.addAll((List<UVirAttr>) virtualAttributes);
-        }
+        this.virtualAttributes = (List<UVirAttr>) virtualAttributes;
     }
 
     public String getWorkflowId() {

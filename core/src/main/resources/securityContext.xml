@@ -42,7 +42,8 @@
     </bean>
 
     <security:authentication-manager>
-        <security:authentication-provider ref="syncopeAuthenticationProvider"/>
+        <security:authentication-provider ref="syncopeAuthenticationProvider"
+                                          user-service-ref="syncopeUserDetailsService"/>
     </security:authentication-manager>
 
 </beans>

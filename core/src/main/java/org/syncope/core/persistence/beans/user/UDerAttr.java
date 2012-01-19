@@ -30,7 +30,7 @@ public class UDerAttr extends AbstractDerAttr {
     private SyncopeUser owner;
 
     @ManyToOne(fetch = FetchType.EAGER)
-    private UDerSchema derivedSchema;
+    UDerSchema derivedSchema;
 
     @Override
     public <T extends AbstractAttributable> T getOwner() {

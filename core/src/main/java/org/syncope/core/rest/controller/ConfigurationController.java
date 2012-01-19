@@ -15,18 +15,33 @@
 package org.syncope.core.rest.controller;
 
 import com.google.common.io.PatternFilenameFilter;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.StringWriter;
 import java.lang.reflect.Modifier;
 import java.net.URISyntaxException;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Properties;
 import java.util.Set;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.sql.DataSource;
+import org.dbunit.database.DatabaseConfig;
+import org.dbunit.database.DatabaseConnection;
+import org.dbunit.database.DatabaseSequenceFilter;
+import org.dbunit.database.IDatabaseConnection;
+import org.dbunit.dataset.FilteredDataSet;
+import org.dbunit.dataset.IDataSet;
+import org.dbunit.dataset.datatype.DefaultDataTypeFactory;
+import org.dbunit.dataset.xml.FlatXmlDataSet;
 import org.reflections.Reflections;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.datasource.DataSourceUtils;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,11 +52,10 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.servlet.ModelAndView;
 import org.syncope.client.to.ConfigurationTO;
 import org.syncope.core.persistence.beans.SyncopeConf;
-import org.syncope.core.persistence.dao.ConfDAO;
 import org.syncope.core.persistence.dao.MissingConfKeyException;
+import org.syncope.core.persistence.dao.ConfDAO;
 import org.syncope.core.persistence.validation.attrvalue.Validator;
 import org.syncope.core.rest.data.ConfigurationDataBinder;
-import org.syncope.core.util.ImportExport;
 
 @Controller
 @RequestMapping("/configuration")
@@ -54,7 +68,10 @@ public class ConfigurationController extends AbstractController {
     private ConfigurationDataBinder configurationDataBinder;
 
     @Autowired
-    private ImportExport importExport;
+    private DataSource dataSource;
+
+    @Autowired
+    private DefaultDataTypeFactory dbUnitDataTypeFactory;
 
     @PreAuthorize("hasRole('CONFIGURATION_CREATE')")
     @RequestMapping(method = RequestMethod.POST,
@@ -88,7 +105,8 @@ public class ConfigurationController extends AbstractController {
     @RequestMapping(method = RequestMethod.GET,
     value = "/list")
     public List<ConfigurationTO> list(HttpServletRequest request) {
-        List<SyncopeConf> configurations = confDAO.findAll();
+        List<SyncopeConf> configurations =
+                confDAO.findAll();
         List<ConfigurationTO> configurationTOs =
                 new ArrayList<ConfigurationTO>(configurations.size());
 
@@ -196,16 +214,65 @@ public class ConfigurationController extends AbstractController {
     value = "/dbexport")
     @Transactional(readOnly = true)
     public ModelAndView dbExport() {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+        // 0. DB connection, to be used below
+        Connection conn = DataSourceUtils.getConnection(dataSource);
+
+        // 1. read persistence.properties
+        InputStream dbPropsStream = null;
+        String dbSchema = null;
         try {
-            importExport.export(baos);
+            dbPropsStream = getClass().getResourceAsStream(
+                    "/persistence.properties");
+            Properties dbProps = new Properties();
+            dbProps.load(dbPropsStream);
+            dbSchema = dbProps.getProperty("database.schema");
+        } catch (Throwable t) {
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("Could not find persistence.properties", t);
+            } else {
+                LOG.error("Could not find persistence.properties");
+            }
+        } finally {
+            if (dbPropsStream != null) {
+                try {
+                    dbPropsStream.close();
+                } catch (IOException e) {
+                    LOG.error("While trying to read persistence.properties", e);
+                }
+            }
+        }
+
+        // 2. Export content
+        StringWriter export = new StringWriter();
+        try {
+            IDatabaseConnection dbUnitConn = dbSchema == null
+                    ? new DatabaseConnection(conn)
+                    : new DatabaseConnection(conn, dbSchema);
+
+            DatabaseConfig config = dbUnitConn.getConfig();
+            config.setProperty(DatabaseConfig.PROPERTY_DATATYPE_FACTORY,
+                    dbUnitDataTypeFactory);
+
+            IDataSet fullDataSet = new FilteredDataSet(
+                    new DatabaseSequenceFilter(dbUnitConn),
+                    dbUnitConn.createDataSet());
+            FlatXmlDataSet.write(fullDataSet, export);
 
             LOG.debug("Default content successfully exported");
         } catch (Throwable t) {
             LOG.error("While exporting content", t);
+        } finally {
+            DataSourceUtils.releaseConnection(conn, dataSource);
         }
 
-        return new ModelAndView("dbExport").addObject(
-                "export", new String(baos.toByteArray()));
+        try {
+            conn.close();
+        } catch (SQLException e) {
+            LOG.error("While closing SQL connection", e);
+        }
+
+        return new ModelAndView("dbExport").addObject("export",
+                export.toString());
     }
 }

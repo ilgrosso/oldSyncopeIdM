@@ -583,7 +583,7 @@ public class UserTestITCase extends AbstractTest {
                     userTO, UserTO.class);
         } catch (SyncopeClientCompositeErrorException e) {
             sce = e.getException(
-                    SyncopeClientExceptionType.DataIntegrityViolation);
+                    SyncopeClientExceptionType.DuplicateUniqueValue);
         }
         assertNotNull(sce);
     }

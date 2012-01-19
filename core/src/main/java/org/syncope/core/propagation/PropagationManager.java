@@ -275,7 +275,7 @@ public class PropagationManager {
             localPropByRes.merge(wfResult.getPropByRes());
         } else {
             localPropByRes.addAll(PropagationOperation.UPDATE,
-                    user.getResourceNames());
+                    user.getExternalResourceNames());
         }
         if (syncResourceName != null) {
             localPropByRes.get(PropagationOperation.CREATE).
@@ -327,7 +327,7 @@ public class PropagationManager {
 
         final PropagationByResource propByRes = new PropagationByResource();
         propByRes.set(PropagationOperation.DELETE,
-                user.getResourceNames());
+                user.getExternalResourceNames());
         if (syncResourceName != null) {
             propByRes.get(PropagationOperation.DELETE).remove(syncResourceName);
         }

@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.syncope</groupId>
         <artifactId>syncope</artifactId>
-        <version>0.8-SNAPSHOT</version>
+        <version>0.7.1</version>
     </parent>
 
     <name>Syncope core</name>
@@ -42,15 +42,17 @@
             <artifactId>syncope-client</artifactId>
             <version>${project.version}</version>
         </dependency>
-        
+
         <dependency>
             <groupId>javax.servlet</groupId>
             <artifactId>servlet-api</artifactId>
         </dependency>
+
         <dependency>
             <groupId>javax.servlet.jsp</groupId>
             <artifactId>jsp-api</artifactId>
         </dependency>
+
         <dependency>
             <groupId>javax.servlet</groupId>
             <artifactId>jstl</artifactId>
@@ -63,13 +65,6 @@
         <dependency>
             <groupId>org.apache.geronimo.javamail</groupId>
             <artifactId>geronimo-javamail_1.4_provider</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>org.syncope</groupId>
-            <artifactId>syncope-hibernate-enhancer</artifactId>
-            <version>${project.version}</version>
-            <scope>compile</scope>
         </dependency>
 
         <dependency>
@@ -128,20 +123,6 @@
         </dependency>
 
         <dependency>
-            <groupId>cglib</groupId>
-            <artifactId>cglib</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>org.aspectj</groupId>
-            <artifactId>aspectjrt</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.aspectj</groupId>
-            <artifactId>aspectjweaver</artifactId>
-        </dependency>
-
-        <dependency>
             <groupId>com.thoughtworks.xstream</groupId>
             <artifactId>xstream</artifactId>
         </dependency>
@@ -166,18 +147,23 @@
         </dependency>
         <dependency>
             <groupId>org.hibernate</groupId>
-            <artifactId>hibernate-ehcache</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.hibernate</groupId>
             <artifactId>hibernate-validator</artifactId>
         </dependency>
-            
+        <dependency>
+            <groupId>net.sf.ehcache</groupId>
+            <artifactId>ehcache-core</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>org.codehaus.groovy</groupId>
             <artifactId>groovy-all</artifactId>
         </dependency>
             
+        <dependency>
+            <groupId>org.dbunit</groupId>
+            <artifactId>dbunit</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>org.reflections</groupId>
             <artifactId>reflections</artifactId>
@@ -398,13 +384,23 @@
                                     </patternset>
                                 </unzip>
                                 <copy file="${project.build.directory}/test-classes/org/syncope/core/scheduling/TestSyncJobActions.class" todir="${cargo.run.dir}/WEB-INF/classes/org/syncope/core/scheduling" />
-                                <copy file="${project.build.directory}/test-classes/db.jsp" todir="${cargo.run.dir}"/>
-                                <copy todir="${cargo.run.dir}/WEB-INF/classes" includeEmptyDirs="false">
-                                    <fileset dir="${project.build.directory}/test-classes">
-                                        <exclude name="**/*.class"/>
-                                        <exclude name="restClientContext.xml"/>
-                                    </fileset>
+                                <mkdir dir="${project.build.directory}/test-conf" />
+                                <copy todir="${project.build.directory}/test-conf" includeEmptyDirs="false">
+                                    <fileset dir="${project.build.directory}/test-classes" excludes="**/*.class" />
                                 </copy>
+                            </target>
+                        </configuration>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>setupTomcat</id>
+                        <phase>pre-integration-test</phase>
+                        <configuration>
+                            <target>
+                                <get src="http://archive.apache.org/dist/tomcat/tomcat-7/v${tomcat.version}/bin/apache-tomcat-${tomcat.version}.zip" dest="${java.io.tmpdir}" skipexisting="true" />
+                                <unzip src="${java.io.tmpdir}/apache-tomcat-${tomcat.version}.zip" dest="${java.io.tmpdir}" overwrite="false" />
                             </target>
                         </configuration>
                         <goals>
@@ -432,22 +428,6 @@
                 <inherited>true</inherited>
                 <executions>
                     <execution>
-                        <id>enhance-hibernate</id>
-                        <phase>process-classes</phase>
-                        <goals>
-                            <goal>exec</goal>
-                        </goals>
-                        <configuration>
-                            <executable>java</executable>
-                            <arguments>
-                                <argument>-classpath</argument>
-                                <classpath />
-                                <argument>org.syncope.hibernate.HibernateEnhancer</argument>
-                                <argument>${project.build.directory}/classes</argument>
-                            </arguments>
-                        </configuration>
-                    </execution>
-                    <execution>
                         <id>default-cli</id>
                         <goals>
                             <goal>exec</goal>
@@ -471,7 +451,14 @@
                 <inherited>true</inherited>
                 <configuration>
                     <container>
+                        <containerId>tomcat7x</containerId>
+                        <home>${java.io.tmpdir}/apache-tomcat-${tomcat.version}</home>
+                        <log>${cargo.log}</log>
+                        <output>${cargo.output}</output>
                         <dependencies>
+                            <dependency>
+                                <location>${project.build.directory}/test-conf</location>
+                            </dependency>
                             <dependency>
                                 <groupId>com.h2database</groupId>
                                 <artifactId>h2</artifactId>
@@ -751,7 +738,7 @@
                 <dependency>
                     <groupId>postgresql</groupId>
                     <artifactId>postgresql</artifactId>
-                    <version>9.1-901.jdbc4</version>
+                    <version>9.0-801.jdbc4</version>
                     <scope>test</scope>
                 </dependency>
             </dependencies>

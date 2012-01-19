@@ -20,17 +20,18 @@ import static org.junit.Assert.*;
 
 import org.junit.Test;
 import org.springframework.http.HttpStatus;
+import org.springframework.test.annotation.ExpectedException;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.syncope.client.mod.AttributeMod;
 import org.syncope.client.mod.RoleMod;
 import org.syncope.client.to.AttributeTO;
 import org.syncope.client.to.RoleTO;
 import org.syncope.client.validation.SyncopeClientCompositeErrorException;
-import org.syncope.types.SyncopeClientExceptionType;
 
 public class RoleTestITCase extends AbstractTest {
 
     @Test
+    @ExpectedException(value = SyncopeClientCompositeErrorException.class)
     public void createWithException() {
         AttributeTO attributeTO = new AttributeTO();
         attributeTO.setSchema("attr1");
@@ -39,16 +40,8 @@ public class RoleTestITCase extends AbstractTest {
         RoleTO newRoleTO = new RoleTO();
         newRoleTO.addAttribute(attributeTO);
 
-        Throwable t = null;
-        try {
-            restTemplate.postForObject(BASE_URL + "role/create",
-                    newRoleTO, RoleTO.class);
-            fail();
-        } catch (SyncopeClientCompositeErrorException sccee) {
-            t = sccee.getException(
-                    SyncopeClientExceptionType.InvalidSyncopeRole);
-        }
-        assertNotNull(t);
+        restTemplate.postForObject(BASE_URL + "role/create",
+                newRoleTO, RoleTO.class);
     }
 
     @Test

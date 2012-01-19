@@ -36,7 +36,8 @@ public class PolicyDAOImpl extends AbstractDAOImpl
     @Override
     public List<? extends Policy> find(final PolicyType type) {
         final Query query = entityManager.createQuery(
-                "SELECT e FROM Policy e WHERE e.type=:type");
+                "SELECT e FROM Policy e WHERE type=:type");
+
         query.setParameter("type", type);
 
         return query.getResultList();
