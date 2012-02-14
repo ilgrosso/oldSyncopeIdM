@@ -422,7 +422,18 @@
                 <artifactId>cocoon-sax</artifactId>
                 <version>${cocoon.version}</version>
             </dependency>
-
+            <dependency>
+                <groupId>org.apache.cocoon.optional</groupId>
+                <artifactId>cocoon-optional</artifactId>
+                <version>${cocoon.version}</version>
+            </dependency>
+            
+            <dependency>    
+                <groupId>org.apache.xmlgraphics</groupId>
+                <artifactId>fop</artifactId>
+                <version>1.0</version>
+            </dependency>
+            
             <!-- Wicket -->
             <dependency>
                 <groupId>org.apache.wicket</groupId>

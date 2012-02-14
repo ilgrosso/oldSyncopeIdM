@@ -18,14 +18,23 @@ import java.io.IOException;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.zip.ZipInputStream;
 import javassist.NotFoundException;
 import javax.servlet.http.HttpServletResponse;
-import org.apache.cocoon.sax.builder.SAXPipelineBuilder;
+import org.apache.cocoon.optional.pipeline.components.sax.fop.FopSerializer;
+import org.apache.cocoon.pipeline.NonCachingPipeline;
+import org.apache.cocoon.pipeline.Pipeline;
+import org.apache.cocoon.sax.SAXPipelineComponent;
+import org.apache.cocoon.sax.component.XMLGenerator;
+import org.apache.cocoon.sax.component.XMLSerializer;
+import org.apache.cocoon.sax.component.XSLTTransformer;
 import org.apache.commons.lang.ArrayUtils;
+import org.apache.xmlgraphics.util.MimeConstants;
 import org.quartz.JobDataMap;
 import org.quartz.Scheduler;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -304,6 +313,8 @@ public class ReportController extends AbstractController {
         ReportExecExportFormat format =
                 fmt == null ? ReportExecExportFormat.XML : fmt;
 
+        LOG.debug("Exporting result of {} as {}", reportExec, format);
+
         response.setContentType(MediaType.APPLICATION_OCTET_STREAM_VALUE);
         response.addHeader("Content-Disposition",
                 "attachment; filename=" + reportExec.getReport().getName()
@@ -317,13 +328,54 @@ public class ReportController extends AbstractController {
             // a single ZipEntry in the ZipInputStream (see ReportJob)
             zis.getNextEntry();
 
-            SAXPipelineBuilder.newNonCachingPipeline().
-                    setInputStreamGenerator(zis).
-                    addSerializer().withEmptyConfiguration().
-                    setup(response.getOutputStream()).
-                    execute();
+            Pipeline<SAXPipelineComponent> pipeline =
+                    new NonCachingPipeline<SAXPipelineComponent>();
+            pipeline.addComponent(new XMLGenerator(zis));
 
-            LOG.debug("Default content successfully exported");
+            Map<String, Object> parameters = new HashMap<String, Object>();
+            parameters.put("status", reportExec.getStatus());
+            parameters.put("message", reportExec.getMessage());
+            parameters.put("startDate", reportExec.getStartDate());
+            parameters.put("endDate", reportExec.getEndDate());
+
+            switch (format) {
+                case HTML:
+                    XSLTTransformer xsl2html = new XSLTTransformer(
+                            getClass().getResource("/report/report2html.xsl"));
+                    xsl2html.setParameters(parameters);
+                    pipeline.addComponent(xsl2html);
+                    pipeline.addComponent(
+                            XMLSerializer.createXHTMLSerializer());
+                    break;
+
+                case PDF:
+                    XSLTTransformer xsl2pdf = new XSLTTransformer(
+                            getClass().getResource("/report/report2fo.xsl"));
+                    xsl2pdf.setParameters(parameters);
+                    pipeline.addComponent(xsl2pdf);
+                    pipeline.addComponent(
+                            new FopSerializer(MimeConstants.MIME_PDF));
+                    break;
+
+                case RTF:
+                    XSLTTransformer xsl2rtf = new XSLTTransformer(
+                            getClass().getResource("/report/report2fo.xsl"));
+                    xsl2rtf.setParameters(parameters);
+                    pipeline.addComponent(xsl2rtf);
+                    pipeline.addComponent(
+                            new FopSerializer(MimeConstants.MIME_RTF));
+                    break;
+
+                case XML:
+                default:
+                    pipeline.addComponent(XMLSerializer.createXMLSerializer());
+            }
+
+            pipeline.setup(response.getOutputStream());
+            pipeline.execute();
+
+            LOG.debug("Result of {} successfully exported as {}",
+                    reportExec, format);
         } catch (Throwable t) {
             LOG.error("While exporting content", t);
         } finally {
