@@ -1,0 +1,84 @@
+.drop_button{
+    vertical-align: middle;
+    margin-left: 6px;
+}
+
+.add_button{
+    vertical-align: middle;
+    margin-left: 6px;
+}
+
+.date_size{
+    width: 90px;
+}
+
+.long_dynamicsize{
+    width: 80%;
+}
+
+.medium_dynamicsize{
+    width: 45%;
+}
+
+.short_dynamicsize{
+    width: 35%;
+}
+
+.long_fixedsize{
+    width: 500px;
+}
+
+.medium_fixedsize{
+    width: 300px;
+}
+
+.short_fixedsize{
+    width: 150px;
+}
+
+.all_dynamicsize{
+    width: 100%;
+}
+
+div.tablerow {
+    display: inline-table;
+    padding: 5px;
+    width: 100%;
+}
+
+div.alt {
+    background: #eff3ea;
+}
+
+div.tablecolumn_label{
+    float: left;
+    font-size: 12px;
+    vertical-align: middle;
+    font-family: Verdana,Tahoma,sans-serif;
+}
+
+div.tablecolumn_field{
+    float: left;
+    vertical-align: middle;
+    font-family: Verdana,Tahoma,sans-serif;
+}
+
+div.tablecolumn_check{
+    float: left;
+    margin-right: 5px;
+    margin-left: 2px;
+    vertical-align: middle;
+}
+
+.ui-tabs .ui-tabs-panel {
+    background: none repeat scroll 0 0 #FFFFFF;
+    border-width: 0;
+    display: block;
+    padding: 1em 1.4em;
+}
+
+.ui-widget input, .ui-widget select, .ui-widget textarea, .ui-widget button {
+    font-family: Verdana,Arial,sans-serif;
+    font-size: 12px;
+    padding: 2px 4px;
+}

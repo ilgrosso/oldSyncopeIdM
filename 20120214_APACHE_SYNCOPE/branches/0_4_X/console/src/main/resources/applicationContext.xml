@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xmlns:p="http://www.springframework.org/schema/p"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:oxm="http://www.springframework.org/schema/oxm"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/context
+       http://www.springframework.org/schema/context/spring-context.xsd
+       http://www.springframework.org/schema/oxm
+       http://www.springframework.org/schema/oxm/spring-oxm.xsd
+       http://www.springframework.org/schema/tx
+       http://www.springframework.org/schema/tx/spring-tx.xsd
+       http://www.springframework.org/schema/aop
+       http://www.springframework.org/schema/aop/spring-aop.xsd">
+
+    <context:component-scan base-package="org.syncope.console.rest"/>
+
+    <bean id="propertyConfigurer"
+          class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+        <property name="locations">
+            <list>
+                <value>/WEB-INF/classes/configuration.properties</value>
+            </list>
+        </property>
+    </bean>
+
+    <bean id="baseURL" class="java.lang.String">
+        <constructor-arg value="${baseURL}"/>
+    </bean>
+
+    <bean id="authorizations" class="java.lang.String">
+        <constructor-arg value="authorizations.xml"/>
+    </bean>
+
+    <bean id="syncopeApplication" class="org.syncope.console.SyncopeApplication"/>
+
+    <bean id="jacksonObjectMapper" class="org.codehaus.jackson.map.ObjectMapper"/>
+        
+    <bean id="mappingJacksonHttpMessageConverter"
+          class="org.springframework.http.converter.json.MappingJacksonHttpMessageConverter">
+        <property name="objectMapper" ref="jacksonObjectMapper"/>
+    </bean>
+
+    <bean id="httpClientParams" class="org.apache.commons.httpclient.params.HttpClientParams" scope="prototype">
+        <property name="authenticationPreemptive" value="true"/>
+        <property name="connectionManagerClass"
+                  value="org.apache.commons.httpclient.MultiThreadedHttpConnectionManager"/>
+    </bean>
+
+    <bean id="httpClient" class="org.apache.commons.httpclient.HttpClient" scope="prototype">
+        <constructor-arg ref="httpClientParams"/>
+    </bean>
+
+    <bean id="httpClientFactory" class="org.springframework.http.client.CommonsClientHttpRequestFactory" scope="prototype">
+        <constructor-arg ref="httpClient"/>
+    </bean>
+
+    <bean id="restTemplate" class="org.springframework.web.client.RestTemplate" scope="session">
+        <constructor-arg ref="httpClientFactory"/>
+
+        <property name="messageConverters" ref="mappingJacksonHttpMessageConverter"/>
+        <property name="errorHandler">
+            <bean id="syncopeClientErrorHandler"
+            class="org.syncope.client.validation.SyncopeClientErrorHandler"/>
+        </property>
+
+        <aop:scoped-proxy/>
+    </bean>
+
+    <bean id="preferenceManager" class="org.syncope.console.commons.PreferenceManager"/>
+
+    <bean id="xmlRolesReader" class="org.syncope.console.commons.XMLRolesReader"/>
+
+    <bean id="roleTreeBuilder" class="org.syncope.console.commons.RoleTreeBuilder"/>
+
+</beans>

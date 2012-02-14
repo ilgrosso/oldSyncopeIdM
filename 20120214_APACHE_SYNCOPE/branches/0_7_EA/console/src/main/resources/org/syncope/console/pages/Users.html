@@ -1,0 +1,170 @@
+<!--
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+ under the License.
+-->
+<wicket:head>
+    <style type="text/css">
+        /* SET THE DEFAULT ERROR PANEL'S' STYLE, INVALIDATING THE CSS RENDERING
+        FOR THE CURRENT PAGE  */
+        .feedbackPanelERROR {
+            background: none !important;
+            font-weight: normal;
+            color: red;
+            border:0 none !important;
+            list-style-type: disc;
+            padding: 5px;
+            margin: 5px;
+        }
+
+        .feedbackPanelERROR span {
+            padding: 0px;
+            margin: 0px;
+        }
+    </style>
+</wicket:head>
+<wicket:extend>
+
+    <div id="tabs">
+        <ul>
+            <li class="tabs-selected">
+                <a href="#tabs-1">
+                    <span><wicket:message key="tab1"/>
+                    </span>
+                </a>
+            </li>
+            <li>
+                <a href="#tabs-2">
+                    <span><wicket:message key="tab2"/>
+                    </span>
+                </a>
+            </li>
+        </ul>
+        <div id="tabs-1">
+            <div id="users-contain" class="ui-widget" style="width:auto">
+                <span wicket:id="listContainer">
+                    <table class="ui-widget ui-widget-content table-hover"
+                           wicket:id="listTable"/>
+                </span>
+
+                <span style="float:right">
+                    <form wicket:id="paginator" style="display:inline">
+                        <label><wicket:message key="displayRows"/></label>
+                        <select class="text ui-widget-content ui-corner-all"
+                                wicket:id="rowsChooser"/>
+                    </form>
+                </span>
+            </div>
+
+            <div wicket:id="editModalWin">
+            </div>
+            <div wicket:id="displayAttrsModalWin">
+            </div>
+
+            <a class="ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only"
+               wicket:id="createLink">
+                <wicket:message key="create_user"/>
+            </a>
+            <a class="ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only"
+               wicket:id="displayAttrsLink">
+                <wicket:message key="change_attributes"/>
+            </a>
+        </div>
+
+        <div id="tabs-2">
+            <form wicket:id="searchForm">
+                <div wicket:id="searchFeedback"/>
+                <div id="searchBox">
+                    <h1><wicket:message key="search_title"/></h1>
+                    <table border="0">
+                        <thead>
+                            <tr>
+                                <th></th>
+                                <th><wicket:message key="search_not_value"/></th>
+                        <th><wicket:message key="search_filter_type"/></th>
+                        <th><wicket:message key="search_filter_name"/></th>
+                        <th><wicket:message key="search_type_cond"/></th>
+                        <th><wicket:message key="search_filter_value"/></th>
+                        <th></th>
+                        </tr>
+                        </thead>
+                        <tbody wicket:id="searchFormContainer">
+                            <tr wicket:id="searchView">
+                                <td>
+                                    <b><span wicket:id="operationType"/></b>
+                                </td>
+                                <td>
+                                    <input type="checkbox" wicket:id="notOperator"/>
+                                </td>
+                                <td>
+                                    <select class="text ui-widget-content ui-corner-all"
+                                            wicket:id="filterType"/>
+                                </td>
+                                <td>
+                                    <select class="text ui-widget-content ui-corner-all"
+                                            wicket:id="filterName"/>
+                                </td>
+                                <td>
+                                    <select class="text ui-widget-content ui-corner-all"
+                                            wicket:id="type"/>
+                                </td>
+                                <td>
+                                    <input type="text" class="text ui-widget-content ui-corner-all"
+                                           wicket:id="filterValue"/>
+                                </td>
+                                <td>
+                                    <input type="button" class="text ui-widget-content ui-corner-all"
+                                           wicket:id="dropButton"/>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <input type="button" class="text ui-widget-content ui-corner-all"
+                                           wicket:id="addAndButton"/>
+                                </td>
+                                <td>
+                                    <input type="submit" class="text ui-widget-content ui-corner-all"
+                                           wicket:id="addOrButton"/>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <input type="button" class="ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only"
+                       wicket:id="search"/>
+            </form>
+
+            <div id="users-contain" class="ui-widget" style="width:auto">
+                <img src="img/search.png" alt="search"/>
+                <h1 style="display:inline"><wicket:message key="search_results_title"/></h1>
+                <span wicket:id="searchResultContainer">
+                    <table class="ui-widget ui-widget-content table-hover"
+                           wicket:id="searchResultTable"/>
+                </span>
+
+                <span style="float:right">
+                    <form wicket:id="searchPaginator" style="display:inline">
+                        <label><wicket:message key="displayRows"/></label>
+                        <select class="text ui-widget-content ui-corner-all"
+                                wicket:id="searchRowsChooser"/>
+                    </form>
+                </span>
+            </div>
+
+            <div wicket:id="searchEditModalWin">
+            </div>
+        </div>
+    </div>
+
+<wicket:child/>
+</wicket:extend>
