@@ -29,6 +29,8 @@ public class ReportXMLConst {
 
     public static final String ATTR_NAME = "name";
 
+    public static final String ATTR_CLASS = "class";
+
     public static final String ELEMENT_REPORTLET = "reportlet";
 
 }

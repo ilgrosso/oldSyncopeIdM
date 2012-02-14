@@ -19,10 +19,6 @@ public enum ReportExecExportFormat {
     XML,
     HTML,
     PDF,
-    XLS,
-    RTF,
-    DOC,
-    ODT,
-    ODS
+    RTF
 
 }
