@@ -20,7 +20,6 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.junit.Test;
@@ -34,7 +33,10 @@ import org.syncope.client.to.MembershipTO;
 import org.syncope.client.to.RoleTO;
 import org.syncope.client.to.SchemaTO;
 import org.syncope.client.to.UserTO;
+import org.syncope.client.validation.SyncopeClientCompositeErrorException;
+import org.syncope.client.validation.SyncopeClientException;
 import org.syncope.types.SchemaType;
+import org.syncope.types.SyncopeClientExceptionType;
 
 public class AuthenticationTestITCase extends AbstractTest {
 
@@ -168,15 +170,16 @@ public class AuthenticationTestITCase extends AbstractTest {
                 requestFactory.getAuthScope(),
                 new UsernamePasswordCredentials("user2", "password"));
 
-        HttpClientErrorException exception = null;
+        SyncopeClientException exception = null;
         try {
             restTemplate.getForObject(
                     BASE_URL + "user/read/{userId}.json", UserTO.class, 1);
-        } catch (HttpClientErrorException e) {
-            exception = e;
+            fail();
+        } catch (SyncopeClientCompositeErrorException e) {
+            exception = e.getException(
+                    SyncopeClientExceptionType.UnauthorizedRole);
         }
         assertNotNull(exception);
-        assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatusCode());
 
         // reset admin credentials for restTemplate
         super.setupRestTemplate();
