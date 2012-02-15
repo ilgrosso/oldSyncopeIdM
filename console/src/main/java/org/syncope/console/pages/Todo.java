@@ -21,6 +21,7 @@ import java.util.List;
 import org.apache.wicket.Page;
 import org.apache.wicket.ajax.AjaxRequestTarget;
 import org.apache.wicket.ajax.form.AjaxFormComponentUpdatingBehavior;
+import org.apache.wicket.authroles.authorization.strategies.role.metadata.MetaDataRoleAuthorizationStrategy;
 import org.apache.wicket.extensions.ajax.markup.html.modal.ModalWindow;
 import org.apache.wicket.extensions.ajax.markup.html.repeater.data.table.AjaxFallbackDefaultDataTable;
 import org.apache.wicket.extensions.markup.html.repeater.data.grid.ICellPopulator;
@@ -104,6 +105,10 @@ public class Todo extends BasePage {
     private void setupApproval() {
         approvalContainer = new WebMarkupContainer("approvalContainer");
 
+        MetaDataRoleAuthorizationStrategy.authorize(
+                approvalContainer, RENDER,
+                xmlRolesReader.getAllAllowedRoles("Approval", "list"));
+
         approvalPaginatorRows = prefMan.getPaginatorRows(getRequest(),
                 Constants.PREF_APPROVAL_PAGINATOR_ROWS);
 
@@ -143,7 +148,8 @@ public class Todo extends BasePage {
 
                 panel.add(new ActionLink() {
 
-                    private static final long serialVersionUID = -3722207913631435501L;
+                    private static final long serialVersionUID =
+                            -3722207913631435501L;
 
                     @Override
                     public void onClick(final AjaxRequestTarget target) {
@@ -160,14 +166,16 @@ public class Todo extends BasePage {
 
                 panel.add(new ActionLink() {
 
-                    private static final long serialVersionUID = -3722207913631435501L;
+                    private static final long serialVersionUID =
+                            -3722207913631435501L;
 
                     @Override
                     public void onClick(final AjaxRequestTarget target) {
                         editApprovalWin.setPageCreator(
                                 new ModalWindow.PageCreator() {
 
-                                    private static final long serialVersionUID = -7834632442532690940L;
+                                    private static final long serialVersionUID =
+                                            -7834632442532690940L;
 
                                     @Override
                                     public Page createPage() {
@@ -197,6 +205,10 @@ public class Todo extends BasePage {
         add(approvalContainer);
 
         Form approvalPaginatorForm = new Form("approvalPaginatorForm");
+
+        MetaDataRoleAuthorizationStrategy.authorize(
+                approvalPaginatorForm, RENDER,
+                xmlRolesReader.getAllAllowedRoles("Approval", "list"));
 
         final DropDownChoice rowsChooser = new DropDownChoice("rowsChooser",
                 new PropertyModel(this, "approvalPaginatorRows"),
@@ -232,6 +244,10 @@ public class Todo extends BasePage {
     private void setupUserRequest() {
         userRequestContainer = new WebMarkupContainer("userRequestContainer");
 
+        MetaDataRoleAuthorizationStrategy.authorize(
+                userRequestContainer, RENDER,
+                xmlRolesReader.getAllAllowedRoles("UserRequest", "list"));
+
         userRequestPaginatorRows = prefMan.getPaginatorRows(getRequest(),
                 Constants.PREF_USER_REQUEST_PAGINATOR_ROWS);
 
@@ -264,14 +280,16 @@ public class Todo extends BasePage {
 
                 panel.add(new ActionLink() {
 
-                    private static final long serialVersionUID = -3722207913631435501L;
+                    private static final long serialVersionUID =
+                            -3722207913631435501L;
 
                     @Override
                     public void onClick(final AjaxRequestTarget target) {
                         editUserRequestWin.setPageCreator(
                                 new ModalWindow.PageCreator() {
 
-                                    private static final long serialVersionUID = -7834632442532690940L;
+                                    private static final long serialVersionUID =
+                                            -7834632442532690940L;
 
                                     @Override
                                     public Page createPage() {
@@ -289,7 +307,8 @@ public class Todo extends BasePage {
 
                 panel.add(new ActionLink() {
 
-                    private static final long serialVersionUID = -3722207913631435501L;
+                    private static final long serialVersionUID =
+                            -3722207913631435501L;
 
                     @Override
                     public void onClick(final AjaxRequestTarget target) {
@@ -314,7 +333,8 @@ public class Todo extends BasePage {
 
                 panel.add(new ActionLink() {
 
-                    private static final long serialVersionUID = -3722207913631435501L;
+                    private static final long serialVersionUID =
+                            -3722207913631435501L;
 
                     @Override
                     public void onClick(final AjaxRequestTarget target) {
@@ -347,6 +367,10 @@ public class Todo extends BasePage {
         add(userRequestContainer);
 
         Form userRequestPaginatorForm = new Form("userRequestPaginatorForm");
+
+        MetaDataRoleAuthorizationStrategy.authorize(
+                userRequestPaginatorForm, RENDER,
+                xmlRolesReader.getAllAllowedRoles("UserRequest", "list"));
 
         final DropDownChoice rowsChooser = new DropDownChoice("rowsChooser",
                 new PropertyModel(this, "userRequestPaginatorRows"),
