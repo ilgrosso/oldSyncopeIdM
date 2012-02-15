@@ -68,6 +68,7 @@ public class Schema extends BasePage {
         RoleSchema,
         UserSchema,
         MembershipSchema
+
     };
 
     private enum SchemaDerivedType {
@@ -75,6 +76,7 @@ public class Schema extends BasePage {
         RoleDerivedSchema,
         UserDerivedSchema,
         MembershipDerivedSchema
+
     };
 
     private enum SchemaVirtualType {
@@ -82,6 +84,7 @@ public class Schema extends BasePage {
         RoleVirtualSchema,
         UserVirtualSchema,
         MembershipVirtualSchema
+
     };
 
     private static final int WIN_WIDTH = 550;
@@ -169,7 +172,7 @@ public class Schema extends BasePage {
     private int membershipVirPageRows;
 
     /*
-    Response flag set by the Modal Window after the operation is completed
+     * Response flag set by the Modal Window after the operation is completed
      */
     private boolean operationResult = false;
 
@@ -946,10 +949,11 @@ public class Schema extends BasePage {
 
                 panel.add(new ActionLink() {
 
-                    private static final long serialVersionUID = -3722207913631435501L;
+                    private static final long serialVersionUID =
+                            -3722207913631435501L;
 
                     @Override
-                    public void onClick(AjaxRequestTarget target) {
+                    public void onClick(final AjaxRequestTarget target) {
                         modalWindow.setPageCreator(
                                 new ModalWindow.PageCreator() {
 
@@ -979,7 +983,8 @@ public class Schema extends BasePage {
 
                 panel.add(new ActionLink() {
 
-                    private static final long serialVersionUID = -3722207913631435501L;
+                    private static final long serialVersionUID =
+                            -3722207913631435501L;
 
                     @Override
                     public void onClick(final AjaxRequestTarget target) {
