@@ -22,7 +22,7 @@ import org.syncope.client.search.NodeCond;
 import org.syncope.client.to.ConnObjectTO;
 import org.syncope.client.to.UserTO;
 import org.syncope.client.validation.SyncopeClientCompositeErrorException;
-import org.syncope.console.pages.panels.StatusPanel.StatusBean;
+import org.syncope.console.commons.StatusBean;
 
 /**
  * Console client for invoking rest users services.
@@ -76,7 +76,7 @@ public class UserRestClient extends AbstractBaseRestClient {
 
     public UserTO delete(Long id)
             throws SyncopeClientCompositeErrorException {
-        
+
         return restTemplate.getForObject(
                 baseURL + "user/delete/{userId}", UserTO.class, id);
     }

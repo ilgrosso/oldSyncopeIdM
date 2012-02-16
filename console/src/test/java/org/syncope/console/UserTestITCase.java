@@ -102,11 +102,15 @@ public class UserTestITCase extends AbstractTest {
         assertTrue(selenium.getConfirmation().matches(
                 "^Do you really want to delete the selected item[\\s\\S]$"));
 
+        selenium.waitForCondition("selenium.isElementPresent("
+                + "\"//div[@id='propagation']/span\");", "30000");
+
+        selenium.click("//span/span/div/a");
+
         // it depends on the execution order of tests: resources
         // 'ws-target-resource-delete' could have been deleted from
         // ResourceTestITCase#delete
         selenium.waitForCondition("selenium.isTextPresent("
-                + "\"Operation executed successfully\");",
-                "30000");
+                + "\"Operation executed successfully\");", "30000");
     }
 }

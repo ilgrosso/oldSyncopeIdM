@@ -295,7 +295,7 @@ public class UserController {
                 }
 
                 if (after != null) {
-                    propagation.setBefore(
+                    propagation.setAfter(
                             connInstanceDataBinder.getConnObjectTO(after));
                 }
 
@@ -356,7 +356,7 @@ public class UserController {
                 }
 
                 if (after != null) {
-                    propagation.setBefore(
+                    propagation.setAfter(
                             connInstanceDataBinder.getConnObjectTO(after));
                 }
 
@@ -509,7 +509,7 @@ public class UserController {
                 }
 
                 if (after != null) {
-                    propagation.setBefore(
+                    propagation.setAfter(
                             connInstanceDataBinder.getConnObjectTO(after));
                 }
 

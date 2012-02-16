@@ -34,7 +34,7 @@ import org.syncope.console.pages.panels.DerivedAttributesPanel;
 import org.syncope.console.pages.panels.ResourcesPanel;
 import org.syncope.console.pages.panels.RolesPanel;
 import org.syncope.console.pages.panels.UserDetailsPanel;
-import org.syncope.console.pages.panels.UserModalPageResult;
+import org.syncope.console.pages.panels.UserManagementResultPanel;
 import org.syncope.console.pages.panels.VirtualAttributesPanel;
 
 /**
@@ -100,7 +100,7 @@ public abstract class UserModalPage extends BaseModalPage {
         fragment.setOutputMarkupId(true);
         add(fragment);
 
-        final UserModalPageResult result = new UserModalPageResult(
+        final UserManagementResultPanel result = new UserManagementResultPanel(
                 "userModalPageResult", window, mode, userTO);
         result.setOutputMarkupId(true);
 

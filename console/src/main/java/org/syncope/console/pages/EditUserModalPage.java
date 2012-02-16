@@ -26,9 +26,9 @@ import org.apache.wicket.spring.injection.annot.SpringBean;
 import org.syncope.client.mod.UserMod;
 import org.syncope.client.to.UserTO;
 import org.syncope.client.util.AttributableOperations;
+import org.syncope.console.commons.StatusBean;
 import org.syncope.console.pages.panels.AccountInformationPanel;
 import org.syncope.console.pages.panels.StatusPanel;
-import org.syncope.console.pages.panels.StatusPanel.StatusBean;
 import org.syncope.console.rest.UserRestClient;
 
 /**
@@ -64,7 +64,7 @@ public class EditUserModalPage extends UserModalPage {
         }
     }
 
-    private EditUserModalPage(
+    public EditUserModalPage(
             final ModalWindow window,
             final UserTO userTO) {
         super(window, userTO, Mode.ADMIN);
