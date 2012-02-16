@@ -168,7 +168,7 @@ public class Resources extends BasePage {
 
                         editResourceWin.show(target);
                     }
-                }, ActionLink.ActionType.EDIT, "Resources", "update");
+                }, ActionLink.ActionType.EDIT, "Resources", "read");
 
                 panel.add(new ActionLink() {
 
@@ -205,10 +205,6 @@ public class Resources extends BasePage {
         resourceContainer = new WebMarkupContainer("resourceContainer");
         resourceContainer.add(table);
         resourceContainer.setOutputMarkupId(true);
-
-        MetaDataRoleAuthorizationStrategy.authorize(
-                resourceContainer, RENDER,
-                xmlRolesReader.getAllAllowedRoles("Resources", "list"));
 
         add(resourceContainer);
 
@@ -352,7 +348,7 @@ public class Resources extends BasePage {
 
                         editConnectorWin.show(target);
                     }
-                }, ActionLink.ActionType.EDIT, "Connectors", "update");
+                }, ActionLink.ActionType.EDIT, "Connectors", "read");
 
                 panel.add(new ActionLink() {
 
