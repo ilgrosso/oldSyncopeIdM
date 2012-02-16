@@ -488,17 +488,29 @@ public class ResultSetPanel extends Panel implements IEventSource {
                     @Override
                     public void onClick(final AjaxRequestTarget target) {
                         try {
-                            userRestClient.delete(model.getObject().getId());
-                            info(getString("operation_succeded"));
+                            final UserTO userTO = userRestClient.delete(
+                                    model.getObject().getId());
+
+                            page.setModalResult(true);
+
+                            editmodal.setPageCreator(
+                                    new ModalWindow.PageCreator() {
+
+                                        private static final long serialVersionUID =
+                                                -7834632442532690940L;
+
+                                        @Override
+                                        public Page createPage() {
+                                            return new EditUserModalPage(
+                                                    editmodal, userTO);
+                                        }
+                                    });
+
+                            editmodal.show(target);
+
                         } catch (SyncopeClientCompositeErrorException scce) {
                             error(scce.getMessage());
                         }
-                        target.add(feedbackPanel);
-
-                        final EventDataWrapper data = new EventDataWrapper();
-                        data.setTarget(target);
-
-                        send(getPage(), Broadcast.BREADTH, data);
                     }
                 }, ActionLink.ActionType.DELETE, "Users", "delete");
 

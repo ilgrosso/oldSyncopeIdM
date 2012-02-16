@@ -80,6 +80,8 @@
         </property>
     </bean>
 
+    <bean id="StatusUtils" class="org.syncope.console.commons.StatusUtils"/>
+
     <bean id="preferenceManager" class="org.syncope.console.commons.PreferenceManager"/>
 
     <bean id="xmlRolesReader" class="org.syncope.console.commons.XMLRolesReader"/>

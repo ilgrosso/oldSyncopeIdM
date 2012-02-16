@@ -27,8 +27,8 @@ import org.apache.wicket.markup.html.form.Form;
 import org.apache.wicket.model.ResourceModel;
 import org.apache.wicket.spring.injection.annot.SpringBean;
 import org.syncope.client.to.UserTO;
+import org.syncope.console.commons.StatusBean;
 import org.syncope.console.pages.panels.StatusPanel;
-import org.syncope.console.pages.panels.StatusPanel.StatusBean;
 import org.syncope.console.rest.UserRestClient;
 
 public class StatusModalPage extends BaseModalPage {
