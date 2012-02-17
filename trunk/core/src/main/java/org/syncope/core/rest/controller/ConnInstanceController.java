@@ -173,8 +173,7 @@ public class ConnInstanceController extends AbstractController {
     value = "/list")
     @Transactional(readOnly = true)
     public List<ConnInstanceTO> list(
-            @RequestParam(value = "lang", required = false) final String lang)
-            throws NotFoundException {
+            @RequestParam(value = "lang", required = false) final String lang) {
 
         if (StringUtils.isBlank(lang)) {
             CurrentLocale.set(Locale.ENGLISH);
@@ -184,10 +183,17 @@ public class ConnInstanceController extends AbstractController {
 
         List<ConnInstance> connInstances = connInstanceDAO.findAll();
 
-        List<ConnInstanceTO> connInstanceTOs =
+        final List<ConnInstanceTO> connInstanceTOs =
                 new ArrayList<ConnInstanceTO>();
+
         for (ConnInstance connector : connInstances) {
-            connInstanceTOs.add(binder.getConnInstanceTO(connector));
+            try {
+                connInstanceTOs.add(binder.getConnInstanceTO(connector));
+            } catch (NotFoundException e) {
+                LOG.error("Connector '{}#{}' not found",
+                        connector.getBundleName(),
+                        connector.getVersion());
+            }
         }
 
         return connInstanceTOs;
