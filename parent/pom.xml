@@ -763,7 +763,7 @@
                 <plugin>
                     <groupId>org.codehaus.cargo</groupId>
                     <artifactId>cargo-maven2-plugin</artifactId>
-                    <version>1.1.4</version>
+                    <version>1.2.0</version>
                     <configuration>
                         <container>
                             <containerId>tomcat7x</containerId>
