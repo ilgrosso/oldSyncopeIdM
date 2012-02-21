@@ -90,10 +90,8 @@ public class TreeActionLinkPanel extends Panel {
             }
         };
 
-        String allowedCreateRoles = xmlRolesReader.getAllAllowedRoles(
-                "Roles", "create");
         MetaDataRoleAuthorizationStrategy.authorize(createRoleLink, ENABLE,
-                allowedCreateRoles);
+                xmlRolesReader.getAllAllowedRoles("Roles", "create"));
 
         fragment.add(createRoleLink);
 
@@ -121,10 +119,8 @@ public class TreeActionLinkPanel extends Panel {
                 }
             };
 
-            String allowedReadRoles = xmlRolesReader.getAllAllowedRoles(
-                    "Roles", "read");
             MetaDataRoleAuthorizationStrategy.authorize(updateRoleLink, ENABLE,
-                    allowedReadRoles);
+                    xmlRolesReader.getAllAllowedRoles("Roles", "read"));
 
             fragment.add(updateRoleLink);
 
@@ -145,10 +141,8 @@ public class TreeActionLinkPanel extends Panel {
                 }
             };
 
-            String allowedDropRoles = xmlRolesReader.getAllAllowedRoles(
-                    "Roles", "delete");
             MetaDataRoleAuthorizationStrategy.authorize(dropRoleLink, ENABLE,
-                    allowedDropRoles);
+                    xmlRolesReader.getAllAllowedRoles("Roles", "delete"));
 
             fragment.add(dropRoleLink);
         }

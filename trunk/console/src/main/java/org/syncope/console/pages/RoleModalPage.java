@@ -49,11 +49,11 @@ public class RoleModalPage extends BaseModalPage {
 
     public RoleModalPage(
             final PageReference callerPageRef,
-            final ModalWindow window, 
+            final ModalWindow window,
             final RoleTO roleTO) {
 
         super();
-        
+
         final boolean createFlag = roleTO.getId() == 0;
         if (!createFlag) {
             originalRoleTO = AttributableOperations.clone(roleTO);
@@ -116,11 +116,9 @@ public class RoleModalPage extends BaseModalPage {
             }
         };
 
-        String allowedRoles = createFlag
-                ? xmlRolesReader.getAllAllowedRoles("Roles", "create")
-                : xmlRolesReader.getAllAllowedRoles("Roles", "update");
         MetaDataRoleAuthorizationStrategy.authorize(
-                submit, ENABLE, allowedRoles);
+                submit, ENABLE, xmlRolesReader.getAllAllowedRoles(
+                "Roles", createFlag ? "create" : "update"));
 
         form.add(submit);
 

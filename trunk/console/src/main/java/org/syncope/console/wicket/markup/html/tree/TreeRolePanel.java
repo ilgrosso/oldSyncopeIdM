@@ -16,6 +16,7 @@ package org.syncope.console.wicket.markup.html.tree;
 
 import javax.swing.tree.DefaultMutableTreeNode;
 import org.apache.wicket.ajax.AjaxRequestTarget;
+import org.apache.wicket.authroles.authorization.strategies.role.metadata.MetaDataRoleAuthorizationStrategy;
 import org.apache.wicket.event.Broadcast;
 import org.apache.wicket.event.IEvent;
 import org.apache.wicket.markup.html.WebMarkupContainer;
@@ -27,6 +28,7 @@ import org.apache.wicket.model.PropertyModel;
 import org.apache.wicket.spring.injection.annot.SpringBean;
 import org.syncope.client.to.RoleTO;
 import org.syncope.console.commons.RoleTreeBuilder;
+import org.syncope.console.commons.XMLRolesReader;
 import org.syncope.console.pages.panels.RoleSummaryPanel.TreeNodeClickUpdate;
 
 public class TreeRolePanel extends Panel {
@@ -35,6 +37,9 @@ public class TreeRolePanel extends Panel {
 
     @SpringBean
     private RoleTreeBuilder roleTreeBuilder;
+
+    @SpringBean
+    protected XMLRolesReader xmlRolesReader;
 
     final WebMarkupContainer treeContainer;
 
@@ -75,6 +80,10 @@ public class TreeRolePanel extends Panel {
 
             }
         };
+
+        MetaDataRoleAuthorizationStrategy.authorize(
+                tree, ENABLE,
+                xmlRolesReader.getAllAllowedRoles("Roles", "read"));
 
         tree.setOutputMarkupId(true);
         tree.getTreeState().expandAll();
