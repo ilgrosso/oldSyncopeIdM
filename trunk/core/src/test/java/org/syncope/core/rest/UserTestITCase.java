@@ -1,16 +1,20 @@
 /*
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *       http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *  under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.syncope.core.rest;
 
@@ -485,10 +489,10 @@ public class UserTestITCase extends AbstractTest {
         userTO.addMembership(membershipTO);
 
         // add an attribute with no values: must be ignored
-        AttributeTO nullValueAttributeTO = new AttributeTO();
-        nullValueAttributeTO.setSchema("subscriptionDate");
-        nullValueAttributeTO.setValues(null);
-        membershipTO.addAttribute(nullValueAttributeTO);
+        AttributeTO nullValueAttrTO = new AttributeTO();
+        nullValueAttrTO.setSchema("subscriptionDate");
+        nullValueAttrTO.setValues(null);
+        membershipTO.addAttribute(nullValueAttrTO);
 
         // add an attribute with a non-existing schema: must be ignored
         AttributeTO attrWithInvalidSchemaTO = new AttributeTO();
@@ -497,10 +501,10 @@ public class UserTestITCase extends AbstractTest {
         userTO.addAttribute(attrWithInvalidSchemaTO);
 
         // add an attribute with null value: must be ignored
-        nullValueAttributeTO = new AttributeTO();
-        nullValueAttributeTO.setSchema("activationDate");
-        nullValueAttributeTO.addValue(null);
-        userTO.addAttribute(nullValueAttributeTO);
+        nullValueAttrTO = new AttributeTO();
+        nullValueAttrTO.setSchema("activationDate");
+        nullValueAttrTO.addValue(null);
+        userTO.addAttribute(nullValueAttrTO);
 
         // 1. create user
         UserTO newUserTO = restTemplate.postForObject(
@@ -1650,5 +1654,95 @@ public class UserTestITCase extends AbstractTest {
             assertNotNull(sccee.getException(
                     SyncopeClientExceptionType.InvalidValues));
         }
+    }
+
+    @Test
+    public void roleAttrPropagation() {
+        UserTO userTO = getSampleTO("checkRoleAttrPropagation@syncope-idm.org");
+        userTO.getResources().clear();
+        userTO.getMemberships().clear();
+        userTO.getDerivedAttributes().clear();
+        userTO.getVirtualAttributes().clear();
+
+        AttributeTO csvuserid = new AttributeTO();
+        csvuserid.setSchema("csvuserid");
+        userTO.addDerivedAttribute(csvuserid);
+
+        MembershipTO membershipTO = new MembershipTO();
+        membershipTO.setRoleId(1L);
+
+        userTO.addMembership(membershipTO);
+
+        userTO.addResource("resource-csv");
+
+        UserTO actual = restTemplate.postForObject(
+                BASE_URL + "user/create", userTO, UserTO.class);
+
+        assertNotNull(actual);
+        assertNotNull(actual.getDerivedAttributeMap().get("csvuserid"));
+
+        ConnObjectTO connObjectTO = restTemplate.getForObject(
+                BASE_URL + "/resource/{resourceName}/read/{objectId}.json",
+                ConnObjectTO.class,
+                "resource-csv",
+                actual.getDerivedAttributeMap().get("csvuserid").getValues().
+                get(0));
+
+        assertNotNull(connObjectTO);
+
+        assertEquals("sx-dx", connObjectTO.getAttributeMap().get("ROLE").
+                getValues().get(0));
+    }
+    
+    @Test
+    public void membershipAttrPropagation() {
+        UserTO userTO = getSampleTO("checkMembAttrPropagation@syncope-idm.org");
+        userTO.getResources().clear();
+        userTO.getMemberships().clear();
+        userTO.getDerivedAttributes().clear();
+        userTO.getVirtualAttributes().clear();
+
+        AttributeTO csvuserid = new AttributeTO();
+        csvuserid.setSchema("csvuserid");
+        userTO.addDerivedAttribute(csvuserid);
+
+        MembershipTO membershipTO = new MembershipTO();
+        membershipTO.setRoleId(1L);
+        
+        AttributeTO mderived_sx = new AttributeTO();
+        mderived_sx.setSchema("mderived_sx");
+        mderived_sx.setValues(Collections.singletonList("sx"));
+        membershipTO.addAttribute(mderived_sx);
+        
+        AttributeTO mderived_dx = new AttributeTO();
+        mderived_dx.setSchema("mderived_dx");
+        mderived_dx.setValues(Collections.singletonList("dx"));
+        membershipTO.addAttribute(mderived_dx);
+        
+        AttributeTO mderiveddata = new AttributeTO();
+        mderiveddata.setSchema("mderToBePropagated");
+        membershipTO.addDerivedAttribute(mderiveddata);
+
+        userTO.addMembership(membershipTO);
+
+        userTO.addResource("resource-csv");
+
+        UserTO actual = restTemplate.postForObject(
+                BASE_URL + "user/create", userTO, UserTO.class);
+
+        assertNotNull(actual);
+        assertNotNull(actual.getDerivedAttributeMap().get("csvuserid"));
+
+        ConnObjectTO connObjectTO = restTemplate.getForObject(
+                BASE_URL + "/resource/{resourceName}/read/{objectId}.json",
+                ConnObjectTO.class,
+                "resource-csv",
+                actual.getDerivedAttributeMap().get("csvuserid").getValues().
+                get(0));
+
+        assertNotNull(connObjectTO);
+
+        assertEquals("sx-dx", connObjectTO.getAttributeMap().get("MEMBERSHIP").
+                getValues().get(0));
     }
 }

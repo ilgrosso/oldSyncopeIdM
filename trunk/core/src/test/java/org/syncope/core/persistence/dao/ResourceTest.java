@@ -1,16 +1,20 @@
 /*
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
  *
- *       http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- *  under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.syncope.core.persistence.dao;
 
@@ -27,6 +31,7 @@ import org.syncope.core.persistence.beans.ExternalResource;
 import org.syncope.core.persistence.beans.SchemaMapping;
 import org.syncope.core.AbstractTest;
 import org.syncope.core.persistence.validation.entity.InvalidEntityException;
+import org.syncope.types.Entity;
 import org.syncope.types.IntMappingType;
 
 @Transactional
@@ -117,6 +122,11 @@ public class ResourceTest extends AbstractTest {
         ExternalResource resource = new ExternalResource();
         resource.setName("ws-target-resource-basic-save-invalid");
 
+        ConnInstance connector =
+                resourceDAO.find("ws-target-resource-1").getConnector();
+
+        resource.setConnector(connector);
+
         SchemaMapping accountId = new SchemaMapping();
         accountId.setResource(resource);
         accountId.setAccountid(true);
@@ -136,6 +146,11 @@ public class ResourceTest extends AbstractTest {
         ExternalResource resource = new ExternalResource();
         resource.setName("ws-target-resource-basic-save-invalid");
 
+        ConnInstance connector =
+                resourceDAO.find("ws-target-resource-1").getConnector();
+
+        resource.setConnector(connector);
+
         SchemaMapping mapping = new SchemaMapping();
         mapping.setResource(resource);
         mapping.setAccountid(true);
@@ -146,8 +161,46 @@ public class ResourceTest extends AbstractTest {
 
         mapping = new SchemaMapping();
         mapping.setResource(resource);
+        mapping.setIntAttrName("userId");
+        mapping.setIntMappingType(IntMappingType.UserSchema);
+
+        resource.addMapping(mapping);
+
+        resourceDAO.save(resource);
+    }
+
+    @Test
+    public void saveWithRoleMappingType() {
+
+        ExternalResource resource = new ExternalResource();
+        resource.setName("ws-target-resource-basic-save-invalid");
+
+        ConnInstance connector =
+                resourceDAO.find("ws-target-resource-1").getConnector();
+
+        resource.setConnector(connector);
+
+        SchemaMapping mapping = new SchemaMapping();
+        mapping.setResource(resource);
+        mapping.setAccountid(true);
         mapping.setIntAttrName("fullname");
         mapping.setIntMappingType(IntMappingType.UserSchema);
+
+        resource.addMapping(mapping);
+
+        mapping = new SchemaMapping();
+        mapping.setResource(resource);
+        mapping.setIntAttrName("icon");
+        mapping.setExtAttrName("icon");
+        mapping.setIntMappingType(IntMappingType.RoleSchema);
+
+        resource.addMapping(mapping);
+
+        mapping = new SchemaMapping();
+        mapping.setResource(resource);
+        mapping.setIntAttrName("mderiveddata");
+        mapping.setExtAttrName("mderiveddata");
+        mapping.setIntMappingType(IntMappingType.MembershipDerivedSchema);
 
         resource.addMapping(mapping);
 
@@ -155,6 +208,23 @@ public class ResourceTest extends AbstractTest {
         ExternalResource actual = resourceDAO.save(resource);
 
         assertNotNull(actual);
+
+        assertEquals(3, actual.getMappings().size());
+
+        for (SchemaMapping schemaMapping : actual.getMappings()) {
+
+            if ("icon".equals(schemaMapping.getIntAttrName())) {
+                assertTrue(IntMappingType.contains(
+                        Entity.ROLE,
+                        schemaMapping.getIntMappingType().toString()));
+            }
+
+            if ("mderiveddata".equals(schemaMapping.getIntAttrName())) {
+                assertTrue(IntMappingType.contains(
+                        Entity.MEMBERSHIP,
+                        schemaMapping.getIntMappingType().toString()));
+            }
+        }
     }
 
     @Test
