@@ -1,1 +1,1 @@
-Proceed to [Apache Syncope wiki https://cwiki.apache.org/confluence/display/SYNCOPE/Index]
+Proceed to [https://cwiki.apache.org/confluence/display/SYNCOPE/Index Apache Syncope wiki]
